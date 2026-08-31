@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: stock-scout
+    env: node
+    plan: free
+    buildCommand: ""
+    startCommand: "npm start"
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0

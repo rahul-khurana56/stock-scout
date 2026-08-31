@@ -1,0 +1,304 @@
+//@version=5
+indicator("Profit GeNIE 1 - Institutional Options Indicator", shorttitle="PG1-INDICATOR", overlay=true)
+
+// =============================================================================
+// 1. STRATEGY SELECTION & INPUTS (WITH CHOP ELIMINATOR)
+// =============================================================================
+entryMode           = input.string("Trend Pullback (70%+ High Probability)", title="Entry Style", options=["Trend Pullback (70%+ High Probability)", "Momentum Breakout (Classic GeNIE)"], group="Strategy Mode")
+tradeMode           = input.string("High-Quality TREND Only", title="Quality Filter", options=["High-Quality TREND Only", "All Signals (High R:R)"], group="Strategy Mode")
+
+// --- Chop Eliminator & Signal Quality ---
+maxTradesPerSession = input.int(1,      title="Max Trades per Window (Eliminates Re-entry Chop)", minval=1, maxval=3, group="Anti-Chop Engine")
+minAdxThreshold     = input.int(20,     title="Minimum ADX Momentum Floor",   minval=15, maxval=30, group="Anti-Chop Engine")
+requireAdxRising    = input.bool(true,  title="Require Rising ADX (No Dead Trends)", group="Anti-Chop Engine")
+requireFreshTrend   = input.bool(true,  title="Require Fresh 21/50 EMA Cross per Leg", group="Anti-Chop Engine")
+
+// --- Indicator Inputs ---
+rsiLength           = input.int(14,     title="RSI Length",                    minval=1, group="Indicators")
+adxLength           = input.int(14,     title="ADX Length",                    minval=1, group="Indicators")
+fastEmaLength       = input.int(21,     title="Fast EMA (Pullback Base)",      minval=1, group="Indicators")
+slowEmaLength       = input.int(50,     title="Slow EMA (Trend Filter)",       minval=1, group="Indicators")
+genieEmaLength      = input.int(33,     title="Classic GeNIE EMA",             minval=1, group="Indicators")
+breakoutLookback    = input.int(15,     title="Breakout Lookback (bars)",      minval=2, group="Indicators")
+
+// --- Macro Trend Alignment ---
+useHTFFilter        = input.bool(true,  title="Require 15m HTF Alignment",     group="Macro Alignment")
+htfTimeframe        = input.timeframe("15", title="HTF Timeframe",             group="Macro Alignment")
+useVWAPFilter       = input.bool(true,  title="Require Daily VWAP Side",       group="Macro Alignment")
+
+// --- Options Buyer Timing Windows (Avoid Midday Theta Decay) ---
+useSessionFilter    = input.bool(true,  title="Skip Midday Theta Decay (11:30 - 13:15)", group="Options Timing Windows")
+morningSession      = input.session("0930-1115:23456", title="Morning Momentum Window", group="Options Timing Windows")
+afternoonSession    = input.session("1315-1500:23456", title="Afternoon Momentum Window", group="Options Timing Windows")
+
+// --- Precision Targets & Risk Management ---
+slAtrMultiplier     = input.float(0.8,  title="Option Stop Loss (Spot x ATR)", step=0.1, minval=0.3, group="Take-Profit & Risk Management")
+tp1AtrMultiplier    = input.float(0.7,  title="TP1 (Spot x ATR) - 75% Lots",   step=0.1, minval=0.4, group="Take-Profit & Risk Management")
+tp2AtrMultiplier    = input.float(2.0,  title="TP2 (Spot x ATR) - 25% Runner", step=0.1, minval=1.0, group="Take-Profit & Risk Management")
+
+// --- Visual Features & Panel ---
+showInfoPanel       = input.bool(true,  title="Show Information Table Panel",  group="Visual Elements")
+panelPosition       = input.string("top_right", title="Panel Position",        options=["top_left","top_center","top_right","bottom_left","bottom_center","bottom_right"], group="Visual Elements")
+showDeltaZones      = input.bool(true,  title="Show Delta Exhaustion Zones",   group="Visual Elements")
+stddevlevel         = input.float(3.5,  title="Delta Std Dev",                 step=0.5, group="Visual Elements")
+stddevlookback      = input.int(20,     title="Delta Lookback",                group="Visual Elements")
+buyBoxColor         = input.color(color.new(color.green, 83), title="Buy Box Color",  group="Visual Elements")
+sellBoxColor        = input.color(color.new(color.red, 83),   title="Sell Box Color", group="Visual Elements")
+showWeeklyVWAP      = input.bool(true,  title="Show Weekly VWAP",              group="Visual Elements")
+showDailyVWAP       = input.bool(true,  title="Show Daily VWAP",               group="Visual Elements")
+
+// =============================================================================
+// 2. TIMING WINDOW & SESSION TRACKING
+// =============================================================================
+inMorning   = not na(time(timeframe.period, morningSession, "Asia/Kolkata"))
+inAfternoon = not na(time(timeframe.period, afternoonSession, "Asia/Kolkata"))
+inTimingWindow = not useSessionFilter or inMorning or inAfternoon
+
+// Track Session Trade Counts (Max 1 per Window)
+var int morningTrades = 0
+var int afternoonTrades = 0
+
+// Reset on new day or session transitions
+if ta.change(time("D")) != 0
+    morningTrades := 0
+    afternoonTrades := 0
+
+if inMorning and not inMorning[1]
+    morningTrades := 0
+
+if inAfternoon and not inAfternoon[1]
+    afternoonTrades := 0
+
+canTradeInSession = (inMorning and morningTrades < maxTradesPerSession) or (inAfternoon and afternoonTrades < maxTradesPerSession) or not useSessionFilter
+
+// =============================================================================
+// 3. CORE CALCULATIONS & MOMENTUM HEALTH
+// =============================================================================
+// EMAs
+ema21     = ta.ema(close, fastEmaLength)
+ema50     = ta.ema(close, slowEmaLength)
+ema33High = ta.ema(close, genieEmaLength)
+ema33Low  = ta.ema(low,   genieEmaLength)
+
+// Fresh Trend State Tracking (Prevents entering on exhausted trends)
+var bool freshBullLeg = false
+var bool freshBearLeg = false
+
+if ta.crossover(ema21, ema50)
+    freshBullLeg := true
+    freshBearLeg := false
+
+if ta.crossunder(ema21, ema50)
+    freshBearLeg := true
+    freshBullLeg := false
+
+// RSI
+rsiValue = ta.rsi(close, rsiLength)
+
+// ADX / DMI
+getADXDI(length) =>
+    trueRange  = ta.tr(true)
+    changeHigh = ta.change(high)
+    changeLow  = -ta.change(low)
+    plusDM     = na(changeHigh) ? na : (changeHigh > changeLow and changeHigh > 0 ? changeHigh : 0)
+    minusDM    = na(changeLow)  ? na : (changeLow > changeHigh and changeLow  > 0 ? changeLow  : 0)
+    atr        = ta.rma(trueRange, length)
+    plusDI     = 100 * ta.rma(plusDM,  length) / atr
+    minusDI    = 100 * ta.rma(minusDM, length) / atr
+    dx         = 100 * math.abs(plusDI - minusDI) / (plusDI + minusDI)
+    adxVal     = ta.rma(dx, length)
+    [adxVal, plusDI, minusDI]
+
+[adxVal, plusDiVal, minusDiVal] = getADXDI(adxLength)
+adxIsHealthy = adxVal >= minAdxThreshold and (not requireAdxRising or adxVal >= adxVal[1])
+
+// HTF Alignment
+htfEMA = request.security(syminfo.tickerid, htfTimeframe, ta.ema(close, fastEmaLength), lookahead=barmerge.lookahead_off)
+[htfADX, htfPlusDI, htfMinusDI] = request.security(syminfo.tickerid, htfTimeframe, getADXDI(adxLength), lookahead=barmerge.lookahead_off)
+htfClose = request.security(syminfo.tickerid, htfTimeframe, close, lookahead=barmerge.lookahead_off)
+
+htfBullish = htfClose > htfEMA and htfPlusDI > htfMinusDI
+htfBearish = htfClose < htfEMA and htfMinusDI > htfPlusDI
+
+// Daily VWAP
+dailyVWAP = ta.vwap(hlc3)
+
+// ATR Volatility
+atrLength = timeframe.period == "5" ? 14 : timeframe.period == "15" ? 10 : 14
+atrValue  = ta.atr(atrLength)
+
+// Daily Open & Breakout Bands
+var float dailyOpen = na
+if ta.change(time("D")) != 0
+    dailyOpen := open
+if na(dailyOpen)
+    dailyOpen := open
+
+adjustedChange =
+     str.contains(syminfo.ticker, "BANK")  ? 0.0017 :
+     str.contains(syminfo.ticker, "NIFTY") ? 0.0025 :
+     str.contains(syminfo.prefix, "MCX")   ? 0.0040 :
+     str.contains(syminfo.ticker, "SENSEX") ? 0.0015 : 0.0025
+
+bbz = dailyOpen * (1 + adjustedChange)
+bz  = dailyOpen * (1 - adjustedChange)
+
+nBarHigh = ta.highest(high, breakoutLookback)[1]
+nBarLow  = ta.lowest(low, breakoutLookback)[1]
+
+// =============================================================================
+// 4. PRECISION SIGNAL GENERATION (ANTI-CHOP FILTERED)
+// =============================================================================
+macroLongOK  = (not useHTFFilter or htfBullish) and (not useVWAPFilter or close > dailyVWAP) and ema21 >= ema50 and adxIsHealthy and (not requireFreshTrend or freshBullLeg)
+macroShortOK = (not useHTFFilter or htfBearish) and (not useVWAPFilter or close < dailyVWAP) and ema21 <= ema50 and adxIsHealthy and (not requireFreshTrend or freshBearLeg)
+
+// --- MODE A: HIGH-PROBABILITY TREND PULLBACK ---
+pullbackDipLong     = low <= (ema21 + (atrValue * 0.15)) and close > ema50 and rsiValue >= 45 and rsiValue <= 65
+reversalTriggerLong = close > open and close > ema21 and close >= high[1] and plusDiVal > minusDiVal
+
+pullbackRallyShort   = high >= (ema21 - (atrValue * 0.15)) and close < ema50 and rsiValue <= 55 and rsiValue >= 35
+reversalTriggerShort = close < open and close < ema21 and close <= low[1] and minusDiVal > plusDiVal
+
+pullbackLongSignal  = macroLongOK and pullbackDipLong and reversalTriggerLong
+pullbackShortSignal = macroShortOK and pullbackRallyShort and reversalTriggerShort
+
+// --- MODE B: CLASSIC GENIE BREAKOUT ENGINE ---
+rsiScore      = rsiValue >= 65 ? 1.0 : rsiValue >= 55 ? 0.7 : rsiValue >= 50 ? 0.4 : 0.0
+adxScore      = adxVal >= 30 ? 1.0 : adxVal >= 20 ? 0.6 : 0.3
+diSpread      = plusDiVal - minusDiVal
+trendScore    = math.round((rsiScore + adxScore + (math.max(math.min(diSpread, 30), 0) / 30) + (close > ema33High ? 1.0 : 0.0)) * 10) / 10
+
+bearDiSpread    = minusDiVal - plusDiVal
+shortTrendScore = math.round(((rsiValue <= 35 ? 1.0 : rsiValue <= 45 ? 0.7 : 0.4) + adxScore + (math.max(math.min(bearDiSpread, 30), 0) / 30) + (close < ema33Low ? 1.0 : 0.0)) * 10) / 10
+
+breakoutLongSignal  = close > ema33High and plusDiVal > minusDiVal and rsiValue > 55 and trendScore >= 2.5 and close > bbz and close > nBarHigh and macroLongOK
+breakoutShortSignal = close < ema33Low and minusDiVal > plusDiVal and rsiValue < 45 and shortTrendScore >= 2.5 and close < bz and close < nBarLow and macroShortOK
+
+// Combined Trigger
+isPullbackMode = entryMode == "Trend Pullback (70%+ High Probability)"
+rawLongSignal  = isPullbackMode ? pullbackLongSignal : breakoutLongSignal
+rawShortSignal = isPullbackMode ? pullbackShortSignal : breakoutShortSignal
+
+// Final Trigger with Strict Session Quota
+validLongEntry  = barstate.isconfirmed and rawLongSignal and inTimingWindow and canTradeInSession
+validShortEntry = barstate.isconfirmed and rawShortSignal and inTimingWindow and canTradeInSession
+
+if validLongEntry
+    freshBullLeg := false
+    if inMorning
+        morningTrades += 1
+    if inAfternoon
+        afternoonTrades += 1
+
+if validShortEntry
+    freshBearLeg := false
+    if inMorning
+        morningTrades += 1
+    if inAfternoon
+        afternoonTrades += 1
+
+// Targets Calculation
+var float targetTP1 = na
+var float targetTP2 = na
+var float targetSL  = na
+
+if validLongEntry
+    targetSL  := isPullbackMode ? math.max(math.min(low, low[1]) - (atrValue * 0.2), close - (atrValue * 0.9)) : close - (atrValue * slAtrMultiplier)
+    targetTP1 := close + (atrValue * tp1AtrMultiplier)
+    targetTP2 := close + (atrValue * tp2AtrMultiplier)
+
+if validShortEntry
+    targetSL  := isPullbackMode ? math.min(math.max(high, high[1]) + (atrValue * 0.2), close + (atrValue * 0.9)) : close + (atrValue * slAtrMultiplier)
+    targetTP1 := close - (atrValue * tp1AtrMultiplier)
+    targetTP2 := close - (atrValue * tp2AtrMultiplier)
+
+// =============================================================================
+// 5. CHART VISUALS & TARGET LINES
+// =============================================================================
+plot(ema21,     color=color.new(#38bdf8, 10), title="21 EMA (Support/Pullback)", linewidth=2)
+plot(ema50,     color=color.new(#f59e0b, 10), title="50 EMA (Trend Baseline)",   linewidth=2)
+plot(showDailyVWAP ? dailyVWAP : na, color=color.new(#ec4899, 0), title="Daily VWAP", linewidth=2)
+
+// High-Conviction On-Chart Entry Labels
+plotshape(validLongEntry,  title="BUY ATM CE Signal", style=shape.labelup,   location=location.belowbar, color=color.new(#10b981, 0), text="BUY ATM CE\n(HIGH CONVICTION)", textcolor=color.white, size=size.small)
+plotshape(validShortEntry, title="BUY ATM PE Signal", style=shape.labeldown, location=location.abovebar, color=color.new(#ef4444, 0), text="BUY ATM PE\n(HIGH CONVICTION)", textcolor=color.white, size=size.small)
+
+// Target Level Visuals
+plot(targetTP1, title="Target TP1 (75% Lots)", color=color.blue,    style=plot.style_circles, linewidth=2)
+plot(targetTP2, title="Target TP2 (25% Runner)", color=color.teal,    style=plot.style_circles, linewidth=2)
+plot(targetSL,  title="Stop Loss Level",       color=color.fuchsia, style=plot.style_circles, linewidth=2)
+
+// --- Weekly VWAP ---
+newSessionW = ta.change(time("W"))
+getVWAP(newSession) =>
+    var float p   = na
+    var float vol = na
+    p   := newSession ? hlc3*volume : (na(p) ? hlc3*volume : p+hlc3*volume)
+    vol := newSession ? volume      : (na(vol) ? volume : vol+volume)
+    p / vol
+
+vW = getVWAP(newSessionW)
+plot(showWeeklyVWAP and not na(volume) and volume > 0 ? vW : na, title="Weekly VWAP", color=color.new(color.blue, 30), linewidth=2)
+
+// --- Delta Exhaustion Zones ---
+if showDeltaZones
+    uptop = high - close
+    upbot = open - low
+    dntop = high - open
+    dnbot = close - low
+    up_delta   = upbot - uptop
+    down_delta = dntop - dnbot
+    delta      = up_delta != 0 ? up_delta : down_delta != 0 ? down_delta : na
+    pos_delta  = delta > 0 ? delta : na
+    neg_delta  = delta < 0 ? delta : na
+    wickdevup  = ta.stdev(pos_delta, stddevlookback) * stddevlevel
+    wickdevdn  = ta.stdev(neg_delta, stddevlookback) * -stddevlevel
+    huntingup  = pos_delta >= wickdevup
+    huntingdn  = neg_delta <= wickdevdn
+
+    if huntingup
+        box.new(left=bar_index, top=(open <= close ? (open+low)/2 : (close+low)/2), right=bar_index + 4, bottom=low, bgcolor=buyBoxColor, border_width=1, border_color=color.green)
+    if huntingdn
+        box.new(left=bar_index, top=high, right=bar_index + 4, bottom=(open < close ? (close+high)/2 : (open+high)/2), bgcolor=sellBoxColor, border_width=1, border_color=color.red)
+
+// --- INFO PANEL TABLE ---
+var table infoTable = na
+if showInfoPanel and na(infoTable)
+    pos = switch panelPosition
+        "top_left"      => position.top_left
+        "top_center"    => position.top_center
+        "top_right"     => position.top_right
+        "bottom_left"   => position.bottom_left
+        "bottom_center" => position.bottom_center
+        "bottom_right"  => position.bottom_right
+        =>                 position.top_right
+    infoTable := table.new(pos, 2, 7, bgcolor=color.new(#07111a, 15), border_color=color.new(#38bdf8, 40), border_width=1)
+
+if showInfoPanel and barstate.islast
+    table.cell(infoTable, 0, 0, "PROFIT GeNIE", text_color=color.white, bgcolor=color.new(#0284c7, 0))
+    table.cell(infoTable, 1, 0, "ANTI-CHOP PRO", text_color=color.white, bgcolor=color.new(#0284c7, 0))
+    
+    table.cell(infoTable, 0, 1, "RSI (14)", text_color=color.white)
+    table.cell(infoTable, 1, 1, str.tostring(rsiValue, "#.#"), text_color=rsiValue >= 55 ? color.green : rsiValue <= 45 ? color.red : color.orange)
+
+    table.cell(infoTable, 0, 2, "ADX Momentum", text_color=color.white)
+    table.cell(infoTable, 1, 2, str.tostring(adxVal, "#.#") + (adxIsHealthy ? " (HEALTHY)" : " (CHOP/WEAK)"), text_color=adxIsHealthy ? color.green : color.red)
+
+    table.cell(infoTable, 0, 3, "15m HTF Trend", text_color=color.white)
+    table.cell(infoTable, 1, 3, htfBullish ? "BULLISH" : htfBearish ? "BEARISH" : "NEUTRAL", text_color=htfBullish ? color.green : htfBearish ? color.red : color.orange)
+
+    table.cell(infoTable, 0, 4, "Window Status", text_color=color.white)
+    table.cell(infoTable, 1, 4, canTradeInSession ? "READY (1 TRADE MAX)" : "SESSION LOCKED", text_color=canTradeInSession ? color.green : color.orange)
+
+    table.cell(infoTable, 0, 5, "Last Action", text_color=color.white)
+    table.cell(infoTable, 1, 5, validLongEntry ? "BUY ATM CE" : validShortEntry ? "BUY ATM PE" : "WAITING SETUP", text_color=validLongEntry ? color.green : validShortEntry ? color.red : color.gray)
+
+    table.cell(infoTable, 0, 6, "ATR (5m)", text_color=color.white)
+    table.cell(infoTable, 1, 6, str.tostring(atrValue, "#.##") + " pts", text_color=color.white)
+
+// =============================================================================
+// 6. TRADINGVIEW PHONE & WEBHOOK ALERTS
+// =============================================================================
+alertcondition(validLongEntry,  title="⚡ BUY ATM CE Alert", message="🚀 PG1-PRO BUY ATM CE on {{ticker}} at {{close}} | TP1: {{plot_0}} | SL: {{plot_2}}")
+alertcondition(validShortEntry, title="⚡ BUY ATM PE Alert", message="🔻 PG1-PRO BUY ATM PE on {{ticker}} at {{close}} | TP1: {{plot_0}} | SL: {{plot_2}}")
+alertcondition(validLongEntry or validShortEntry, title="⚡ Any Options Signal", message="⚡ PG1-PRO Signal on {{ticker}} at {{close}} - Check Chart!")
