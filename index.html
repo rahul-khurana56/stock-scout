@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#07111a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Profit GeNIE | Institutional Market Heatmaps & Signals</title>
   <style>
     :root {
@@ -2710,6 +2713,200 @@
 
     .zoom-strip-thumb:hover {
       opacity: 0.9;
+    }
+
+    /* ========================================================= */
+    /* RESPONSIVE DESIGN FOR TABLETS, MOBILES & ALL SCREEN SIZES */
+    /* ========================================================= */
+    
+    * {
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+
+    /* Tablet Landscape & Laptops (<1200px) */
+    @media (max-width: 1200px) {
+      .navbar-inner {
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .market-pulse-strip {
+        order: 3;
+        width: 100%;
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .nav-risk-bar {
+        order: 2;
+      }
+      .nav-actions {
+        order: 2;
+      }
+      .options-grid {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 14px;
+      }
+    }
+
+    /* Tablets Portrait & Large Phones (<900px) */
+    @media (max-width: 900px) {
+      .main-container {
+        padding: 0 14px;
+        margin: 12px auto 32px;
+      }
+      .tab-bar {
+        padding: 0 14px;
+        gap: 6px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .tab-item {
+        padding: 8px 14px;
+        font-size: 12.5px;
+      }
+      .signals-board {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      .sectors-grid {
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 12px;
+      }
+      .metrics-strip {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+      .metric-card {
+        padding: 12px 14px;
+      }
+      .metric-value {
+        font-size: 22px;
+      }
+      .options-grid {
+        grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+        gap: 12px;
+      }
+      .sector-modal-container {
+        max-width: 95vw;
+        max-height: 90vh;
+      }
+      .risk-grid-3col {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+    }
+
+    /* Mobile Phones (<640px) */
+    @media (max-width: 640px) {
+      .navbar {
+        padding: 10px 0;
+      }
+      .navbar-inner {
+        padding: 0 10px;
+        gap: 10px;
+      }
+      .brand-title {
+        font-size: 14px;
+      }
+      .brand-subtitle {
+        font-size: 9.5px;
+      }
+      .brand-logo {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+      }
+      .main-container {
+        padding: 0 8px;
+        margin: 8px auto 24px;
+      }
+      .tab-bar {
+        padding: 0 8px;
+        gap: 4px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .tab-item {
+        padding: 7px 12px;
+        font-size: 11.5px;
+        border-radius: 8px;
+      }
+      .options-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .option-card {
+        padding: 12px 14px;
+        gap: 10px;
+      }
+      .blueprint-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+      }
+      .blueprint-cell {
+        padding: 6px 8px;
+      }
+      .blueprint-cell small {
+        font-size: 8.5px;
+      }
+      .blueprint-cell strong {
+        font-size: 11.5px;
+      }
+      .option-strike-banner {
+        padding: 8px 10px;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .strike-pill {
+        font-size: 13px;
+      }
+      .panel {
+        padding: 12px 14px;
+        border-radius: 12px;
+      }
+      .panel-header {
+        margin-bottom: 12px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .panel-title-group h2 {
+        font-size: 17px;
+      }
+      .panel-title-group p {
+        font-size: 11px;
+      }
+      .metrics-strip {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .metric-value {
+        font-size: 19px;
+      }
+      .nav-risk-bar {
+        font-size: 10.5px;
+        padding: 6px 10px;
+        overflow-x: auto;
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+      }
+      .pulse-badge {
+        font-size: 11px;
+        padding: 4px 8px;
+      }
+      .sectors-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .table-container, .options-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .btn-quick-sizer, .btn-primary, .btn-secondary, .btn-action {
+        min-height: 38px;
+        padding: 8px 14px;
+        font-size: 12px;
+      }
     }
   </style>
 </head>
