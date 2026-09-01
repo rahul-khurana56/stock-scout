@@ -452,6 +452,15 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if ((url.pathname === "/api/health" || url.pathname === "/api/status" || url.pathname === "/healthz") && request.method === "GET") {
+    writeJson(response, 200, {
+      status: "ok",
+      uptime: Math.round(process.uptime()),
+      timestamp: new Date().toISOString()
+    });
+    return;
+  }
+
   if (url.pathname === "/api/scanner/status" && request.method === "GET") {
     writeJson(response, 200, scannerStatus);
     return;
