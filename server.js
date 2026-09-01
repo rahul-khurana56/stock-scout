@@ -211,8 +211,8 @@ function writeJson(response, statusCode, payload) {
 
 function getFyersConfig() {
   return {
-    clientId: process.env.FYERS_CLIENT_ID || "",
-    secretId: process.env.FYERS_SECRET_ID || "",
+    clientId: process.env.FYERS_CLIENT_ID || "EXIRSLVFQT-100",
+    secretId: process.env.FYERS_SECRET_ID || "P8J78PENO0",
     redirectUri: process.env.FYERS_REDIRECT_URI || "https://trade.fyers.in/api-login/redirect-uri/index.html"
   };
 }

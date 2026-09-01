@@ -16,7 +16,7 @@ const FYERS_HISTORY_URL = "https://api-t1.fyers.in/data/history";
 const providerConfig = {
   primary: process.env.STOCK_SCOUT_PROVIDER || "fyers",
   fyers: {
-    clientId: process.env.FYERS_CLIENT_ID || "",
+    clientId: process.env.FYERS_CLIENT_ID || "EXIRSLVFQT-100",
     accessToken: process.env.FYERS_ACCESS_TOKEN || ""
   }
 };
