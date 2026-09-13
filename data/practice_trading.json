@@ -1,0 +1,302 @@
+{
+  "account": {
+    "virtualBalance": 1599877.87,
+    "initialFunding": 1600000,
+    "currency": "INR",
+    "updatedAt": "2026-09-13T18:56:44.650Z"
+  },
+  "positions": [],
+  "holdings": [],
+  "orders": [
+    {
+      "id": "ord_1789328326813_boiau",
+      "symbol": "SENSEX 80500 CE",
+      "side": "BUY",
+      "product": "INTRADAY",
+      "orderType": "MARKET",
+      "qty": 10,
+      "price": 464.46,
+      "triggerPrice": 0,
+      "slPrice": 0,
+      "targetPrice": 0,
+      "status": "EXECUTED",
+      "executedPrice": 464.46,
+      "executedAt": "2026-09-13T19:38:46.813Z",
+      "source": "Groww Practice Terminal"
+    },
+    {
+      "id": "ord_1789328129587_0zgx5",
+      "symbol": "NIFTY 23100 PE",
+      "side": "SELL",
+      "product": "INTRADAY",
+      "orderType": "MARKET",
+      "qty": 25,
+      "price": 91.65,
+      "triggerPrice": 0,
+      "slPrice": 0,
+      "targetPrice": 0,
+      "status": "EXECUTED",
+      "executedPrice": 91.65,
+      "executedAt": "2026-09-13T19:35:29.587Z",
+      "source": "Groww Practice Terminal"
+    },
+    {
+      "id": "ord_1789327926962_lo4n6",
+      "symbol": "NIFTY 23100 PE",
+      "side": "BUY",
+      "product": "INTRADAY",
+      "orderType": "MARKET",
+      "qty": 25,
+      "price": 91.65,
+      "triggerPrice": 0,
+      "slPrice": 73.32,
+      "targetPrice": 128.31,
+      "status": "EXECUTED",
+      "executedPrice": 91.65,
+      "executedAt": "2026-09-13T19:32:06.962Z",
+      "source": "Groww Practice Terminal"
+    },
+    {
+      "id": "ord_1789325979225_jkg2f",
+      "symbol": "RELIANCE",
+      "side": "BUY",
+      "product": "INTRADAY",
+      "orderType": "MARKET",
+      "qty": 20,
+      "price": 1257.5,
+      "triggerPrice": 0,
+      "slPrice": 1238.64,
+      "targetPrice": 1295.23,
+      "status": "EXECUTED",
+      "executedPrice": 1257.5,
+      "executedAt": "2026-09-13T18:59:39.225Z",
+      "source": "Groww Practice Terminal"
+    },
+    {
+      "id": "ord_1789325717080_h3g33",
+      "symbol": "RELIANCE",
+      "side": "BUY",
+      "product": "INTRADAY",
+      "orderType": "MARKET",
+      "qty": 50,
+      "price": 1257.5,
+      "triggerPrice": 0,
+      "slPrice": 1230,
+      "targetPrice": 1290,
+      "status": "EXECUTED",
+      "executedPrice": 1257.5,
+      "executedAt": "2026-09-13T18:55:17.080Z",
+      "source": "Groww Practice Ticket"
+    }
+  ],
+  "tradeHistory": [
+    {
+      "id": "trd_1789328333102_ckjjb",
+      "symbol": "NIFTY 23100 PE",
+      "companyName": "NIFTY 23100 Put Option",
+      "side": "BUY",
+      "product": "INTRADAY",
+      "qty": 25,
+      "entryPrice": 91.65,
+      "exitPrice": 91.65,
+      "grossPnl": 0,
+      "grossPnlPct": 0,
+      "charges": {
+        "entryCharges": {
+          "brokerage": 1.15,
+          "stt": 0,
+          "exchangeTxn": 0.07,
+          "gst": 0.22,
+          "sebiFee": 0.01,
+          "stampDuty": 0.07,
+          "totalCharges": 1.52
+        },
+        "exitCharges": {
+          "brokerage": 1.15,
+          "stt": 0.57,
+          "exchangeTxn": 0.07,
+          "gst": 0.22,
+          "sebiFee": 0.01,
+          "stampDuty": 0,
+          "totalCharges": 2.02
+        },
+        "totalCharges": 3.54
+      },
+      "netPnl": -3.54,
+      "exitReason": "MANUAL_SQUARE_OFF_ALL",
+      "openedAt": "2026-09-13T19:32:06.962Z",
+      "closedAt": "2026-09-13T19:38:53.102Z"
+    },
+    {
+      "id": "trd_1789328333102_k35fv",
+      "symbol": "NIFTY 23100 PE",
+      "companyName": "NIFTY 23100 Put Option",
+      "side": "SELL",
+      "product": "INTRADAY",
+      "qty": 25,
+      "entryPrice": 91.65,
+      "exitPrice": 91.65,
+      "grossPnl": 0,
+      "grossPnlPct": 0,
+      "charges": {
+        "entryCharges": {
+          "brokerage": 1.15,
+          "stt": 0.57,
+          "exchangeTxn": 0.07,
+          "gst": 0.22,
+          "sebiFee": 0.01,
+          "stampDuty": 0,
+          "totalCharges": 2.02
+        },
+        "exitCharges": {
+          "brokerage": 1.15,
+          "stt": 0,
+          "exchangeTxn": 0.07,
+          "gst": 0.22,
+          "sebiFee": 0.01,
+          "stampDuty": 0.07,
+          "totalCharges": 1.52
+        },
+        "totalCharges": 3.54
+      },
+      "netPnl": -3.54,
+      "exitReason": "MANUAL_SQUARE_OFF_ALL",
+      "openedAt": "2026-09-13T19:35:29.587Z",
+      "closedAt": "2026-09-13T19:38:53.102Z"
+    },
+    {
+      "id": "trd_1789328333102_yy8vf",
+      "symbol": "SENSEX 80500 CE",
+      "companyName": "SENSEX 80500 Call Option",
+      "side": "BUY",
+      "product": "INTRADAY",
+      "qty": 10,
+      "entryPrice": 464.46,
+      "exitPrice": 464.46,
+      "grossPnl": 0,
+      "grossPnlPct": 0,
+      "charges": {
+        "entryCharges": {
+          "brokerage": 2.32,
+          "stt": 0,
+          "exchangeTxn": 0.14,
+          "gst": 0.44,
+          "sebiFee": 0.01,
+          "stampDuty": 0.14,
+          "totalCharges": 3.05
+        },
+        "exitCharges": {
+          "brokerage": 2.32,
+          "stt": 1.16,
+          "exchangeTxn": 0.14,
+          "gst": 0.44,
+          "sebiFee": 0.01,
+          "stampDuty": 0,
+          "totalCharges": 4.07
+        },
+        "totalCharges": 7.12
+      },
+      "netPnl": -7.12,
+      "exitReason": "MANUAL_SQUARE_OFF_ALL",
+      "openedAt": "2026-09-13T19:38:46.813Z",
+      "closedAt": "2026-09-13T19:38:53.102Z"
+    },
+    {
+      "id": "trd_1789326650066_bp5iy",
+      "symbol": "RELIANCE",
+      "companyName": "Reliance Industries Ltd.",
+      "side": "BUY",
+      "product": "INTRADAY",
+      "qty": 20,
+      "entryPrice": 1257.5,
+      "exitPrice": 1257.5,
+      "grossPnl": 0,
+      "grossPnlPct": 0,
+      "charges": {
+        "entryCharges": {
+          "brokerage": 12.58,
+          "stt": 0,
+          "exchangeTxn": 0.75,
+          "gst": 2.4,
+          "sebiFee": 0.03,
+          "stampDuty": 0.75,
+          "totalCharges": 16.51
+        },
+        "exitCharges": {
+          "brokerage": 12.58,
+          "stt": 6.29,
+          "exchangeTxn": 0.75,
+          "gst": 2.4,
+          "sebiFee": 0.03,
+          "stampDuty": 0,
+          "totalCharges": 22.05
+        },
+        "totalCharges": 38.56
+      },
+      "netPnl": -38.56,
+      "exitReason": "MANUAL_SQUARE_OFF_ALL",
+      "openedAt": "2026-09-13T18:59:39.225Z",
+      "closedAt": "2026-09-13T19:10:50.066Z"
+    },
+    {
+      "id": "trd_1789325717088_0cpix",
+      "symbol": "RELIANCE",
+      "companyName": "RELIANCE",
+      "side": "BUY",
+      "product": "INTRADAY",
+      "qty": 50,
+      "entryPrice": 1257.5,
+      "exitPrice": 1257.5,
+      "grossPnl": 0,
+      "grossPnlPct": 0,
+      "charges": {
+        "entryCharges": {
+          "brokerage": 20,
+          "stt": 0,
+          "exchangeTxn": 1.87,
+          "gst": 3.95,
+          "sebiFee": 0.06,
+          "stampDuty": 1.89,
+          "totalCharges": 27.77
+        },
+        "exitCharges": {
+          "brokerage": 20,
+          "stt": 15.72,
+          "exchangeTxn": 1.87,
+          "gst": 3.95,
+          "sebiFee": 0.06,
+          "stampDuty": 0,
+          "totalCharges": 41.6
+        },
+        "totalCharges": 69.37
+      },
+      "netPnl": -69.37,
+      "exitReason": "MANUAL_SQUARE_OFF",
+      "openedAt": "2026-09-13T18:55:17.080Z",
+      "closedAt": "2026-09-13T18:55:17.088Z"
+    }
+  ],
+  "summary": {
+    "virtualBalance": 1599877.87,
+    "investedMargin": 0,
+    "totalPortfolioValue": 1599877.87,
+    "totalUnrealizedPnl": 0,
+    "todayRealizedPnl": -122.13,
+    "totalReturns": -122.13,
+    "totalReturnsPct": -0.01,
+    "activePositionsCount": 0,
+    "pendingOrdersCount": 0,
+    "analytics": {
+      "totalTrades": 5,
+      "winningTrades": 0,
+      "losingTrades": 5,
+      "winRatePct": 0,
+      "profitFactor": 0,
+      "totalGrossPnl": 0,
+      "totalChargesPaid": 122.13,
+      "totalNetPnl": -122.13,
+      "bestTrade": 0,
+      "worstTrade": -69.37
+    }
+  }
+}

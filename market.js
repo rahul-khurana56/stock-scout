@@ -1939,6 +1939,540 @@ async function getOptionsScoutData(forceRefresh = false) {
   return payload;
 }
 
+function parseOptionSymbol(rawSymbol) {
+  const sym = String(rawSymbol || "").trim().toUpperCase();
+  // Formats: "NIFTY 24500 CE", "BANKNIFTY 52000 PE", "SENSEX 80000 CE", "RELIANCE 2900 CE", "TCS 4200 PE", "NIFTY-24500-CE"
+  const m = sym.match(/^([A-Z0-9\-]+)[\s_-]+(\d+(?:\.\d+)?)\s*(CE|PE|CALL|PUT)$/i);
+  if (!m) return null;
+  const rawUnderlying = m[1].toUpperCase();
+  const strike = parseFloat(m[2]);
+  let optionType = m[3].toUpperCase();
+  if (optionType === "CALL") optionType = "CE";
+  if (optionType === "PUT") optionType = "PE";
+
+  let underlying = rawUnderlying;
+  if (rawUnderlying === "NIFTY50" || rawUnderlying === "NIFTY-50") underlying = "NIFTY";
+  if (rawUnderlying === "BANKNIFTY" || rawUnderlying === "NIFTYBANK" || rawUnderlying === "BANK") underlying = "BANKNIFTY";
+  if (rawUnderlying === "SENSEX50" || rawUnderlying === "BSE-SENSEX" || rawUnderlying === "BSESENSEX") underlying = "SENSEX";
+  if (rawUnderlying === "FINNIFTY" || rawUnderlying === "NIFTYFIN") underlying = "FINNIFTY";
+  if (rawUnderlying === "MIDCPNIFTY" || rawUnderlying === "MIDCAPNIFTY") underlying = "MIDCPNIFTY";
+
+  return {
+    raw: sym,
+    underlying,
+    strike,
+    optionType,
+    formatted: `${underlying} ${strike} ${optionType}`
+  };
+}
+
+function getLotSizeForInstrument(symbol) {
+  const sym = String(symbol || "").toUpperCase().trim();
+  if (sym.includes("BANKNIFTY") || sym === "NIFTY BANK" || sym === "BANK") return 15;
+  if (sym.includes("SENSEX")) return 10;
+  if (sym.includes("MIDCPNIFTY") || sym.includes("MIDCAP")) return 50;
+  if (sym.includes("FINNIFTY") || sym.includes("FIN SERVICE")) return 25;
+  if (sym.includes("NIFTY 50") || sym === "NIFTY") return 25;
+  if (fnoLotSizes[sym]) return fnoLotSizes[sym];
+  return 1;
+}
+
+function calculateOptionPricing(spotPrice, strike, optionType, underlyingChange = 0, isStock = false) {
+  const isCall = optionType === "CE" || optionType === "CALL";
+  const iv = isStock ? 22.0 : 13.8;
+  const dte = 4.0; // days to expiry
+  const t = Math.max(0.005, dte / 365.0);
+
+  const diff = isCall ? (spotPrice - strike) : (strike - spotPrice);
+  const intrinsic = Math.max(0, diff);
+
+  // ATM time value baseline
+  const atmTimeValue = Math.max(10, spotPrice * (iv / 100.0) * Math.sqrt(t) * 0.40);
+
+  // Distance metric
+  const d = Math.abs(spotPrice - strike) / (spotPrice * (iv / 100.0) * Math.sqrt(t) || 1);
+  const extrinsic = Math.max(0.50, atmTimeValue * Math.exp(-0.5 * (d ** 2)));
+
+  const ltp = Math.max(0.50, round(intrinsic + extrinsic, 2));
+
+  // Delta calculation
+  const z = diff / (atmTimeValue * 1.6 || 1);
+  const rawDelta = 0.5 + 0.5 * Math.tanh(z);
+  const delta = isCall ? round(Math.max(0.02, Math.min(0.98, rawDelta)), 2) : round(Math.max(-0.98, Math.min(-0.02, -(1 - rawDelta))), 2);
+
+  const change = round(underlyingChange * Math.abs(delta) * (isCall ? 1 : -1), 2);
+  const prevClose = Math.max(0.50, round(ltp - change, 2));
+  const pChange = round(((ltp - prevClose) / prevClose) * 100, 2);
+
+  const dayHigh = round(Math.max(ltp * 1.18, ltp + Math.abs(change) * 1.5), 2);
+  const dayLow = round(Math.max(0.40, Math.min(ltp * 0.82, ltp - Math.abs(change) * 1.3)), 2);
+  const open = round((dayHigh + dayLow) / 2, 2);
+
+  const oi = Math.round(15000 + (1 / (1 + d)) * 180000);
+  const volume = Math.round(25000 + (1 / (1 + d * 1.2)) * 320000);
+
+  return {
+    ltp,
+    change,
+    pChange,
+    intrinsic: round(intrinsic, 2),
+    extrinsic: round(extrinsic, 2),
+    delta,
+    iv,
+    dayHigh,
+    dayLow,
+    open,
+    prevClose,
+    oi,
+    volume
+  };
+}
+
+async function getUnderlyingSpotQuote(rawUnderlying) {
+  const sym = String(rawUnderlying || "").toUpperCase().trim();
+  if (sym === "NIFTY" || sym === "NIFTY 50" || sym === "NIFTY50") {
+    const allIndices = await fetchNSEAllIndicesMap().catch(() => new Map());
+    const idx = allIndices.get("NIFTY 50") || allIndices.get("NIFTY50");
+    if (idx) {
+      return { symbol: "NIFTY", name: "NIFTY 50", price: idx.last, change: idx.variation, pChange: idx.percentChange, isIndex: true, lotSize: 25 };
+    }
+    return { symbol: "NIFTY", name: "NIFTY 50", price: 24550.00, change: 85.50, pChange: 0.35, isIndex: true, lotSize: 25 };
+  }
+
+  if (sym === "BANKNIFTY" || sym === "NIFTY BANK" || sym === "BANK") {
+    const allIndices = await fetchNSEAllIndicesMap().catch(() => new Map());
+    const idx = allIndices.get("NIFTY BANK") || allIndices.get("BANKNIFTY");
+    if (idx) {
+      return { symbol: "BANKNIFTY", name: "NIFTY BANK", price: idx.last, change: idx.variation, pChange: idx.percentChange, isIndex: true, lotSize: 15 };
+    }
+    return { symbol: "BANKNIFTY", name: "NIFTY BANK", price: 52150.00, change: 195.00, pChange: 0.38, isIndex: true, lotSize: 15 };
+  }
+
+  if (sym === "SENSEX" || sym === "BSE SENSEX") {
+    const allIndices = await fetchNSEAllIndicesMap().catch(() => new Map());
+    const idx = allIndices.get("BSE SENSEX") || allIndices.get("SENSEX");
+    if (idx) {
+      return { symbol: "SENSEX", name: "BSE SENSEX", price: idx.last, change: idx.variation, pChange: idx.percentChange, isIndex: true, lotSize: 10 };
+    }
+    return { symbol: "SENSEX", name: "BSE SENSEX", price: 80450.00, change: 280.00, pChange: 0.35, isIndex: true, lotSize: 10 };
+  }
+
+  if (sym === "FINNIFTY" || sym === "NIFTY FIN SERVICE") {
+    const allIndices = await fetchNSEAllIndicesMap().catch(() => new Map());
+    const idx = allIndices.get("NIFTY FIN SERVICE") || allIndices.get("FINNIFTY");
+    if (idx) {
+      return { symbol: "FINNIFTY", name: "NIFTY FIN SERVICE", price: idx.last, change: idx.variation, pChange: idx.percentChange, isIndex: true, lotSize: 25 };
+    }
+    return { symbol: "FINNIFTY", name: "NIFTY FINANCIAL SERVICES", price: 23650.00, change: 75.00, pChange: 0.32, isIndex: true, lotSize: 25 };
+  }
+
+  if (sym === "MIDCPNIFTY" || sym === "NIFTY MIDCAP 50") {
+    const allIndices = await fetchNSEAllIndicesMap().catch(() => new Map());
+    const idx = allIndices.get("NIFTY MIDCAP 50") || allIndices.get("MIDCPNIFTY");
+    if (idx) {
+      return { symbol: "MIDCPNIFTY", name: "NIFTY MIDCAP 50", price: idx.last, change: idx.variation, pChange: idx.percentChange, isIndex: true, lotSize: 50 };
+    }
+    return { symbol: "MIDCPNIFTY", name: "NIFTY MIDCAP 50", price: 12450.00, change: 45.00, pChange: 0.36, isIndex: true, lotSize: 50 };
+  }
+
+  // Stock underlying
+  const stockQuote = await getStockQuoteDirect(sym);
+  return stockQuote;
+}
+
+async function getStockQuoteDirect(rawSymbol) {
+  const symbol = String(rawSymbol || "").toUpperCase().trim();
+  if (!symbol) return null;
+
+  // 1. Check Indices
+  const allIndices = await fetchNSEAllIndicesMap().catch(() => new Map());
+  const indexMatch = allIndices.get(symbol) || allIndices.get(symbol.replace(/\s+/g, "")) || allIndices.get(symbol === "NIFTY" ? "NIFTY 50" : symbol === "BANKNIFTY" ? "NIFTY BANK" : symbol);
+  if (indexMatch) {
+    return {
+      symbol,
+      name: indexMatch.name || symbol,
+      price: indexMatch.last,
+      change: indexMatch.variation,
+      pChange: indexMatch.percentChange,
+      open: indexMatch.open,
+      high: indexMatch.high,
+      low: indexMatch.low,
+      prevClose: indexMatch.previousClose,
+      yearHigh: indexMatch.yearHigh,
+      yearLow: indexMatch.yearLow,
+      volume: 0,
+      lotSize: getLotSizeForInstrument(symbol),
+      isIndex: true,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  // 2. Check Nifty 50 & Bank Nifty cached constituents
+  const n50 = cache.nifty50.data?.constituents?.find((s) => s.symbol === symbol);
+  if (n50) {
+    return {
+      symbol: n50.symbol,
+      name: n50.name || symbol,
+      price: n50.price,
+      change: n50.change,
+      pChange: n50.pChange,
+      open: n50.open || round(n50.price * 0.998, 2),
+      high: n50.dayHigh || round(n50.price * 1.012, 2),
+      low: n50.dayLow || round(n50.price * 0.988, 2),
+      prevClose: n50.prevClose || round(n50.price - n50.change, 2),
+      yearHigh: n50.yearHigh || round(n50.price * 1.25, 2),
+      yearLow: n50.yearLow || round(n50.price * 0.75, 2),
+      volume: n50.volume || 1500000,
+      lotSize: getLotSizeForInstrument(symbol),
+      isIndex: false,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  const bn = cache.bankNifty.data?.constituents?.find((s) => s.symbol === symbol);
+  if (bn) {
+    return {
+      symbol: bn.symbol,
+      name: bn.name || symbol,
+      price: bn.price,
+      change: bn.change,
+      pChange: bn.pChange,
+      open: bn.open || round(bn.price * 0.998, 2),
+      high: bn.dayHigh || round(bn.price * 1.012, 2),
+      low: bn.dayLow || round(bn.price * 0.988, 2),
+      prevClose: bn.prevClose || round(bn.price - bn.change, 2),
+      yearHigh: bn.yearHigh || round(bn.price * 1.25, 2),
+      yearLow: bn.yearLow || round(bn.price * 0.75, 2),
+      volume: bn.volume || 1200000,
+      lotSize: getLotSizeForInstrument(symbol),
+      isIndex: false,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  // 3. Try fetching via Yahoo candles if available
+  try {
+    const candles = await fetchYahooCandles(symbol);
+    if (candles && candles.length > 0) {
+      const last = candles[candles.length - 1];
+      const prev = candles.length > 1 ? candles[candles.length - 2] : last;
+      const change = round(last.close - prev.close, 2);
+      const pChange = round((change / (prev.close || 1)) * 100, 2);
+      return {
+        symbol,
+        name: symbol,
+        price: last.close,
+        change,
+        pChange,
+        open: last.open,
+        high: last.high,
+        low: last.low,
+        prevClose: prev.close,
+        yearHigh: round(last.close * 1.25, 2),
+        yearLow: round(last.close * 0.75, 2),
+        volume: last.volume || 500000,
+        lotSize: getLotSizeForInstrument(symbol),
+        isIndex: false,
+        updatedAt: new Date().toISOString()
+      };
+    }
+  } catch (err) {}
+
+  // Fallback baseline
+  const basePrice = 1250.00;
+  return {
+    symbol,
+    name: symbol,
+    price: basePrice,
+    change: 6.50,
+    pChange: 0.52,
+    open: 1245.00,
+    high: 1262.00,
+    low: 1240.00,
+    prevClose: 1243.50,
+    yearHigh: 1550.00,
+    yearLow: 980.00,
+    volume: 500000,
+    lotSize: getLotSizeForInstrument(symbol),
+    isIndex: false,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+async function getStockQuote(rawSymbol) {
+  const symbol = String(rawSymbol || "").toUpperCase().trim();
+  if (!symbol) return null;
+
+  // Check if this is an Option Contract e.g. "NIFTY 24500 CE", "BANKNIFTY 52000 PE", "RELIANCE 2900 CE"
+  const optParsed = parseOptionSymbol(symbol);
+  if (optParsed) {
+    const underQuote = await getUnderlyingSpotQuote(optParsed.underlying);
+    const spotPrice = underQuote.price;
+    const underChange = underQuote.change || 0;
+    const isStock = !underQuote.isIndex;
+    const pricing = calculateOptionPricing(spotPrice, optParsed.strike, optParsed.optionType, underChange, isStock);
+    const lotSize = getLotSizeForInstrument(optParsed.underlying);
+
+    return {
+      symbol: optParsed.formatted,
+      name: `${optParsed.underlying} ${optParsed.strike} ${optParsed.optionType === "CE" ? "Call" : "Put"} Option`,
+      price: pricing.ltp,
+      change: pricing.change,
+      pChange: pricing.pChange,
+      open: pricing.open,
+      high: pricing.dayHigh,
+      low: pricing.dayLow,
+      prevClose: pricing.prevClose,
+      yearHigh: round(pricing.ltp * 2.5, 2),
+      yearLow: round(Math.max(0.10, pricing.ltp * 0.15), 2),
+      volume: pricing.volume,
+      lotSize,
+      isOption: true,
+      isIndex: false,
+      optionType: optParsed.optionType,
+      strike: optParsed.strike,
+      underlying: optParsed.underlying,
+      underlyingPrice: spotPrice,
+      underlyingChange: underChange,
+      delta: pricing.delta,
+      iv: pricing.iv,
+      oi: pricing.oi,
+      intrinsic: pricing.intrinsic,
+      extrinsic: pricing.extrinsic,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  // Normal stock or index quote
+  return getStockQuoteDirect(symbol);
+}
+
+async function getOptionChain(rawSymbol) {
+  let sym = String(rawSymbol || "NIFTY").toUpperCase().trim();
+  if (sym === "NIFTY 50" || sym === "NIFTY50") sym = "NIFTY";
+  if (sym === "NIFTY BANK" || sym === "BANK") sym = "BANKNIFTY";
+  if (sym === "BSE SENSEX" || sym === "BSESENSEX") sym = "SENSEX";
+  if (sym === "NIFTY FIN SERVICE") sym = "FINNIFTY";
+  if (sym === "NIFTY MIDCAP 50") sym = "MIDCPNIFTY";
+
+  const underQuote = await getUnderlyingSpotQuote(sym);
+  const spotPrice = underQuote.price;
+  const underChange = underQuote.change || 0;
+  const isStock = !underQuote.isIndex;
+  const step = getStrikeStep(spotPrice, sym);
+  const atmStrike = Math.round(spotPrice / step) * step;
+  const lotSize = getLotSizeForInstrument(sym);
+
+  const strikes = [];
+  const numStrikes = 8; // 8 below ATM, ATM, 8 above ATM = 17 strikes
+  let totalCallOI = 0;
+  let totalPutOI = 0;
+  let maxCallOIStrike = atmStrike;
+  let maxCallOIVal = 0;
+  let maxPutOIStrike = atmStrike;
+  let maxPutOIVal = 0;
+
+  for (let i = -numStrikes; i <= numStrikes; i++) {
+    const strike = round(atmStrike + i * step, 2);
+    const cePricing = calculateOptionPricing(spotPrice, strike, "CE", underChange, isStock);
+    const pePricing = calculateOptionPricing(spotPrice, strike, "PE", underChange, isStock);
+
+    totalCallOI += cePricing.oi;
+    totalPutOI += pePricing.oi;
+
+    if (cePricing.oi > maxCallOIVal) {
+      maxCallOIVal = cePricing.oi;
+      maxCallOIStrike = strike;
+    }
+    if (pePricing.oi > maxPutOIVal) {
+      maxPutOIVal = pePricing.oi;
+      maxPutOIStrike = strike;
+    }
+
+    const ce = {
+      symbol: `${sym} ${strike} CE`,
+      strike,
+      optionType: "CE",
+      ltp: cePricing.ltp,
+      change: cePricing.change,
+      pChange: cePricing.pChange,
+      oi: cePricing.oi,
+      volume: cePricing.volume,
+      iv: cePricing.iv,
+      delta: cePricing.delta,
+      isAtm: strike === atmStrike,
+      isItm: strike < spotPrice
+    };
+
+    const pe = {
+      symbol: `${sym} ${strike} PE`,
+      strike,
+      optionType: "PE",
+      ltp: pePricing.ltp,
+      change: pePricing.change,
+      pChange: pePricing.pChange,
+      oi: pePricing.oi,
+      volume: pePricing.volume,
+      iv: pePricing.iv,
+      delta: pePricing.delta,
+      isAtm: strike === atmStrike,
+      isItm: strike > spotPrice
+    };
+
+    strikes.push({
+      strike,
+      isAtm: strike === atmStrike,
+      ce,
+      pe
+    });
+  }
+
+  const pcr = totalCallOI > 0 ? round(totalPutOI / totalCallOI, 2) : 1.0;
+
+  // Next weekly expiry (e.g. Current Thursday)
+  const now = new Date();
+  const day = now.getDay();
+  const daysUntilThursday = (4 - day + 7) % 7 || 7;
+  const expiryDateObj = new Date(now.getTime() + daysUntilThursday * 24 * 60 * 60 * 1000);
+  const expiryStr = expiryDateObj.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) + " (Weekly)";
+
+  return {
+    symbol: sym,
+    name: underQuote.name || sym,
+    spotPrice,
+    change: underQuote.change || 0,
+    pChange: underQuote.pChange || 0,
+    atmStrike,
+    strikeStep: step,
+    lotSize,
+    isIndex: underQuote.isIndex,
+    pcr,
+    totalCallOI,
+    totalPutOI,
+    maxCallOIWall: { strike: maxCallOIStrike, oi: maxCallOIVal },
+    maxPutOIFloor: { strike: maxPutOIStrike, oi: maxPutOIVal },
+    expiry: expiryStr,
+    strikes,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+async function searchInstruments(rawQuery) {
+  const query = String(rawQuery || "").toUpperCase().trim();
+  if (!query) {
+    // Return default popular instruments & ATM options
+    const n50Chain = await getOptionChain("NIFTY");
+    const bnChain = await getOptionChain("BANKNIFTY");
+    const sxChain = await getOptionChain("SENSEX");
+
+    return {
+      indicesAndStocks: [
+        { symbol: "NIFTY", name: "NIFTY 50", type: "INDEX", price: n50Chain.spotPrice, change: n50Chain.change, pChange: n50Chain.pChange, lotSize: 25 },
+        { symbol: "BANKNIFTY", name: "NIFTY BANK", type: "INDEX", price: bnChain.spotPrice, change: bnChain.change, pChange: bnChain.pChange, lotSize: 15 },
+        { symbol: "SENSEX", name: "BSE SENSEX", type: "INDEX", price: sxChain.spotPrice, change: sxChain.change, pChange: sxChain.pChange, lotSize: 10 },
+        { symbol: "FINNIFTY", name: "NIFTY FIN SERVICE", type: "INDEX", price: 23650, change: 75, pChange: 0.32, lotSize: 25 },
+        { symbol: "RELIANCE", name: "Reliance Industries", type: "STOCK", price: 2950, change: 18.5, pChange: 0.63, lotSize: 250 },
+        { symbol: "TCS", name: "Tata Consultancy Services", type: "STOCK", price: 4250, change: -12.0, pChange: -0.28, lotSize: 175 },
+        { symbol: "HDFCBANK", name: "HDFC Bank", type: "STOCK", price: 1680, change: 9.4, pChange: 0.56, lotSize: 550 },
+        { symbol: "ICICIBANK", name: "ICICI Bank", type: "STOCK", price: 1240, change: 11.2, pChange: 0.91, lotSize: 700 }
+      ],
+      callOptions: [
+        n50Chain.strikes.find((s) => s.isAtm)?.ce,
+        bnChain.strikes.find((s) => s.isAtm)?.ce,
+        sxChain.strikes.find((s) => s.isAtm)?.ce
+      ].filter(Boolean),
+      putOptions: [
+        n50Chain.strikes.find((s) => s.isAtm)?.pe,
+        bnChain.strikes.find((s) => s.isAtm)?.pe,
+        sxChain.strikes.find((s) => s.isAtm)?.pe
+      ].filter(Boolean)
+    };
+  }
+
+  // 1. Direct Option Match
+  const optParsed = parseOptionSymbol(query);
+  if (optParsed) {
+    const quote = await getStockQuote(optParsed.formatted);
+    return {
+      indicesAndStocks: [],
+      callOptions: optParsed.optionType === "CE" ? [quote] : [],
+      putOptions: optParsed.optionType === "PE" ? [quote] : []
+    };
+  }
+
+  // 2. Search Indices & Stocks
+  const allIndices = [
+    { symbol: "NIFTY", name: "NIFTY 50", type: "INDEX", lotSize: 25 },
+    { symbol: "BANKNIFTY", name: "NIFTY BANK", type: "INDEX", lotSize: 15 },
+    { symbol: "SENSEX", name: "BSE SENSEX", type: "INDEX", lotSize: 10 },
+    { symbol: "FINNIFTY", name: "NIFTY FINANCIAL SERVICES", type: "INDEX", lotSize: 25 },
+    { symbol: "MIDCPNIFTY", name: "NIFTY MIDCAP 50", type: "INDEX", lotSize: 50 }
+  ];
+
+  const matchedIndices = allIndices.filter((idx) => idx.symbol.includes(query) || idx.name.toUpperCase().includes(query));
+
+  const allStocks = [
+    ...(cache.nifty50.data?.constituents || nifty50Constituents),
+    ...(cache.bankNifty.data?.constituents || bankNiftyConstituents)
+  ];
+
+  const stockMap = new Map();
+  for (const s of allStocks) {
+    if (!stockMap.has(s.symbol)) {
+      stockMap.set(s.symbol, {
+        symbol: s.symbol,
+        name: s.name || s.symbol,
+        type: "STOCK",
+        price: s.price || 1000,
+        change: s.change || 0,
+        pChange: s.pChange || 0,
+        lotSize: getLotSizeForInstrument(s.symbol)
+      });
+    }
+  }
+
+  const matchedStocks = Array.from(stockMap.values()).filter((s) => s.symbol.includes(query) || s.name.toUpperCase().includes(query)).slice(0, 10);
+
+  const matchedInstruments = [...matchedIndices, ...matchedStocks];
+
+  // 3. Generate Matching Options for top matched instrument
+  const callOptions = [];
+  const putOptions = [];
+
+  const targetSymbol = matchedInstruments[0]?.symbol || (query.match(/^[A-Z]+/)?.[0] || "NIFTY");
+  if (targetSymbol) {
+    try {
+      const chain = await getOptionChain(targetSymbol);
+      // Filter strikes matching numbers in query or near ATM
+      const numberMatch = query.match(/\d+/);
+      const searchNum = numberMatch ? parseInt(numberMatch[0], 10) : null;
+
+      let relevantStrikes = chain.strikes;
+      if (searchNum) {
+        relevantStrikes = chain.strikes.filter((s) => Math.abs(s.strike - searchNum) <= chain.strikeStep * 3);
+        if (relevantStrikes.length === 0) relevantStrikes = chain.strikes.slice(5, 12);
+      } else {
+        // ATM +/- 2 strikes
+        const atmIndex = chain.strikes.findIndex((s) => s.isAtm);
+        if (atmIndex !== -1) {
+          relevantStrikes = chain.strikes.slice(Math.max(0, atmIndex - 2), Math.min(chain.strikes.length, atmIndex + 3));
+        }
+      }
+
+      for (const st of relevantStrikes) {
+        if (!query.includes("PE")) callOptions.push(st.ce);
+        if (!query.includes("CE")) putOptions.push(st.pe);
+      }
+    } catch (err) {}
+  }
+
+  return {
+    indicesAndStocks: matchedInstruments.slice(0, 8),
+    callOptions: callOptions.slice(0, 6),
+    putOptions: putOptions.slice(0, 6)
+  };
+}
+
 module.exports = {
   getNifty50Data,
   getBankNiftyData,
@@ -1948,5 +2482,11 @@ module.exports = {
   getMarketStatus,
   enrichSignalsList,
   getOptionsScoutData,
-  clearOptionsScoutData
+  clearOptionsScoutData,
+  getStockQuote,
+  getOptionChain,
+  searchInstruments,
+  parseOptionSymbol,
+  getLotSizeForInstrument
 };
+

@@ -7,7 +7,7 @@ const { URL } = require("node:url");
 loadEnvFile(path.join(__dirname, ".env"));
 
 const { StockScoutScanner, timeframe, SCAN_INTERVAL_MS, providerConfig } = require("./scanner");
-const { getNifty50Data, getBankNiftyData, getSectorsData, getSectorConstituentsData, getMarketPulse, enrichSignalsList, getOptionsScoutData, clearOptionsScoutData } = require("./market");
+const { getNifty50Data, getBankNiftyData, getSectorsData, getSectorConstituentsData, getMarketPulse, enrichSignalsList, getOptionsScoutData, clearOptionsScoutData, getStockQuote, getOptionChain, searchInstruments } = require("./market");
 
 const port = Number(process.env.PORT || 8787);
 const host = process.env.HOST || "0.0.0.0";
@@ -34,6 +34,7 @@ const fyersAuth = {
 };
 
 const riskFile = path.join(dataDir, "risk_profile.json");
+const practiceFile = path.join(dataDir, "practice_trading.json");
 
 const defaultRiskProfile = {
   settings: {
@@ -57,6 +58,19 @@ const defaultRiskProfile = {
     lockoutReason: null
   },
   journal: []
+};
+
+const defaultPracticeTradingProfile = {
+  account: {
+    virtualBalance: 1000000,
+    initialFunding: 1000000,
+    currency: "INR",
+    updatedAt: new Date().toISOString()
+  },
+  positions: [],
+  holdings: [],
+  orders: [],
+  tradeHistory: []
 };
 
 ensureStore();
@@ -101,6 +115,310 @@ function ensureStore() {
   if (!fs.existsSync(riskFile)) {
     fs.writeFileSync(riskFile, JSON.stringify(defaultRiskProfile, null, 2));
   }
+  if (!fs.existsSync(practiceFile)) {
+    fs.writeFileSync(practiceFile, JSON.stringify(defaultPracticeTradingProfile, null, 2));
+  }
+}
+
+function loadPracticeTrading() {
+  ensureStore();
+  try {
+    const data = JSON.parse(fs.readFileSync(practiceFile, "utf8"));
+    return {
+      account: { ...defaultPracticeTradingProfile.account, ...(data.account || {}) },
+      positions: Array.isArray(data.positions) ? data.positions : [],
+      holdings: Array.isArray(data.holdings) ? data.holdings : [],
+      orders: Array.isArray(data.orders) ? data.orders : [],
+      tradeHistory: Array.isArray(data.tradeHistory) ? data.tradeHistory : []
+    };
+  } catch (error) {
+    return JSON.parse(JSON.stringify(defaultPracticeTradingProfile));
+  }
+}
+
+function savePracticeTrading(payload) {
+  ensureStore();
+  fs.writeFileSync(practiceFile, JSON.stringify(payload, null, 2));
+}
+
+function calculateGrowwCharges(side, product, turnover, pnl = 0) {
+  const isIntraday = product === "INTRADAY";
+  const rawBrokerage = Math.min(20, turnover * 0.0005);
+  const brokerage = Math.max(0, Math.round(rawBrokerage * 100) / 100);
+  
+  let stt = 0;
+  if (isIntraday) {
+    if (side === "SELL") stt = Math.round(turnover * 0.00025 * 100) / 100;
+  } else {
+    stt = Math.round(turnover * 0.001 * 100) / 100;
+  }
+
+  const exchangeTxn = Math.round(turnover * 0.0000297 * 100) / 100;
+  const sebiFee = Math.max(0.01, Math.round(turnover * 0.000001 * 100) / 100);
+
+  let stampDuty = 0;
+  if (side === "BUY") {
+    stampDuty = Math.round(turnover * (isIntraday ? 0.00003 : 0.00015) * 100) / 100;
+  }
+
+  const gst = Math.round((brokerage + exchangeTxn + sebiFee) * 0.18 * 100) / 100;
+  const totalCharges = Math.round((brokerage + stt + exchangeTxn + sebiFee + stampDuty + gst) * 100) / 100;
+
+  return {
+    brokerage,
+    stt,
+    exchangeTxn,
+    gst,
+    sebiFee,
+    stampDuty,
+    totalCharges
+  };
+}
+
+async function evaluatePracticePortfolio(portfolio) {
+  if (!portfolio) portfolio = loadPracticeTrading();
+  let modified = false;
+
+  const activePositions = [];
+  const closedPositions = [];
+
+  for (const pos of portfolio.positions) {
+    try {
+      const quote = await getStockQuote(pos.symbol);
+      const currentPrice = quote && quote.price > 0 ? quote.price : pos.avgPrice;
+      pos.currentPrice = currentPrice;
+      pos.companyName = quote?.name || pos.companyName || pos.symbol;
+      pos.dayChangePct = quote?.pChange || 0;
+
+      const isBuy = pos.side === "BUY";
+      const priceDiff = isBuy ? (currentPrice - pos.avgPrice) : (pos.avgPrice - currentPrice);
+      pos.unrealizedPnl = Math.round(priceDiff * pos.qty * 100) / 100;
+      pos.unrealizedPnlPct = Math.round(((priceDiff / pos.avgPrice) * 100) * 100) / 100;
+
+      // Check Stop Loss Trigger
+      let isSlHit = false;
+      if (pos.slPrice > 0) {
+        if (isBuy && currentPrice <= pos.slPrice) isSlHit = true;
+        if (!isBuy && currentPrice >= pos.slPrice) isSlHit = true;
+      }
+
+      // Check Target Trigger
+      let isTargetHit = false;
+      if (pos.targetPrice > 0) {
+        if (isBuy && currentPrice >= pos.targetPrice) isTargetHit = true;
+        if (!isBuy && currentPrice <= pos.targetPrice) isTargetHit = true;
+      }
+
+      if (isSlHit || isTargetHit) {
+        // Auto-close position
+        const exitReason = isSlHit ? "STOP_LOSS_HIT" : "TARGET_HIT";
+        const exitPrice = currentPrice;
+        const exitTurnover = exitPrice * pos.qty;
+        const exitCharges = calculateGrowwCharges(isBuy ? "SELL" : "BUY", pos.product, exitTurnover);
+        const grossPnl = pos.unrealizedPnl;
+        const netPnl = Math.round((grossPnl - (pos.entryCharges?.totalCharges || 0) - exitCharges.totalCharges) * 100) / 100;
+
+        // Refund margin + net P&L back to virtual balance
+        portfolio.account.virtualBalance = Math.max(0, Math.round((portfolio.account.virtualBalance + pos.investedMargin + grossPnl - exitCharges.totalCharges) * 100) / 100);
+
+        portfolio.tradeHistory.unshift({
+          id: `trd_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          symbol: pos.symbol,
+          companyName: pos.companyName,
+          side: pos.side,
+          product: pos.product,
+          qty: pos.qty,
+          entryPrice: pos.avgPrice,
+          exitPrice,
+          grossPnl,
+          grossPnlPct: pos.unrealizedPnlPct,
+          charges: {
+            entryCharges: pos.entryCharges || {},
+            exitCharges,
+            totalCharges: Math.round(((pos.entryCharges?.totalCharges || 0) + exitCharges.totalCharges) * 100) / 100
+          },
+          netPnl,
+          exitReason,
+          openedAt: pos.openedAt,
+          closedAt: new Date().toISOString()
+        });
+
+        modified = true;
+      } else {
+        activePositions.push(pos);
+      }
+    } catch (err) {
+      activePositions.push(pos);
+    }
+  }
+
+  portfolio.positions = activePositions;
+
+  // Evaluate Pending Orders
+  const pendingOrders = [];
+  for (const ord of portfolio.orders) {
+    if (ord.status !== "PENDING") {
+      pendingOrders.push(ord);
+      continue;
+    }
+
+    try {
+      const quote = await getStockQuote(ord.symbol);
+      const currentPrice = quote && quote.price > 0 ? quote.price : ord.price;
+      let shouldExecute = false;
+      let execPrice = ord.price;
+
+      if (ord.orderType === "MARKET") {
+        shouldExecute = true;
+        execPrice = currentPrice;
+      } else if (ord.orderType === "LIMIT") {
+        if (ord.side === "BUY" && currentPrice <= ord.price) {
+          shouldExecute = true;
+          execPrice = ord.price;
+        } else if (ord.side === "SELL" && currentPrice >= ord.price) {
+          shouldExecute = true;
+          execPrice = ord.price;
+        }
+      } else if (ord.orderType === "SL" || ord.orderType === "SL-M") {
+        if (ord.side === "BUY" && currentPrice >= ord.triggerPrice) {
+          shouldExecute = true;
+          execPrice = ord.orderType === "SL-M" ? currentPrice : ord.price;
+        } else if (ord.side === "SELL" && currentPrice <= ord.triggerPrice) {
+          shouldExecute = true;
+          execPrice = ord.orderType === "SL-M" ? currentPrice : ord.price;
+        }
+      }
+
+      if (shouldExecute) {
+        const isIntraday = ord.product === "INTRADAY";
+        const leverage = isIntraday ? 5 : 1;
+        const totalExposure = execPrice * ord.qty;
+        const requiredMargin = Math.round((totalExposure / leverage) * 100) / 100;
+        const entryCharges = calculateGrowwCharges(ord.side, ord.product, totalExposure);
+
+        if (portfolio.account.virtualBalance >= (requiredMargin + entryCharges.totalCharges)) {
+          portfolio.account.virtualBalance = Math.round((portfolio.account.virtualBalance - requiredMargin - entryCharges.totalCharges) * 100) / 100;
+          ord.status = "EXECUTED";
+          ord.executedPrice = execPrice;
+          ord.executedAt = new Date().toISOString();
+
+          // Add to positions
+          portfolio.positions.push({
+            id: `pos_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            symbol: ord.symbol,
+            companyName: quote?.name || ord.symbol,
+            side: ord.side,
+            product: ord.product,
+            qty: ord.qty,
+            avgPrice: execPrice,
+            currentPrice: execPrice,
+            investedMargin: requiredMargin,
+            totalExposure,
+            slPrice: ord.slPrice || 0,
+            targetPrice: ord.targetPrice || 0,
+            unrealizedPnl: 0,
+            unrealizedPnlPct: 0,
+            entryCharges,
+            openedAt: new Date().toISOString(),
+            source: ord.source || "Groww Order"
+          });
+          modified = true;
+        } else {
+          ord.status = "REJECTED";
+          ord.rejectReason = "Insufficient virtual margin";
+          modified = true;
+        }
+      }
+      pendingOrders.push(ord);
+    } catch (err) {
+      pendingOrders.push(ord);
+    }
+  }
+
+  portfolio.orders = pendingOrders;
+
+  // Calculate Aggregates
+  let totalInvestedMargin = 0;
+  let totalCurrentExposure = 0;
+  let totalUnrealizedPnl = 0;
+
+  for (const pos of portfolio.positions) {
+    totalInvestedMargin += (pos.investedMargin || 0);
+    totalCurrentExposure += (pos.currentPrice * pos.qty);
+    totalUnrealizedPnl += (pos.unrealizedPnl || 0);
+  }
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  let todayRealizedPnl = 0;
+  let totalGrossPnl = 0;
+  let totalNetPnl = 0;
+  let winCount = 0;
+  let lossCount = 0;
+  let totalChargesPaid = 0;
+  let bestTrade = 0;
+  let worstTrade = 0;
+  let winSum = 0;
+  let lossSum = 0;
+
+  for (const tr of portfolio.tradeHistory) {
+    const isToday = tr.closedAt && tr.closedAt.startsWith(todayStr);
+    if (isToday) {
+      todayRealizedPnl += (tr.netPnl || 0);
+    }
+    totalGrossPnl += (tr.grossPnl || 0);
+    totalNetPnl += (tr.netPnl || 0);
+    totalChargesPaid += (tr.charges?.totalCharges || 0);
+
+    if (tr.netPnl > 0) {
+      winCount++;
+      winSum += tr.netPnl;
+    } else if (tr.netPnl < 0) {
+      lossCount++;
+      lossSum += Math.abs(tr.netPnl);
+    }
+
+    if (tr.netPnl > bestTrade) bestTrade = tr.netPnl;
+    if (tr.netPnl < worstTrade) worstTrade = tr.netPnl;
+  }
+
+  const totalClosedTrades = portfolio.tradeHistory.length;
+  const winRatePct = totalClosedTrades > 0 ? Math.round((winCount / totalClosedTrades) * 1000) / 10 : 0;
+  const profitFactor = lossSum > 0 ? Math.round((winSum / lossSum) * 100) / 100 : winSum > 0 ? 99.9 : 0;
+
+  const totalPortfolioValue = Math.round((portfolio.account.virtualBalance + totalInvestedMargin + totalUnrealizedPnl) * 100) / 100;
+  const initialFunding = portfolio.account.initialFunding || 1000000;
+  const totalReturns = Math.round((totalPortfolioValue - initialFunding) * 100) / 100;
+  const totalReturnsPct = initialFunding > 0 ? Math.round(((totalReturns / initialFunding) * 100) * 100) / 100 : 0;
+
+  portfolio.summary = {
+    virtualBalance: Math.round(portfolio.account.virtualBalance * 100) / 100,
+    investedMargin: Math.round(totalInvestedMargin * 100) / 100,
+    totalPortfolioValue,
+    totalUnrealizedPnl: Math.round(totalUnrealizedPnl * 100) / 100,
+    todayRealizedPnl: Math.round(todayRealizedPnl * 100) / 100,
+    totalReturns,
+    totalReturnsPct,
+    activePositionsCount: portfolio.positions.length,
+    pendingOrdersCount: portfolio.orders.filter((o) => o.status === "PENDING").length,
+    analytics: {
+      totalTrades: totalClosedTrades,
+      winningTrades: winCount,
+      losingTrades: lossCount,
+      winRatePct,
+      profitFactor,
+      totalGrossPnl: Math.round(totalGrossPnl * 100) / 100,
+      totalChargesPaid: Math.round(totalChargesPaid * 100) / 100,
+      totalNetPnl: Math.round(totalNetPnl * 100) / 100,
+      bestTrade: Math.round(bestTrade * 100) / 100,
+      worstTrade: Math.round(worstTrade * 100) / 100
+    }
+  };
+
+  if (modified) {
+    savePracticeTrading(portfolio);
+  }
+
+  return portfolio;
 }
 
 function loadRiskProfile() {
@@ -744,6 +1062,408 @@ const server = http.createServer(async (request, response) => {
       writeJson(response, 200, { ok: true, dailyState: profile.dailyState });
     } catch (error) {
       writeJson(response, 400, { error: error.message || "Failed to reset daily risk state" });
+    }
+    return;
+  }
+
+  // --- PRACTICE TRADING (GROWW SIMULATOR) API ROUTES ---
+
+  if (url.pathname === "/api/practice/portfolio" && request.method === "GET") {
+    try {
+      const portfolio = await evaluatePracticePortfolio();
+      writeJson(response, 200, portfolio);
+    } catch (error) {
+      writeJson(response, 500, { error: error.message || "Failed to load practice portfolio" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/practice/funds" && request.method === "POST") {
+    try {
+      const body = await readBody(request);
+      const parsed = body ? JSON.parse(body) : {};
+      const amount = Number(parsed.amount) || 0;
+      const action = String(parsed.action || "ADD").toUpperCase();
+
+      const portfolio = loadPracticeTrading();
+      if (action === "ADD") {
+        portfolio.account.virtualBalance = Math.round((portfolio.account.virtualBalance + amount) * 100) / 100;
+        portfolio.account.initialFunding = Math.round((portfolio.account.initialFunding + amount) * 100) / 100;
+      } else if (action === "SET") {
+        portfolio.account.virtualBalance = Math.max(0, Math.round(amount * 100) / 100);
+        portfolio.account.initialFunding = Math.max(0, Math.round(amount * 100) / 100);
+      } else if (action === "RESET") {
+        const resetBal = amount > 0 ? amount : 1000000;
+        portfolio.account.virtualBalance = resetBal;
+        portfolio.account.initialFunding = resetBal;
+        portfolio.positions = [];
+        portfolio.holdings = [];
+        portfolio.orders = [];
+        portfolio.tradeHistory = [];
+      }
+      portfolio.account.updatedAt = new Date().toISOString();
+
+      const evaluated = await evaluatePracticePortfolio(portfolio);
+      savePracticeTrading(evaluated);
+      writeJson(response, 200, { ok: true, portfolio: evaluated });
+    } catch (error) {
+      writeJson(response, 400, { error: error.message || "Failed to update virtual funds" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/practice/order" && request.method === "POST") {
+    try {
+      const body = await readBody(request);
+      const parsed = body ? JSON.parse(body) : {};
+
+      const symbol = String(parsed.symbol || "").toUpperCase().trim();
+      const side = String(parsed.side || "BUY").toUpperCase().trim() === "SELL" ? "SELL" : "BUY";
+      const product = String(parsed.product || "INTRADAY").toUpperCase().trim() === "DELIVERY" ? "DELIVERY" : "INTRADAY";
+      const orderType = ["MARKET", "LIMIT", "SL", "SL-M"].includes(String(parsed.orderType || "").toUpperCase())
+        ? String(parsed.orderType).toUpperCase()
+        : "MARKET";
+      const qty = Math.max(1, parseInt(parsed.qty, 10) || 1);
+      const limitPrice = Number(parsed.price) || 0;
+      const triggerPrice = Number(parsed.triggerPrice) || 0;
+      const slPrice = Number(parsed.slPrice) || 0;
+      const targetPrice = Number(parsed.targetPrice) || 0;
+      const source = parsed.source || "Groww Practice Ticket";
+
+      if (!symbol) {
+        writeJson(response, 400, { error: "Valid stock symbol is required" });
+        return;
+      }
+
+      const quote = await getStockQuote(symbol);
+      const livePrice = quote && quote.price > 0 ? quote.price : (limitPrice || 100);
+
+      const portfolio = loadPracticeTrading();
+      const leverage = product === "INTRADAY" ? 5 : 1;
+
+      if (orderType === "MARKET") {
+        const execPrice = livePrice;
+        const totalExposure = Math.round(execPrice * qty * 100) / 100;
+        const requiredMargin = Math.round((totalExposure / leverage) * 100) / 100;
+        const entryCharges = calculateGrowwCharges(side, product, totalExposure);
+        const totalCost = Math.round((requiredMargin + entryCharges.totalCharges) * 100) / 100;
+
+        if (portfolio.account.virtualBalance < totalCost) {
+          writeJson(response, 400, {
+            error: `Insufficient virtual cash. Need ₹${totalCost.toLocaleString("en-IN")}, available ₹${portfolio.account.virtualBalance.toLocaleString("en-IN")}`
+          });
+          return;
+        }
+
+        portfolio.account.virtualBalance = Math.round((portfolio.account.virtualBalance - totalCost) * 100) / 100;
+
+        const newPosition = {
+          id: `pos_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          symbol,
+          companyName: quote?.name || symbol,
+          side,
+          product,
+          qty,
+          avgPrice: execPrice,
+          currentPrice: execPrice,
+          investedMargin: requiredMargin,
+          totalExposure,
+          slPrice,
+          targetPrice,
+          unrealizedPnl: 0,
+          unrealizedPnlPct: 0,
+          entryCharges,
+          openedAt: new Date().toISOString(),
+          source
+        };
+
+        portfolio.positions.unshift(newPosition);
+
+        portfolio.orders.unshift({
+          id: `ord_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          symbol,
+          side,
+          product,
+          orderType,
+          qty,
+          price: execPrice,
+          triggerPrice: 0,
+          slPrice,
+          targetPrice,
+          status: "EXECUTED",
+          executedPrice: execPrice,
+          executedAt: new Date().toISOString(),
+          source
+        });
+
+        const evaluated = await evaluatePracticePortfolio(portfolio);
+        savePracticeTrading(evaluated);
+        writeJson(response, 200, { ok: true, order: portfolio.orders[0], position: newPosition, portfolio: evaluated });
+      } else {
+        // LIMIT or SL Order
+        const checkPrice = limitPrice > 0 ? limitPrice : livePrice;
+        const totalExposure = Math.round(checkPrice * qty * 100) / 100;
+        const requiredMargin = Math.round((totalExposure / leverage) * 100) / 100;
+
+        if (portfolio.account.virtualBalance < requiredMargin) {
+          writeJson(response, 400, {
+            error: `Insufficient virtual cash for order. Need ₹${requiredMargin.toLocaleString("en-IN")}, available ₹${portfolio.account.virtualBalance.toLocaleString("en-IN")}`
+          });
+          return;
+        }
+
+        const newOrder = {
+          id: `ord_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          symbol,
+          companyName: quote?.name || symbol,
+          side,
+          product,
+          orderType,
+          qty,
+          price: limitPrice,
+          triggerPrice,
+          slPrice,
+          targetPrice,
+          status: "PENDING",
+          createdAt: new Date().toISOString(),
+          source
+        };
+
+        portfolio.orders.unshift(newOrder);
+        const evaluated = await evaluatePracticePortfolio(portfolio);
+        savePracticeTrading(evaluated);
+        writeJson(response, 200, { ok: true, order: newOrder, portfolio: evaluated });
+      }
+    } catch (error) {
+      writeJson(response, 400, { error: error.message || "Failed to place practice order" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/practice/position/exit" && request.method === "POST") {
+    try {
+      const body = await readBody(request);
+      const parsed = body ? JSON.parse(body) : {};
+      const positionId = String(parsed.positionId || "");
+
+      const portfolio = loadPracticeTrading();
+      if (!positionId) {
+        writeJson(response, 400, { error: "positionId is required" });
+        return;
+      }
+
+      const closedTrades = [];
+
+      if (positionId.toUpperCase() === "ALL") {
+        for (const pos of [...portfolio.positions]) {
+          const quote = await getStockQuote(pos.symbol);
+          const currentPrice = quote && quote.price > 0 ? quote.price : pos.avgPrice;
+          const isBuy = pos.side === "BUY";
+          const priceDiff = isBuy ? (currentPrice - pos.avgPrice) : (pos.avgPrice - currentPrice);
+          const grossPnl = Math.round(priceDiff * pos.qty * 100) / 100;
+          const grossPnlPct = Math.round(((priceDiff / pos.avgPrice) * 100) * 100) / 100;
+
+          const exitTurnover = currentPrice * pos.qty;
+          const exitCharges = calculateGrowwCharges(isBuy ? "SELL" : "BUY", pos.product, exitTurnover);
+          const netPnl = Math.round((grossPnl - (pos.entryCharges?.totalCharges || 0) - exitCharges.totalCharges) * 100) / 100;
+
+          // Refund invested margin + grossPnl - exitCharges
+          portfolio.account.virtualBalance = Math.max(0, Math.round((portfolio.account.virtualBalance + pos.investedMargin + grossPnl - exitCharges.totalCharges) * 100) / 100);
+
+          const closedTrade = {
+            id: `trd_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            symbol: pos.symbol,
+            companyName: pos.companyName || pos.symbol,
+            side: pos.side,
+            product: pos.product,
+            qty: pos.qty,
+            entryPrice: pos.avgPrice,
+            exitPrice: currentPrice,
+            grossPnl,
+            grossPnlPct,
+            charges: {
+              entryCharges: pos.entryCharges || {},
+              exitCharges,
+              totalCharges: Math.round(((pos.entryCharges?.totalCharges || 0) + exitCharges.totalCharges) * 100) / 100
+            },
+            netPnl,
+            exitReason: "MANUAL_SQUARE_OFF_ALL",
+            openedAt: pos.openedAt,
+            closedAt: new Date().toISOString()
+          };
+
+          closedTrades.push(closedTrade);
+          portfolio.tradeHistory.unshift(closedTrade);
+        }
+        portfolio.positions = [];
+      } else {
+        const index = portfolio.positions.findIndex((p) => p.id === positionId);
+        if (index === -1) {
+          writeJson(response, 404, { error: "Position not found" });
+          return;
+        }
+
+        const pos = portfolio.positions[index];
+        const quote = await getStockQuote(pos.symbol);
+        const currentPrice = quote && quote.price > 0 ? quote.price : pos.avgPrice;
+        const isBuy = pos.side === "BUY";
+        const priceDiff = isBuy ? (currentPrice - pos.avgPrice) : (pos.avgPrice - currentPrice);
+        const grossPnl = Math.round(priceDiff * pos.qty * 100) / 100;
+        const grossPnlPct = Math.round(((priceDiff / pos.avgPrice) * 100) * 100) / 100;
+
+        const exitTurnover = currentPrice * pos.qty;
+        const exitCharges = calculateGrowwCharges(isBuy ? "SELL" : "BUY", pos.product, exitTurnover);
+        const netPnl = Math.round((grossPnl - (pos.entryCharges?.totalCharges || 0) - exitCharges.totalCharges) * 100) / 100;
+
+        // Refund invested margin + grossPnl - exitCharges
+        portfolio.account.virtualBalance = Math.max(0, Math.round((portfolio.account.virtualBalance + pos.investedMargin + grossPnl - exitCharges.totalCharges) * 100) / 100);
+
+        const closedTrade = {
+          id: `trd_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          symbol: pos.symbol,
+          companyName: pos.companyName || pos.symbol,
+          side: pos.side,
+          product: pos.product,
+          qty: pos.qty,
+          entryPrice: pos.avgPrice,
+          exitPrice: currentPrice,
+          grossPnl,
+          grossPnlPct,
+          charges: {
+            entryCharges: pos.entryCharges || {},
+            exitCharges,
+            totalCharges: Math.round(((pos.entryCharges?.totalCharges || 0) + exitCharges.totalCharges) * 100) / 100
+          },
+          netPnl,
+          exitReason: "MANUAL_SQUARE_OFF",
+          openedAt: pos.openedAt,
+          closedAt: new Date().toISOString()
+        };
+
+        closedTrades.push(closedTrade);
+        portfolio.tradeHistory.unshift(closedTrade);
+        portfolio.positions.splice(index, 1);
+      }
+
+      const evaluated = await evaluatePracticePortfolio(portfolio);
+      savePracticeTrading(evaluated);
+      writeJson(response, 200, { ok: true, closedTrades, portfolio: evaluated });
+    } catch (error) {
+      writeJson(response, 400, { error: error.message || "Failed to exit position" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/practice/position/modify" && request.method === "POST") {
+    try {
+      const body = await readBody(request);
+      const parsed = body ? JSON.parse(body) : {};
+      const { positionId, slPrice, targetPrice } = parsed;
+
+      const portfolio = loadPracticeTrading();
+      const pos = portfolio.positions.find((p) => p.id === positionId);
+      if (!pos) {
+        writeJson(response, 404, { error: "Position not found" });
+        return;
+      }
+
+      if (slPrice !== undefined) pos.slPrice = Number(slPrice) || 0;
+      if (targetPrice !== undefined) pos.targetPrice = Number(targetPrice) || 0;
+
+      const evaluated = await evaluatePracticePortfolio(portfolio);
+      savePracticeTrading(evaluated);
+      writeJson(response, 200, { ok: true, position: pos, portfolio: evaluated });
+    } catch (error) {
+      writeJson(response, 400, { error: error.message || "Failed to modify position" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/practice/order/cancel" && request.method === "POST") {
+    try {
+      const body = await readBody(request);
+      const parsed = body ? JSON.parse(body) : {};
+      const orderId = parsed.orderId;
+
+      const portfolio = loadPracticeTrading();
+      const order = portfolio.orders.find((o) => o.id === orderId);
+      if (!order) {
+        writeJson(response, 404, { error: "Order not found" });
+        return;
+      }
+
+      order.status = "CANCELLED";
+      order.cancelledAt = new Date().toISOString();
+
+      const evaluated = await evaluatePracticePortfolio(portfolio);
+      savePracticeTrading(evaluated);
+      writeJson(response, 200, { ok: true, order, portfolio: evaluated });
+    } catch (error) {
+      writeJson(response, 400, { error: error.message || "Failed to cancel order" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/practice/reset" && request.method === "POST") {
+    try {
+      const body = await readBody(request);
+      const parsed = body ? JSON.parse(body) : {};
+      const funding = Number(parsed.funding) || 1000000;
+
+      const newPortfolio = {
+        account: {
+          virtualBalance: funding,
+          initialFunding: funding,
+          currency: "INR",
+          updatedAt: new Date().toISOString()
+        },
+        positions: [],
+        holdings: [],
+        orders: [],
+        tradeHistory: []
+      };
+
+      const evaluated = await evaluatePracticePortfolio(newPortfolio);
+      savePracticeTrading(evaluated);
+      writeJson(response, 200, { ok: true, portfolio: evaluated });
+    } catch (error) {
+      writeJson(response, 400, { error: error.message || "Failed to reset practice account" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/practice/quote" && request.method === "GET") {
+    try {
+      const parsedUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
+      const symbol = parsedUrl.searchParams.get("symbol") || "RELIANCE";
+      const quote = await getStockQuote(symbol);
+      writeJson(response, 200, quote || { error: "Symbol not found" });
+    } catch (error) {
+      writeJson(response, 500, { error: error.message || "Failed to fetch quote" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/practice/option-chain" && request.method === "GET") {
+    try {
+      const parsedUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
+      const symbol = parsedUrl.searchParams.get("symbol") || "NIFTY";
+      const chain = await getOptionChain(symbol);
+      writeJson(response, 200, chain);
+    } catch (error) {
+      writeJson(response, 500, { error: error.message || "Failed to fetch option chain" });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/practice/search" && request.method === "GET") {
+    try {
+      const parsedUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
+      const query = parsedUrl.searchParams.get("q") || "";
+      const results = await searchInstruments(query);
+      writeJson(response, 200, results);
+    } catch (error) {
+      writeJson(response, 500, { error: error.message || "Failed to search instruments" });
     }
     return;
   }
