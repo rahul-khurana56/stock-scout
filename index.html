@@ -9945,6 +9945,7 @@
       // Clean symbol (e.g. if "NIFTY 23400 CE", extract "NIFTY")
       const m = symbol.match(/^([A-Z0-9\-]+)/);
       const cleanSym = m ? m[1].toUpperCase() : "NIFTY";
+      growwState.activeOcSymbol = cleanSym;
 
       const selectEl = document.getElementById("growwOcUnderlyingSelect");
       if (selectEl) {
@@ -9963,25 +9964,36 @@
       }
 
       const tbody = document.getElementById("growwOcTableBody");
-      if (tbody) {
+      if (tbody && !tbody.children.length) {
         tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 40px; color: #94a3b8;">Loading live option chain for ${cleanSym}...</td></tr>`;
       }
 
-      try {
-        const res = await fetch(`/api/practice/option-chain?symbol=${encodeURIComponent(cleanSym)}`);
-        if (!res.ok) throw new Error("Failed to load option chain");
-        const chain = await res.json();
-        renderGrowwOptionChain(chain);
-      } catch (err) {
-        if (tbody) {
-          tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 40px; color: #eb5b3c;">Error loading option chain for ${cleanSym}.</td></tr>`;
+      async function fetchOcData() {
+        if (!modal || modal.style.display === "none") return;
+        try {
+          const res = await fetch(`/api/practice/option-chain?symbol=${encodeURIComponent(growwState.activeOcSymbol || cleanSym)}`);
+          if (!res.ok) throw new Error("Failed to load option chain");
+          const chain = await res.json();
+          renderGrowwOptionChain(chain);
+        } catch (err) {
+          if (tbody && !tbody.children.length) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 40px; color: #eb5b3c;">Error loading option chain for ${cleanSym}.</td></tr>`;
+          }
         }
       }
+
+      if (growwState.ocPollTimer) clearInterval(growwState.ocPollTimer);
+      await fetchOcData();
+      growwState.ocPollTimer = setInterval(fetchOcData, 4000);
     }
 
     function closeGrowwOptionChainModal() {
       const modal = document.getElementById("growwOptionChainModal");
       if (modal) modal.style.display = "none";
+      if (growwState.ocPollTimer) {
+        clearInterval(growwState.ocPollTimer);
+        growwState.ocPollTimer = null;
+      }
     }
 
     function renderGrowwOptionChain(chain) {
