@@ -1940,25 +1940,73 @@ async function getOptionsScoutData(forceRefresh = false) {
 }
 
 function parseOptionSymbol(rawSymbol) {
-  const sym = String(rawSymbol || "").trim().toUpperCase();
-  // Formats: "NIFTY 24500 CE", "BANKNIFTY 52000 PE", "SENSEX 80000 CE", "RELIANCE 2900 CE", "TCS 4200 PE", "NIFTY-24500-CE"
-  const m = sym.match(/^([A-Z0-9\-]+)[\s_-]+(\d+(?:\.\d+)?)\s*(CE|PE|CALL|PUT)$/i);
-  if (!m) return null;
-  const rawUnderlying = m[1].toUpperCase();
-  const strike = parseFloat(m[2]);
-  let optionType = m[3].toUpperCase();
-  if (optionType === "CALL") optionType = "CE";
-  if (optionType === "PUT") optionType = "PE";
+  let sym = String(rawSymbol || "").trim().toUpperCase();
+  if (!sym) return null;
 
-  let underlying = rawUnderlying;
-  if (rawUnderlying === "NIFTY50" || rawUnderlying === "NIFTY-50") underlying = "NIFTY";
-  if (rawUnderlying === "BANKNIFTY" || rawUnderlying === "NIFTYBANK" || rawUnderlying === "BANK") underlying = "BANKNIFTY";
-  if (rawUnderlying === "SENSEX50" || rawUnderlying === "BSE-SENSEX" || rawUnderlying === "BSESENSEX") underlying = "SENSEX";
-  if (rawUnderlying === "FINNIFTY" || rawUnderlying === "NIFTYFIN") underlying = "FINNIFTY";
-  if (rawUnderlying === "MIDCPNIFTY" || rawUnderlying === "MIDCAPNIFTY") underlying = "MIDCPNIFTY";
+  // Normalize common phrases
+  sym = sym.replace(/\s+/g, " ");
+
+  // Match trailing CE/PE/CALL/PUT
+  let optionType = "";
+  const typeMatch = sym.match(/\b(CE|PE|CALL|PUT)\b/i);
+  if (typeMatch) {
+    optionType = typeMatch[1].toUpperCase();
+    if (optionType === "CALL") optionType = "CE";
+    if (optionType === "PUT") optionType = "PE";
+    sym = sym.replace(/\b(CE|PE|CALL|PUT)\b/i, "").trim();
+  } else {
+    // If no explicit CE/PE, not a direct option contract string
+    return null;
+  }
+
+  // Match strike number
+  let strike = 0;
+  const strikeMatch = sym.match(/(\d+(?:\.\d+)?)\s*$/);
+  if (strikeMatch) {
+    strike = parseFloat(strikeMatch[1]);
+    sym = sym.replace(/(\d+(?:\.\d+)?)\s*$/, "").trim();
+  } else {
+    return null;
+  }
+
+  // Normalize Underlying string
+  const clean = sym.replace(/[\-_]/g, " ").replace(/\s+/g, " ").trim();
+  let underlying = "";
+
+  if (clean === "CRUDEOIL MINI" || clean === "CRUDE OIL MINI" || clean === "CRUDEOILM" || clean === "CRUDE MINI" || clean === "MCX CRUDE OIL MINI" || clean === "MCX CRUDEOILM") {
+    underlying = "CRUDEOILM";
+  } else if (clean === "CRUDEOIL" || clean === "CRUDE OIL" || clean === "CRUDE" || clean === "MCX CRUDE OIL" || clean === "MCX CRUDEOIL") {
+    underlying = "CRUDEOIL";
+  } else if (clean === "NATGAS MINI" || clean === "NATGASMINI" || clean === "NATURAL GAS MINI" || clean === "NATURALGAS MINI") {
+    underlying = "NATGASMINI";
+  } else if (clean === "NATGAS" || clean === "NATURALGAS" || clean === "NATURAL GAS") {
+    underlying = "NATURALGAS";
+  } else if (clean === "GOLD MINI" || clean === "GOLDM") {
+    underlying = "GOLDM";
+  } else if (clean === "GOLD") {
+    underlying = "GOLD";
+  } else if (clean === "SILVER MINI" || clean === "SILVERM") {
+    underlying = "SILVERM";
+  } else if (clean === "SILVER MICRO" || clean === "SILVERMIC") {
+    underlying = "SILVERMIC";
+  } else if (clean === "SILVER") {
+    underlying = "SILVER";
+  } else if (clean === "NIFTY50" || clean === "NIFTY 50" || clean === "NIFTY") {
+    underlying = "NIFTY";
+  } else if (clean === "BANKNIFTY" || clean === "NIFTY BANK" || clean === "BANK") {
+    underlying = "BANKNIFTY";
+  } else if (clean === "SENSEX" || clean === "BSE SENSEX") {
+    underlying = "SENSEX";
+  } else if (clean === "FINNIFTY" || clean === "NIFTY FIN SERVICE") {
+    underlying = "FINNIFTY";
+  } else if (clean === "MIDCPNIFTY" || clean === "NIFTY MIDCAP 50") {
+    underlying = "MIDCPNIFTY";
+  } else {
+    underlying = clean.replace(/\s+/g, "");
+  }
 
   return {
-    raw: sym,
+    raw: rawSymbol,
     underlying,
     strike,
     optionType,
@@ -1968,6 +2016,13 @@ function parseOptionSymbol(rawSymbol) {
 
 function getLotSizeForInstrument(symbol) {
   const sym = String(symbol || "").toUpperCase().trim();
+  if (sym.includes("CRUDEOILM") || sym.includes("CRUDE OIL MINI") || sym.includes("CRUDE MINI")) return 10;
+  if (sym.includes("CRUDEOIL") || sym.includes("CRUDE OIL")) return 100;
+  if (sym.includes("NATGASMINI") || sym.includes("NATURAL GAS MINI")) return 250;
+  if (sym.includes("NATURALGAS") || sym.includes("NATURAL GAS")) return 1250;
+  if (sym.includes("GOLDM") || sym.includes("GOLD MINI")) return 10;
+  if (sym.includes("SILVERM") || sym.includes("SILVER MINI")) return 5;
+  if (sym.includes("SILVERMIC") || sym.includes("SILVER MICRO")) return 1;
   if (sym.includes("BANKNIFTY") || sym === "NIFTY BANK" || sym === "BANK") return 15;
   if (sym.includes("SENSEX")) return 10;
   if (sym.includes("MIDCPNIFTY") || sym.includes("MIDCAP")) return 50;
@@ -2030,6 +2085,45 @@ function calculateOptionPricing(spotPrice, strike, optionType, underlyingChange 
 
 async function getUnderlyingSpotQuote(rawUnderlying) {
   const sym = String(rawUnderlying || "").toUpperCase().trim();
+
+  // Commodities
+  if (sym === "CRUDEOILM" || sym === "CRUDE OIL MINI" || sym === "CRUDE MINI" || sym === "CRUDEOIL MINI") {
+    return { symbol: "CRUDEOILM", name: "MCX CRUDE OIL MINI", price: 6150.00, change: 42.00, pChange: 0.69, isIndex: false, isCommodity: true, lotSize: 10 };
+  }
+
+  if (sym === "CRUDEOIL" || sym === "CRUDE OIL" || sym === "CRUDE") {
+    return { symbol: "CRUDEOIL", name: "MCX CRUDE OIL", price: 6150.00, change: 42.00, pChange: 0.69, isIndex: false, isCommodity: true, lotSize: 100 };
+  }
+
+  if (sym === "NATGASMINI" || sym === "NATURAL GAS MINI" || sym === "NAT GAS MINI") {
+    return { symbol: "NATGASMINI", name: "MCX NATURAL GAS MINI", price: 235.50, change: 3.20, pChange: 1.38, isIndex: false, isCommodity: true, lotSize: 250 };
+  }
+
+  if (sym === "NATURALGAS" || sym === "NATURAL GAS" || sym === "NATGAS") {
+    return { symbol: "NATURALGAS", name: "MCX NATURAL GAS", price: 235.50, change: 3.20, pChange: 1.38, isIndex: false, isCommodity: true, lotSize: 1250 };
+  }
+
+  if (sym === "GOLDM" || sym === "GOLD MINI") {
+    return { symbol: "GOLDM", name: "MCX GOLD MINI", price: 74200.00, change: 320.00, pChange: 0.43, isIndex: false, isCommodity: true, lotSize: 10 };
+  }
+
+  if (sym === "GOLD") {
+    return { symbol: "GOLD", name: "MCX GOLD", price: 74200.00, change: 320.00, pChange: 0.43, isIndex: false, isCommodity: true, lotSize: 100 };
+  }
+
+  if (sym === "SILVERM" || sym === "SILVER MINI") {
+    return { symbol: "SILVERM", name: "MCX SILVER MINI", price: 88500.00, change: 450.00, pChange: 0.51, isIndex: false, isCommodity: true, lotSize: 5 };
+  }
+
+  if (sym === "SILVERMIC" || sym === "SILVER MICRO") {
+    return { symbol: "SILVERMIC", name: "MCX SILVER MICRO", price: 88500.00, change: 450.00, pChange: 0.51, isIndex: false, isCommodity: true, lotSize: 1 };
+  }
+
+  if (sym === "SILVER") {
+    return { symbol: "SILVER", name: "MCX SILVER", price: 88500.00, change: 450.00, pChange: 0.51, isIndex: false, isCommodity: true, lotSize: 30 };
+  }
+
+  // Indices
   if (sym === "NIFTY" || sym === "NIFTY 50" || sym === "NIFTY50") {
     const allIndices = await fetchNSEAllIndicesMap().catch(() => new Map());
     const idx = allIndices.get("NIFTY 50") || allIndices.get("NIFTY50");
@@ -2084,7 +2178,134 @@ async function getStockQuoteDirect(rawSymbol) {
   const symbol = String(rawSymbol || "").toUpperCase().trim();
   if (!symbol) return null;
 
-  // 1. Check Indices
+  // 1. Check Commodities
+  if (symbol === "CRUDEOILM" || symbol === "CRUDE OIL MINI" || symbol === "CRUDE MINI" || symbol === "CRUDEOIL MINI") {
+    return {
+      symbol: "CRUDEOILM",
+      name: "MCX CRUDE OIL MINI",
+      price: 6150.00,
+      change: 42.00,
+      pChange: 0.69,
+      open: 6120.00,
+      high: 6195.00,
+      low: 6110.00,
+      prevClose: 6108.00,
+      yearHigh: 7850.00,
+      yearLow: 5200.00,
+      volume: 450000,
+      lotSize: 10,
+      isCommodity: true,
+      isIndex: false,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  if (symbol === "CRUDEOIL" || symbol === "CRUDE OIL" || symbol === "CRUDE") {
+    return {
+      symbol: "CRUDEOIL",
+      name: "MCX CRUDE OIL",
+      price: 6150.00,
+      change: 42.00,
+      pChange: 0.69,
+      open: 6120.00,
+      high: 6195.00,
+      low: 6110.00,
+      prevClose: 6108.00,
+      yearHigh: 7850.00,
+      yearLow: 5200.00,
+      volume: 850000,
+      lotSize: 100,
+      isCommodity: true,
+      isIndex: false,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  if (symbol === "NATGASMINI" || symbol === "NATURAL GAS MINI" || symbol === "NAT GAS MINI") {
+    return {
+      symbol: "NATGASMINI",
+      name: "MCX NATURAL GAS MINI",
+      price: 235.50,
+      change: 3.20,
+      pChange: 1.38,
+      open: 233.00,
+      high: 238.40,
+      low: 231.80,
+      prevClose: 232.30,
+      yearHigh: 340.00,
+      yearLow: 160.00,
+      volume: 320000,
+      lotSize: 250,
+      isCommodity: true,
+      isIndex: false,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  if (symbol === "NATURALGAS" || symbol === "NATURAL GAS" || symbol === "NATGAS") {
+    return {
+      symbol: "NATURALGAS",
+      name: "MCX NATURAL GAS",
+      price: 235.50,
+      change: 3.20,
+      pChange: 1.38,
+      open: 233.00,
+      high: 238.40,
+      low: 231.80,
+      prevClose: 232.30,
+      yearHigh: 340.00,
+      yearLow: 160.00,
+      volume: 620000,
+      lotSize: 1250,
+      isCommodity: true,
+      isIndex: false,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  if (symbol === "GOLDM" || symbol === "GOLD MINI") {
+    return {
+      symbol: "GOLDM",
+      name: "MCX GOLD MINI",
+      price: 74200.00,
+      change: 320.00,
+      pChange: 0.43,
+      open: 73950.00,
+      high: 74450.00,
+      low: 73800.00,
+      prevClose: 73880.00,
+      yearHigh: 76000.00,
+      yearLow: 58000.00,
+      volume: 180000,
+      lotSize: 10,
+      isCommodity: true,
+      isIndex: false,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  if (symbol === "SILVERM" || symbol === "SILVER MINI") {
+    return {
+      symbol: "SILVERM",
+      name: "MCX SILVER MINI",
+      price: 88500.00,
+      change: 450.00,
+      pChange: 0.51,
+      open: 88100.00,
+      high: 88950.00,
+      low: 87900.00,
+      prevClose: 88050.00,
+      yearHigh: 96000.00,
+      yearLow: 68000.00,
+      volume: 140000,
+      lotSize: 5,
+      isCommodity: true,
+      isIndex: false,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  // 2. Check Indices
   const allIndices = await fetchNSEAllIndicesMap().catch(() => new Map());
   const indexMatch = allIndices.get(symbol) || allIndices.get(symbol.replace(/\s+/g, "")) || allIndices.get(symbol === "NIFTY" ? "NIFTY 50" : symbol === "BANKNIFTY" ? "NIFTY BANK" : symbol);
   if (indexMatch) {
@@ -2107,7 +2328,7 @@ async function getStockQuoteDirect(rawSymbol) {
     };
   }
 
-  // 2. Check Nifty 50 & Bank Nifty cached constituents
+  // 3. Check Nifty 50 & Bank Nifty cached constituents
   const n50 = cache.nifty50.data?.constituents?.find((s) => s.symbol === symbol);
   if (n50) {
     return {
@@ -2150,7 +2371,7 @@ async function getStockQuoteDirect(rawSymbol) {
     };
   }
 
-  // 3. Try fetching via Yahoo candles if available
+  // 4. Try fetching via Yahoo candles if available
   try {
     const candles = await fetchYahooCandles(symbol);
     if (candles && candles.length > 0) {
@@ -2203,19 +2424,19 @@ async function getStockQuote(rawSymbol) {
   const symbol = String(rawSymbol || "").toUpperCase().trim();
   if (!symbol) return null;
 
-  // Check if this is an Option Contract e.g. "NIFTY 24500 CE", "BANKNIFTY 52000 PE", "RELIANCE 2900 CE"
+  // Check if this is an Option Contract e.g. "CRUDEOILM 9750 CE", "NIFTY 24500 CE", "BANKNIFTY 52000 PE"
   const optParsed = parseOptionSymbol(symbol);
   if (optParsed) {
     const underQuote = await getUnderlyingSpotQuote(optParsed.underlying);
     const spotPrice = underQuote.price;
     const underChange = underQuote.change || 0;
-    const isStock = !underQuote.isIndex;
+    const isStock = !underQuote.isIndex && !underQuote.isCommodity;
     const pricing = calculateOptionPricing(spotPrice, optParsed.strike, optParsed.optionType, underChange, isStock);
     const lotSize = getLotSizeForInstrument(optParsed.underlying);
 
     return {
       symbol: optParsed.formatted,
-      name: `${optParsed.underlying} ${optParsed.strike} ${optParsed.optionType === "CE" ? "Call" : "Put"} Option`,
+      name: `${underQuote.name || optParsed.underlying} ${optParsed.strike} ${optParsed.optionType === "CE" ? "Call" : "Put"} Option`,
       price: pricing.ltp,
       change: pricing.change,
       pChange: pricing.pChange,
@@ -2228,7 +2449,8 @@ async function getStockQuote(rawSymbol) {
       volume: pricing.volume,
       lotSize,
       isOption: true,
-      isIndex: false,
+      isCommodity: Boolean(underQuote.isCommodity),
+      isIndex: Boolean(underQuote.isIndex),
       optionType: optParsed.optionType,
       strike: optParsed.strike,
       underlying: optParsed.underlying,
@@ -2243,7 +2465,7 @@ async function getStockQuote(rawSymbol) {
     };
   }
 
-  // Normal stock or index quote
+  // Normal stock, index or commodity quote
   return getStockQuoteDirect(symbol);
 }
 
@@ -2254,11 +2476,18 @@ async function getOptionChain(rawSymbol) {
   if (sym === "BSE SENSEX" || sym === "BSESENSEX") sym = "SENSEX";
   if (sym === "NIFTY FIN SERVICE") sym = "FINNIFTY";
   if (sym === "NIFTY MIDCAP 50") sym = "MIDCPNIFTY";
+  if (sym === "CRUDE OIL MINI" || sym === "CRUDE MINI" || sym === "CRUDEOIL MINI") sym = "CRUDEOILM";
+  if (sym === "CRUDE OIL" || sym === "CRUDE") sym = "CRUDEOIL";
+  if (sym === "NATURAL GAS MINI" || sym === "NAT GAS MINI") sym = "NATGASMINI";
+  if (sym === "NATURAL GAS" || sym === "NATGAS") sym = "NATURALGAS";
+  if (sym === "GOLD MINI") sym = "GOLDM";
+  if (sym === "SILVER MINI") sym = "SILVERM";
+  if (sym === "SILVER MICRO") sym = "SILVERMIC";
 
   const underQuote = await getUnderlyingSpotQuote(sym);
   const spotPrice = underQuote.price;
   const underChange = underQuote.change || 0;
-  const isStock = !underQuote.isIndex;
+  const isStock = !underQuote.isIndex && !underQuote.isCommodity;
   const step = getStrikeStep(spotPrice, sym);
   const atmStrike = Math.round(spotPrice / step) * step;
   const lotSize = getLotSizeForInstrument(sym);
@@ -2329,12 +2558,12 @@ async function getOptionChain(rawSymbol) {
 
   const pcr = totalCallOI > 0 ? round(totalPutOI / totalCallOI, 2) : 1.0;
 
-  // Next weekly expiry (e.g. Current Thursday)
+  // Expiry formatting
   const now = new Date();
   const day = now.getDay();
   const daysUntilThursday = (4 - day + 7) % 7 || 7;
   const expiryDateObj = new Date(now.getTime() + daysUntilThursday * 24 * 60 * 60 * 1000);
-  const expiryStr = expiryDateObj.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) + " (Weekly)";
+  const expiryStr = expiryDateObj.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) + " (Active Expiry)";
 
   return {
     symbol: sym,
@@ -2346,6 +2575,7 @@ async function getOptionChain(rawSymbol) {
     strikeStep: step,
     lotSize,
     isIndex: underQuote.isIndex,
+    isCommodity: underQuote.isCommodity,
     pcr,
     totalCallOI,
     totalPutOI,
@@ -2359,35 +2589,7 @@ async function getOptionChain(rawSymbol) {
 
 async function searchInstruments(rawQuery) {
   const query = String(rawQuery || "").toUpperCase().trim();
-  if (!query) {
-    // Return default popular instruments & ATM options
-    const n50Chain = await getOptionChain("NIFTY");
-    const bnChain = await getOptionChain("BANKNIFTY");
-    const sxChain = await getOptionChain("SENSEX");
-
-    return {
-      indicesAndStocks: [
-        { symbol: "NIFTY", name: "NIFTY 50", type: "INDEX", price: n50Chain.spotPrice, change: n50Chain.change, pChange: n50Chain.pChange, lotSize: 25 },
-        { symbol: "BANKNIFTY", name: "NIFTY BANK", type: "INDEX", price: bnChain.spotPrice, change: bnChain.change, pChange: bnChain.pChange, lotSize: 15 },
-        { symbol: "SENSEX", name: "BSE SENSEX", type: "INDEX", price: sxChain.spotPrice, change: sxChain.change, pChange: sxChain.pChange, lotSize: 10 },
-        { symbol: "FINNIFTY", name: "NIFTY FIN SERVICE", type: "INDEX", price: 23650, change: 75, pChange: 0.32, lotSize: 25 },
-        { symbol: "RELIANCE", name: "Reliance Industries", type: "STOCK", price: 2950, change: 18.5, pChange: 0.63, lotSize: 250 },
-        { symbol: "TCS", name: "Tata Consultancy Services", type: "STOCK", price: 4250, change: -12.0, pChange: -0.28, lotSize: 175 },
-        { symbol: "HDFCBANK", name: "HDFC Bank", type: "STOCK", price: 1680, change: 9.4, pChange: 0.56, lotSize: 550 },
-        { symbol: "ICICIBANK", name: "ICICI Bank", type: "STOCK", price: 1240, change: 11.2, pChange: 0.91, lotSize: 700 }
-      ],
-      callOptions: [
-        n50Chain.strikes.find((s) => s.isAtm)?.ce,
-        bnChain.strikes.find((s) => s.isAtm)?.ce,
-        sxChain.strikes.find((s) => s.isAtm)?.ce
-      ].filter(Boolean),
-      putOptions: [
-        n50Chain.strikes.find((s) => s.isAtm)?.pe,
-        bnChain.strikes.find((s) => s.isAtm)?.pe,
-        sxChain.strikes.find((s) => s.isAtm)?.pe
-      ].filter(Boolean)
-    };
-  }
+  const cleanQ = query.replace(/[\-_]/g, " ").replace(/\s+/g, " ").trim();
 
   // 1. Direct Option Match
   const optParsed = parseOptionSymbol(query);
@@ -2400,17 +2602,29 @@ async function searchInstruments(rawQuery) {
     };
   }
 
-  // 2. Search Indices & Stocks
-  const allIndices = [
-    { symbol: "NIFTY", name: "NIFTY 50", type: "INDEX", lotSize: 25 },
-    { symbol: "BANKNIFTY", name: "NIFTY BANK", type: "INDEX", lotSize: 15 },
-    { symbol: "SENSEX", name: "BSE SENSEX", type: "INDEX", lotSize: 10 },
-    { symbol: "FINNIFTY", name: "NIFTY FINANCIAL SERVICES", type: "INDEX", lotSize: 25 },
-    { symbol: "MIDCPNIFTY", name: "NIFTY MIDCAP 50", type: "INDEX", lotSize: 50 }
+  // 2. Commodities List
+  const allCommodities = [
+    { symbol: "CRUDEOILM", name: "MCX CRUDE OIL MINI", type: "COMMODITY", lotSize: 10, price: 6150.00, change: 42.00, pChange: 0.69 },
+    { symbol: "CRUDEOIL", name: "MCX CRUDE OIL", type: "COMMODITY", lotSize: 100, price: 6150.00, change: 42.00, pChange: 0.69 },
+    { symbol: "NATGASMINI", name: "MCX NATURAL GAS MINI", type: "COMMODITY", lotSize: 250, price: 235.50, change: 3.20, pChange: 1.38 },
+    { symbol: "NATURALGAS", name: "MCX NATURAL GAS", type: "COMMODITY", lotSize: 1250, price: 235.50, change: 3.20, pChange: 1.38 },
+    { symbol: "GOLDM", name: "MCX GOLD MINI", type: "COMMODITY", lotSize: 10, price: 74200.00, change: 320.00, pChange: 0.43 },
+    { symbol: "GOLD", name: "MCX GOLD", type: "COMMODITY", lotSize: 100, price: 74200.00, change: 320.00, pChange: 0.43 },
+    { symbol: "SILVERM", name: "MCX SILVER MINI", type: "COMMODITY", lotSize: 5, price: 88500.00, change: 450.00, pChange: 0.51 },
+    { symbol: "SILVERMIC", name: "MCX SILVER MICRO", type: "COMMODITY", lotSize: 1, price: 88500.00, change: 450.00, pChange: 0.51 },
+    { symbol: "SILVER", name: "MCX SILVER", type: "COMMODITY", lotSize: 30, price: 88500.00, change: 450.00, pChange: 0.51 }
   ];
 
-  const matchedIndices = allIndices.filter((idx) => idx.symbol.includes(query) || idx.name.toUpperCase().includes(query));
+  // 3. Indices List
+  const allIndices = [
+    { symbol: "NIFTY", name: "NIFTY 50", type: "INDEX", lotSize: 25, price: 24550.00, change: 85.50, pChange: 0.35 },
+    { symbol: "BANKNIFTY", name: "NIFTY BANK", type: "INDEX", lotSize: 15, price: 52150.00, change: 195.00, pChange: 0.38 },
+    { symbol: "SENSEX", name: "BSE SENSEX", type: "INDEX", lotSize: 10, price: 80450.00, change: 280.00, pChange: 0.35 },
+    { symbol: "FINNIFTY", name: "NIFTY FINANCIAL SERVICES", type: "INDEX", lotSize: 25, price: 23650.00, change: 75.00, pChange: 0.32 },
+    { symbol: "MIDCPNIFTY", name: "NIFTY MIDCAP 50", type: "INDEX", lotSize: 50, price: 12450.00, change: 45.00, pChange: 0.36 }
+  ];
 
+  // 4. Stocks List
   const allStocks = [
     ...(cache.nifty50.data?.constituents || nifty50Constituents),
     ...(cache.bankNifty.data?.constituents || bankNiftyConstituents)
@@ -2431,37 +2645,148 @@ async function searchInstruments(rawQuery) {
     }
   }
 
-  const matchedStocks = Array.from(stockMap.values()).filter((s) => s.symbol.includes(query) || s.name.toUpperCase().includes(query)).slice(0, 10);
+  const allAvailableInstruments = [...allCommodities, ...allIndices, ...Array.from(stockMap.values())];
 
-  const matchedInstruments = [...matchedIndices, ...matchedStocks];
+  if (!query) {
+    return {
+      indicesAndStocks: allAvailableInstruments.slice(0, 10),
+      callOptions: [],
+      putOptions: []
+    };
+  }
 
-  // 3. Generate Matching Options for top matched instrument
+  // Filter matched instruments based on symbol and name keywords
+  const textTokens = cleanQ
+    .replace(/\b\d+\b/g, "")
+    .replace(/\b(CE|PE|CALL|PUT)\b/g, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  const matchedInstruments = allAvailableInstruments.filter((inst) => {
+    const instSym = inst.symbol.toUpperCase();
+    const instName = inst.name.toUpperCase();
+
+    // Check if whole query or symbol matches directly
+    if (instSym.includes(query) || query.includes(instSym) || instName.includes(query)) return true;
+
+    // Check if tokens match
+    if (textTokens.length > 0) {
+      const allTokensMatch = textTokens.every((t) => {
+        if (t === "MINI" || t === "MIN") {
+          return instSym.endsWith("M") || instSym.includes("MINI") || instName.includes("MINI");
+        }
+        if (t === "CRUDE" || t === "CRUDEOIL") {
+          return instSym.includes("CRUDE") || instName.includes("CRUDE");
+        }
+        if (t === "NATGAS" || t === "NATURALGAS" || t === "NATURAL") {
+          return instSym.includes("NAT") || instName.includes("NAT");
+        }
+        if (t === "GOLD") {
+          return instSym.includes("GOLD") || instName.includes("GOLD");
+        }
+        if (t === "SILVER") {
+          return instSym.includes("SILVER") || instName.includes("SILVER");
+        }
+        return instSym.includes(t) || instName.includes(t);
+      });
+      if (allTokensMatch) return true;
+    }
+
+    return false;
+  });
+
+  // Prioritize exact/mini matches
+  if (cleanQ.includes("MINI") || cleanQ.includes("MIN") || cleanQ.includes("CRUDEOILM") || cleanQ.includes("GOLDM") || cleanQ.includes("SILVERM")) {
+    matchedInstruments.sort((a, b) => {
+      const aIsMini = a.symbol.endsWith("M") || a.symbol.includes("MINI") || a.name.includes("MINI");
+      const bIsMini = b.symbol.endsWith("M") || b.symbol.includes("MINI") || b.name.includes("MINI");
+      return (bIsMini ? 1 : 0) - (aIsMini ? 1 : 0);
+    });
+  }
+
+  // 5. Generate Matching Options for top matched instrument
   const callOptions = [];
   const putOptions = [];
 
-  const targetSymbol = matchedInstruments[0]?.symbol || (query.match(/^[A-Z]+/)?.[0] || "NIFTY");
+  let targetSymbol = matchedInstruments[0]?.symbol;
+  if (cleanQ.includes("CRUDE") && (cleanQ.includes("MINI") || cleanQ.includes("MIN") || cleanQ.endsWith("M"))) {
+    targetSymbol = "CRUDEOILM";
+  } else if (cleanQ.includes("CRUDE") && !cleanQ.includes("MINI")) {
+    targetSymbol = "CRUDEOIL";
+  } else if ((cleanQ.includes("NATGAS") || cleanQ.includes("NATURAL")) && (cleanQ.includes("MINI") || cleanQ.includes("MIN"))) {
+    targetSymbol = "NATGASMINI";
+  } else if (cleanQ.includes("GOLD") && (cleanQ.includes("MINI") || cleanQ.includes("MIN"))) {
+    targetSymbol = "GOLDM";
+  } else if (cleanQ.includes("SILVER") && (cleanQ.includes("MINI") || cleanQ.includes("MIN"))) {
+    targetSymbol = "SILVERM";
+  } else if (!targetSymbol) {
+    targetSymbol = query.match(/^[A-Z]+/)?.[0] || "NIFTY";
+  }
+
   if (targetSymbol) {
     try {
-      const chain = await getOptionChain(targetSymbol);
-      // Filter strikes matching numbers in query or near ATM
+      const underQuote = await getUnderlyingSpotQuote(targetSymbol);
+      const spotPrice = underQuote.price;
+      const underChange = underQuote.change || 0;
+      const isStock = !underQuote.isIndex && !underQuote.isCommodity;
+      const step = getStrikeStep(spotPrice, targetSymbol);
+      const atmStrike = Math.round(spotPrice / step) * step;
+
       const numberMatch = query.match(/\d+/);
       const searchNum = numberMatch ? parseInt(numberMatch[0], 10) : null;
 
-      let relevantStrikes = chain.strikes;
+      const targetStrikes = [];
       if (searchNum) {
-        relevantStrikes = chain.strikes.filter((s) => Math.abs(s.strike - searchNum) <= chain.strikeStep * 3);
-        if (relevantStrikes.length === 0) relevantStrikes = chain.strikes.slice(5, 12);
+        // User typed a specific strike like 9750 or 6000
+        const baseStrike = Math.round(searchNum / step) * step;
+        for (let i = -2; i <= 2; i++) {
+          targetStrikes.push(round(baseStrike + i * step, 2));
+        }
       } else {
-        // ATM +/- 2 strikes
-        const atmIndex = chain.strikes.findIndex((s) => s.isAtm);
-        if (atmIndex !== -1) {
-          relevantStrikes = chain.strikes.slice(Math.max(0, atmIndex - 2), Math.min(chain.strikes.length, atmIndex + 3));
+        // Near ATM strikes
+        for (let i = -3; i <= 3; i++) {
+          targetStrikes.push(round(atmStrike + i * step, 2));
         }
       }
 
-      for (const st of relevantStrikes) {
-        if (!query.includes("PE")) callOptions.push(st.ce);
-        if (!query.includes("CE")) putOptions.push(st.pe);
+      for (const st of targetStrikes) {
+        const cePricing = calculateOptionPricing(spotPrice, st, "CE", underChange, isStock);
+        const pePricing = calculateOptionPricing(spotPrice, st, "PE", underChange, isStock);
+
+        if (!query.includes("PE")) {
+          callOptions.push({
+            symbol: `${targetSymbol} ${st} CE`,
+            strike: st,
+            optionType: "CE",
+            ltp: cePricing.ltp,
+            change: cePricing.change,
+            pChange: cePricing.pChange,
+            oi: cePricing.oi,
+            volume: cePricing.volume,
+            iv: cePricing.iv,
+            delta: cePricing.delta,
+            isAtm: st === atmStrike,
+            lotSize: underQuote.lotSize || getLotSizeForInstrument(targetSymbol)
+          });
+        }
+
+        if (!query.includes("CE")) {
+          putOptions.push({
+            symbol: `${targetSymbol} ${st} PE`,
+            strike: st,
+            optionType: "PE",
+            ltp: pePricing.ltp,
+            change: pePricing.change,
+            pChange: pePricing.pChange,
+            oi: pePricing.oi,
+            volume: pePricing.volume,
+            iv: pePricing.iv,
+            delta: pePricing.delta,
+            isAtm: st === atmStrike,
+            lotSize: underQuote.lotSize || getLotSizeForInstrument(targetSymbol)
+          });
+        }
       }
     } catch (err) {}
   }

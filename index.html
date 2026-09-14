@@ -6096,11 +6096,16 @@
 
           <div style="display: flex; align-items: center; gap: 8px;">
             <select id="growwOcUnderlyingSelect" class="input-text" onchange="openGrowwOptionChain(this.value)" style="font-size: 12px; padding: 6px 10px; min-width: 140px; background: rgba(255,255,255,0.06);">
-              <option value="NIFTY">NIFTY 50</option>
-              <option value="BANKNIFTY">BANK NIFTY</option>
-              <option value="SENSEX">SENSEX</option>
-              <option value="FINNIFTY">FIN NIFTY</option>
-              <option value="MIDCPNIFTY">MIDCP NIFTY</option>
+              <option value="CRUDEOILM">🛢️ CRUDE OIL MINI (10 bbl)</option>
+              <option value="CRUDEOIL">🛢️ CRUDE OIL MEGA (100 bbl)</option>
+              <option value="NATGASMINI">🔥 NATURAL GAS MINI (250)</option>
+              <option value="GOLDM">🪙 GOLD MINI (10)</option>
+              <option value="SILVERM">🥈 SILVER MINI (5)</option>
+              <option value="NIFTY">📈 NIFTY 50</option>
+              <option value="BANKNIFTY">🏦 BANK NIFTY</option>
+              <option value="SENSEX">🏛️ SENSEX</option>
+              <option value="FINNIFTY">💰 FIN NIFTY</option>
+              <option value="MIDCPNIFTY">🚀 MIDCP NIFTY</option>
               <option value="RELIANCE">RELIANCE</option>
               <option value="TCS">TCS</option>
               <option value="HDFCBANK">HDFC BANK</option>
@@ -10185,8 +10190,27 @@
       const container = document.getElementById("growwChartContainer");
       if (!container) return;
 
-      const cleanSym = (growwState.activeQuote?.underlying || symbol).replace(/\s+/g, "");
-      const tvSymbol = cleanSym.startsWith("NIFTY") || cleanSym.startsWith("BANK") || cleanSym.startsWith("SENSEX") ? `NSE:${cleanSym}` : `NSE:${cleanSym}`;
+      const cleanSym = (growwState.activeQuote?.underlying || symbol).replace(/\s+/g, "").toUpperCase();
+      let tvSymbol = `NSE:${cleanSym}`;
+      if (cleanSym.includes("CRUDEOIL")) {
+        tvSymbol = "MCX:CRUDEOIL1!";
+      } else if (cleanSym.includes("NATGAS") || cleanSym.includes("NATURALGAS")) {
+        tvSymbol = "MCX:NATURALGAS1!";
+      } else if (cleanSym.includes("GOLD")) {
+        tvSymbol = "MCX:GOLD1!";
+      } else if (cleanSym.includes("SILVER")) {
+        tvSymbol = "MCX:SILVER1!";
+      } else if (cleanSym.includes("COPPER")) {
+        tvSymbol = "MCX:COPPER1!";
+      } else if (cleanSym.startsWith("SENSEX")) {
+        tvSymbol = "BSE:SENSEX";
+      } else if (cleanSym.startsWith("BANKNIFTY") || cleanSym.startsWith("BANK")) {
+        tvSymbol = "NSE:BANKNIFTY";
+      } else if (cleanSym.startsWith("NIFTY")) {
+        tvSymbol = "NSE:NIFTY";
+      } else if (cleanSym.startsWith("FINNIFTY")) {
+        tvSymbol = "NSE:FINNIFTY";
+      }
       
       container.innerHTML = `
         <div id="tradingview_groww_chart" style="width: 100%; height: 100%;"></div>
@@ -10233,6 +10257,12 @@
 
       if (growwState.watchlistTab === "options") {
         return [
+          { symbol: "CRUDEOILM 6150 CE", name: "Crude Oil Mini 6150 CE (Lot 10)", price: 145.20, change: 14.50, pChange: 11.10, isOption: true },
+          { symbol: "CRUDEOILM 6150 PE", name: "Crude Oil Mini 6150 PE (Lot 10)", price: 132.80, change: -12.40, pChange: -8.54, isOption: true },
+          { symbol: "CRUDEOIL 6150 CE", name: "Crude Oil 6150 CE (Mega Lot 100)", price: 145.20, change: 14.50, pChange: 11.10, isOption: true },
+          { symbol: "NATGASMINI 240 CE", name: "Natural Gas Mini 240 CE (Lot 250)", price: 12.40, change: 1.10, pChange: 9.73, isOption: true },
+          { symbol: "GOLDM 72000 CE", name: "Gold Mini 72000 CE (Lot 10)", price: 420.00, change: 35.00, pChange: 9.09, isOption: true },
+          { symbol: "SILVERM 85000 CE", name: "Silver Mini 85000 CE (Lot 5)", price: 680.00, change: 48.00, pChange: 7.59, isOption: true },
           { symbol: "NIFTY 23400 CE", name: "Nifty 23400 Call (ATM)", price: 142.50, change: 18.20, pChange: 14.64, isOption: true },
           { symbol: "NIFTY 23400 PE", name: "Nifty 23400 Put (ATM)", price: 134.80, change: -12.40, pChange: -8.42, isOption: true },
           { symbol: "BANKNIFTY 56500 CE", name: "Bank Nifty 56500 Call", price: 345.00, change: 48.00, pChange: 16.16, isOption: true },
