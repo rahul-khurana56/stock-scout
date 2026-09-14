@@ -2032,21 +2032,23 @@ function getLotSizeForInstrument(symbol) {
   return 1;
 }
 
-function calculateOptionPricing(spotPrice, strike, optionType, underlyingChange = 0, isStock = false) {
+function calculateOptionPricing(spotPrice, strike, optionType, underlyingChange = 0, isStock = false, isCommodity = false) {
   const isCall = optionType === "CE" || optionType === "CALL";
-  const iv = isStock ? 22.0 : 13.8;
-  const dte = 4.0; // days to expiry
+  const iv = isCommodity ? 28.5 : isStock ? 22.0 : 13.8;
+  const dte = isCommodity ? 5.0 : 4.0; // days to expiry
   const t = Math.max(0.005, dte / 365.0);
 
   const diff = isCall ? (spotPrice - strike) : (strike - spotPrice);
   const intrinsic = Math.max(0, diff);
 
   // ATM time value baseline
-  const atmTimeValue = Math.max(10, spotPrice * (iv / 100.0) * Math.sqrt(t) * 0.40);
+  const atmMultiplier = isCommodity ? 0.58 : 0.40;
+  const atmTimeValue = Math.max(10, spotPrice * (iv / 100.0) * Math.sqrt(t) * atmMultiplier);
 
   // Distance metric
   const d = Math.abs(spotPrice - strike) / (spotPrice * (iv / 100.0) * Math.sqrt(t) || 1);
-  const extrinsic = Math.max(0.50, atmTimeValue * Math.exp(-0.5 * (d ** 2)));
+  const decayRate = isCommodity ? 0.40 : 0.50;
+  const extrinsic = Math.max(0.50, atmTimeValue * Math.exp(-decayRate * (d ** 2)));
 
   const ltp = Math.max(0.50, round(intrinsic + extrinsic, 2));
 
@@ -2088,11 +2090,11 @@ async function getUnderlyingSpotQuote(rawUnderlying) {
 
   // Commodities
   if (sym === "CRUDEOILM" || sym === "CRUDE OIL MINI" || sym === "CRUDE MINI" || sym === "CRUDEOIL MINI") {
-    return { symbol: "CRUDEOILM", name: "MCX CRUDE OIL MINI", price: 6150.00, change: 42.00, pChange: 0.69, isIndex: false, isCommodity: true, lotSize: 10 };
+    return { symbol: "CRUDEOILM", name: "MCX CRUDE OIL MINI", price: 9944.00, change: 418.00, pChange: 4.39, isIndex: false, isCommodity: true, lotSize: 10 };
   }
 
   if (sym === "CRUDEOIL" || sym === "CRUDE OIL" || sym === "CRUDE") {
-    return { symbol: "CRUDEOIL", name: "MCX CRUDE OIL", price: 6150.00, change: 42.00, pChange: 0.69, isIndex: false, isCommodity: true, lotSize: 100 };
+    return { symbol: "CRUDEOIL", name: "MCX CRUDE OIL", price: 9944.00, change: 418.00, pChange: 4.39, isIndex: false, isCommodity: true, lotSize: 100 };
   }
 
   if (sym === "NATGASMINI" || sym === "NATURAL GAS MINI" || sym === "NAT GAS MINI") {
@@ -2183,16 +2185,16 @@ async function getStockQuoteDirect(rawSymbol) {
     return {
       symbol: "CRUDEOILM",
       name: "MCX CRUDE OIL MINI",
-      price: 6150.00,
-      change: 42.00,
-      pChange: 0.69,
-      open: 6120.00,
-      high: 6195.00,
-      low: 6110.00,
-      prevClose: 6108.00,
-      yearHigh: 7850.00,
-      yearLow: 5200.00,
-      volume: 450000,
+      price: 9944.00,
+      change: 418.00,
+      pChange: 4.39,
+      open: 9944.00,
+      high: 9948.00,
+      low: 9720.00,
+      prevClose: 9526.00,
+      yearHigh: 10500.00,
+      yearLow: 5800.00,
+      volume: 850000,
       lotSize: 10,
       isCommodity: true,
       isIndex: false,
@@ -2204,16 +2206,16 @@ async function getStockQuoteDirect(rawSymbol) {
     return {
       symbol: "CRUDEOIL",
       name: "MCX CRUDE OIL",
-      price: 6150.00,
-      change: 42.00,
-      pChange: 0.69,
-      open: 6120.00,
-      high: 6195.00,
-      low: 6110.00,
-      prevClose: 6108.00,
-      yearHigh: 7850.00,
-      yearLow: 5200.00,
-      volume: 850000,
+      price: 9944.00,
+      change: 418.00,
+      pChange: 4.39,
+      open: 9944.00,
+      high: 9948.00,
+      low: 9720.00,
+      prevClose: 9526.00,
+      yearHigh: 10500.00,
+      yearLow: 5800.00,
+      volume: 1250000,
       lotSize: 100,
       isCommodity: true,
       isIndex: false,
@@ -2431,7 +2433,8 @@ async function getStockQuote(rawSymbol) {
     const spotPrice = underQuote.price;
     const underChange = underQuote.change || 0;
     const isStock = !underQuote.isIndex && !underQuote.isCommodity;
-    const pricing = calculateOptionPricing(spotPrice, optParsed.strike, optParsed.optionType, underChange, isStock);
+    const isCommodity = Boolean(underQuote.isCommodity);
+    const pricing = calculateOptionPricing(spotPrice, optParsed.strike, optParsed.optionType, underChange, isStock, isCommodity);
     const lotSize = getLotSizeForInstrument(optParsed.underlying);
 
     return {
@@ -2488,6 +2491,7 @@ async function getOptionChain(rawSymbol) {
   const spotPrice = underQuote.price;
   const underChange = underQuote.change || 0;
   const isStock = !underQuote.isIndex && !underQuote.isCommodity;
+  const isCommodity = Boolean(underQuote.isCommodity);
   const step = getStrikeStep(spotPrice, sym);
   const atmStrike = Math.round(spotPrice / step) * step;
   const lotSize = getLotSizeForInstrument(sym);
@@ -2503,8 +2507,8 @@ async function getOptionChain(rawSymbol) {
 
   for (let i = -numStrikes; i <= numStrikes; i++) {
     const strike = round(atmStrike + i * step, 2);
-    const cePricing = calculateOptionPricing(spotPrice, strike, "CE", underChange, isStock);
-    const pePricing = calculateOptionPricing(spotPrice, strike, "PE", underChange, isStock);
+    const cePricing = calculateOptionPricing(spotPrice, strike, "CE", underChange, isStock, isCommodity);
+    const pePricing = calculateOptionPricing(spotPrice, strike, "PE", underChange, isStock, isCommodity);
 
     totalCallOI += cePricing.oi;
     totalPutOI += pePricing.oi;
@@ -2604,8 +2608,8 @@ async function searchInstruments(rawQuery) {
 
   // 2. Commodities List
   const allCommodities = [
-    { symbol: "CRUDEOILM", name: "MCX CRUDE OIL MINI", type: "COMMODITY", lotSize: 10, price: 6150.00, change: 42.00, pChange: 0.69 },
-    { symbol: "CRUDEOIL", name: "MCX CRUDE OIL", type: "COMMODITY", lotSize: 100, price: 6150.00, change: 42.00, pChange: 0.69 },
+    { symbol: "CRUDEOILM", name: "MCX CRUDE OIL MINI", type: "COMMODITY", lotSize: 10, price: 9944.00, change: 418.00, pChange: 4.39 },
+    { symbol: "CRUDEOIL", name: "MCX CRUDE OIL", type: "COMMODITY", lotSize: 100, price: 9944.00, change: 418.00, pChange: 4.39 },
     { symbol: "NATGASMINI", name: "MCX NATURAL GAS MINI", type: "COMMODITY", lotSize: 250, price: 235.50, change: 3.20, pChange: 1.38 },
     { symbol: "NATURALGAS", name: "MCX NATURAL GAS", type: "COMMODITY", lotSize: 1250, price: 235.50, change: 3.20, pChange: 1.38 },
     { symbol: "GOLDM", name: "MCX GOLD MINI", type: "COMMODITY", lotSize: 10, price: 74200.00, change: 320.00, pChange: 0.43 },
@@ -2730,6 +2734,7 @@ async function searchInstruments(rawQuery) {
       const spotPrice = underQuote.price;
       const underChange = underQuote.change || 0;
       const isStock = !underQuote.isIndex && !underQuote.isCommodity;
+      const isCommodity = Boolean(underQuote.isCommodity);
       const step = getStrikeStep(spotPrice, targetSymbol);
       const atmStrike = Math.round(spotPrice / step) * step;
 
@@ -2751,8 +2756,8 @@ async function searchInstruments(rawQuery) {
       }
 
       for (const st of targetStrikes) {
-        const cePricing = calculateOptionPricing(spotPrice, st, "CE", underChange, isStock);
-        const pePricing = calculateOptionPricing(spotPrice, st, "PE", underChange, isStock);
+        const cePricing = calculateOptionPricing(spotPrice, st, "CE", underChange, isStock, isCommodity);
+        const pePricing = calculateOptionPricing(spotPrice, st, "PE", underChange, isStock, isCommodity);
 
         if (!query.includes("PE")) {
           callOptions.push({

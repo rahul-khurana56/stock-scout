@@ -10122,10 +10122,25 @@
       if (symEl) symEl.textContent = quote.symbol;
       if (nameEl) nameEl.textContent = quote.name || quote.symbol;
       if (logoEl) logoEl.textContent = quote.symbol.slice(0, 2);
-      if (extLink) extLink.href = `https://www.tradingview.com/chart/?symbol=NSE%3A${encodeURIComponent(quote.underlying || quote.symbol)}`;
+      if (extLink) {
+        const u = (quote.underlying || quote.symbol).toUpperCase();
+        if (u.includes("CRUDE")) {
+          extLink.href = "https://in.tradingview.com/chart/?symbol=MCX%3ACRUDEOILM1!";
+        } else if (u.includes("GOLD")) {
+          extLink.href = "https://in.tradingview.com/chart/?symbol=MCX%3AGOLDM1!";
+        } else if (u.includes("SILVER")) {
+          extLink.href = "https://in.tradingview.com/chart/?symbol=MCX%3ASILVERM1!";
+        } else if (u.includes("NATGAS") || u.includes("NATURAL")) {
+          extLink.href = "https://in.tradingview.com/chart/?symbol=MCX%3ANATGASMINI1!";
+        } else if (u.startsWith("SENSEX")) {
+          extLink.href = "https://in.tradingview.com/chart/?symbol=BSE%3ASENSEX";
+        } else {
+          extLink.href = `https://in.tradingview.com/chart/?symbol=NSE%3A${encodeURIComponent(quote.underlying || quote.symbol)}`;
+        }
+      }
 
       if (exchTag) {
-        exchTag.textContent = quote.isOption ? `F&O ${quote.optionType}` : quote.isIndex ? "INDEX" : "NSE";
+        exchTag.textContent = quote.isOption ? `F&O ${quote.optionType}` : quote.isCommodity ? "MCX" : quote.isIndex ? "INDEX" : "NSE";
         exchTag.style.color = quote.isOption ? (quote.optionType === "CE" ? "#00d09c" : "#eb5b3c") : "#cbd5e1";
       }
 
@@ -10183,7 +10198,7 @@
         const vol = quote.volume || 1500000;
         volEl.textContent = vol > 10000000 ? `${(vol / 10000000).toFixed(2)}Cr` : vol > 100000 ? `${(vol / 100000).toFixed(2)}L` : vol.toLocaleString("en-IN");
       }
-      if (lotEl) lotEl.textContent = `${quote.lotSize || 1} ${quote.isOption ? 'Shares / Lot' : quote.isIndex ? 'Index Lot' : 'Share'}`;
+      if (lotEl) lotEl.textContent = `${quote.lotSize || 1} ${quote.isOption ? 'Shares / Lot' : quote.isCommodity ? 'MCX Lot' : quote.isIndex ? 'Index Lot' : 'Share'}`;
     }
 
     function renderGrowwTvChart(symbol, tf = "D") {
@@ -10192,16 +10207,16 @@
 
       const cleanSym = (growwState.activeQuote?.underlying || symbol).replace(/\s+/g, "").toUpperCase();
       let tvSymbol = `NSE:${cleanSym}`;
-      if (cleanSym.includes("CRUDEOIL")) {
-        tvSymbol = "MCX:CRUDEOIL1!";
+      if (cleanSym.includes("CRUDEOIL") || cleanSym.includes("CRUDE")) {
+        tvSymbol = "TVC:USOIL";
       } else if (cleanSym.includes("NATGAS") || cleanSym.includes("NATURALGAS")) {
-        tvSymbol = "MCX:NATURALGAS1!";
+        tvSymbol = "TVC:NATURALGAS";
       } else if (cleanSym.includes("GOLD")) {
-        tvSymbol = "MCX:GOLD1!";
+        tvSymbol = "TVC:GOLD";
       } else if (cleanSym.includes("SILVER")) {
-        tvSymbol = "MCX:SILVER1!";
+        tvSymbol = "TVC:SILVER";
       } else if (cleanSym.includes("COPPER")) {
-        tvSymbol = "MCX:COPPER1!";
+        tvSymbol = "TVC:COPPER";
       } else if (cleanSym.startsWith("SENSEX")) {
         tvSymbol = "BSE:SENSEX";
       } else if (cleanSym.startsWith("BANKNIFTY") || cleanSym.startsWith("BANK")) {
@@ -10257,12 +10272,13 @@
 
       if (growwState.watchlistTab === "options") {
         return [
-          { symbol: "CRUDEOILM 6150 CE", name: "Crude Oil Mini 6150 CE (Lot 10)", price: 145.20, change: 14.50, pChange: 11.10, isOption: true },
-          { symbol: "CRUDEOILM 6150 PE", name: "Crude Oil Mini 6150 PE (Lot 10)", price: 132.80, change: -12.40, pChange: -8.54, isOption: true },
-          { symbol: "CRUDEOIL 6150 CE", name: "Crude Oil 6150 CE (Mega Lot 100)", price: 145.20, change: 14.50, pChange: 11.10, isOption: true },
+          { symbol: "CRUDEOILM 9750 CE", name: "Crude Oil Mini 9750 CE (Lot 10)", price: 380.90, change: 1.35, pChange: 0.36, isOption: true },
+          { symbol: "CRUDEOILM 9950 CE", name: "Crude Oil Mini 9950 CE (ATM Lot 10)", price: 210.50, change: 18.20, pChange: 9.46, isOption: true },
+          { symbol: "CRUDEOILM 9950 PE", name: "Crude Oil Mini 9950 PE (ATM Lot 10)", price: 198.00, change: -22.40, pChange: -10.16, isOption: true },
+          { symbol: "CRUDEOIL 9750 CE", name: "Crude Oil 9750 CE (Mega Lot 100)", price: 380.90, change: 1.35, pChange: 0.36, isOption: true },
           { symbol: "NATGASMINI 240 CE", name: "Natural Gas Mini 240 CE (Lot 250)", price: 12.40, change: 1.10, pChange: 9.73, isOption: true },
-          { symbol: "GOLDM 72000 CE", name: "Gold Mini 72000 CE (Lot 10)", price: 420.00, change: 35.00, pChange: 9.09, isOption: true },
-          { symbol: "SILVERM 85000 CE", name: "Silver Mini 85000 CE (Lot 5)", price: 680.00, change: 48.00, pChange: 7.59, isOption: true },
+          { symbol: "GOLDM 74000 CE", name: "Gold Mini 74000 CE (Lot 10)", price: 540.00, change: 42.00, pChange: 8.43, isOption: true },
+          { symbol: "SILVERM 88500 CE", name: "Silver Mini 88500 CE (Lot 5)", price: 780.00, change: 55.00, pChange: 7.59, isOption: true },
           { symbol: "NIFTY 23400 CE", name: "Nifty 23400 Call (ATM)", price: 142.50, change: 18.20, pChange: 14.64, isOption: true },
           { symbol: "NIFTY 23400 PE", name: "Nifty 23400 Put (ATM)", price: 134.80, change: -12.40, pChange: -8.42, isOption: true },
           { symbol: "BANKNIFTY 56500 CE", name: "Bank Nifty 56500 Call", price: 345.00, change: 48.00, pChange: 16.16, isOption: true },
