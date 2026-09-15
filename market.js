@@ -2139,8 +2139,8 @@ function getLotSizeForInstrument(symbol) {
 
 function calculateOptionPricing(spotPrice, strike, optionType, underlyingChange = 0, isStock = false, isCommodity = false, customDte = null) {
   const isCall = optionType === "CE" || optionType === "CALL";
-  const iv = isCommodity ? 28.5 : isStock ? 22.0 : 13.8;
-  const dte = customDte != null && customDte > 0 ? customDte : (isStock ? 14.5 : isCommodity ? 5.0 : 4.0); // days to expiry
+  const iv = isCommodity ? 52.0 : isStock ? 22.0 : 13.8;
+  const dte = customDte != null && customDte > 0 ? customDte : (isStock ? 14.5 : isCommodity ? 2.0 : 4.0); // days to expiry
   const t = Math.max(0.005, dte / 365.0);
 
   const diff = isCall ? (spotPrice - strike) : (strike - spotPrice);
@@ -2152,7 +2152,7 @@ function calculateOptionPricing(spotPrice, strike, optionType, underlyingChange 
 
   // Distance metric
   const d = Math.abs(spotPrice - strike) / (spotPrice * (iv / 100.0) * Math.sqrt(t) || 1);
-  const decayRate = isCommodity ? 0.40 : 0.45;
+  const decayRate = isCommodity ? 0.35 : 0.45;
   const extrinsic = Math.max(0.50, atmTimeValue * Math.exp(-decayRate * (d ** 2)));
 
   const ltp = Math.max(0.50, round(intrinsic + extrinsic, 2));
@@ -2196,11 +2196,11 @@ async function getUnderlyingSpotQuote(rawUnderlying) {
 
   // Commodities
   if (sym === "CRUDEOILM" || sym === "CRUDE OIL MINI" || sym === "CRUDE MINI" || sym === "CRUDEOIL MINI") {
-    return { symbol: "CRUDEOILM", name: "MCX CRUDE OIL MINI", price: 9944.00, change: 418.00, pChange: 4.39, isIndex: false, isCommodity: true, lotSize: 10 };
+    return { symbol: "CRUDEOILM", name: "MCX CRUDE OIL MINI", price: 9883.00, change: 86.00, pChange: 0.89, isIndex: false, isCommodity: true, lotSize: 10 };
   }
 
   if (sym === "CRUDEOIL" || sym === "CRUDE OIL" || sym === "CRUDE") {
-    return { symbol: "CRUDEOIL", name: "MCX CRUDE OIL", price: 9944.00, change: 418.00, pChange: 4.39, isIndex: false, isCommodity: true, lotSize: 100 };
+    return { symbol: "CRUDEOIL", name: "MCX CRUDE OIL", price: 9883.00, change: 86.00, pChange: 0.89, isIndex: false, isCommodity: true, lotSize: 100 };
   }
 
   if (sym === "NATGASMINI" || sym === "NATURAL GAS MINI" || sym === "NAT GAS MINI") {
