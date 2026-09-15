@@ -8623,19 +8623,116 @@
       return fnoLotSizes[clean] || 100;
     }
 
-    // Fetch Full Risk Profile from Server
+    // =========================================================
+    // PERSISTENCE ENGINE: LOCALSTORAGE + SERVER BIDIRECTIONAL SYNC
+    // =========================================================
+    const STORAGE_KEYS = {
+      JOURNAL_PROFILE: "STOCK_SCOUT_JOURNAL_PROFILE_V2",
+      PRACTICE_PORTFOLIO: "STOCK_SCOUT_PRACTICE_PORTFOLIO_V2"
+    };
+
+    function getLocalRiskProfile() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.JOURNAL_PROFILE);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveLocalRiskProfile(profile) {
+      try {
+        if (profile) {
+          localStorage.setItem(STORAGE_KEYS.JOURNAL_PROFILE, JSON.stringify(profile));
+        }
+      } catch (e) {
+        console.warn("LocalStorage save error", e);
+      }
+    }
+
+    function getLocalPracticePortfolio() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.PRACTICE_PORTFOLIO);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveLocalPracticePortfolio(portfolio) {
+      try {
+        if (portfolio) {
+          localStorage.setItem(STORAGE_KEYS.PRACTICE_PORTFOLIO, JSON.stringify(portfolio));
+        }
+      } catch (e) {
+        console.warn("LocalStorage save error", e);
+      }
+    }
+
+    // Fetch Full Risk Profile from Server with Local-First Fallback & Merging
     async function fetchRiskProfile() {
+      // 1. Immediately hydrate from local storage so user never experiences data loss
+      const localProfile = getLocalRiskProfile();
+      if (localProfile) {
+        state.riskProfile = {
+          settings: { ...(state.riskProfile?.settings || {}), ...(localProfile.settings || {}) },
+          dailyState: { ...(state.riskProfile?.dailyState || {}), ...(localProfile.dailyState || {}) },
+          journal: Array.isArray(localProfile.journal) ? localProfile.journal : []
+        };
+        syncRiskSettingsToInputs();
+        updateGlobalRiskBar();
+        renderRiskHub();
+        populateSizerSignalsDropdown();
+        calculateSizing();
+        checkLockoutStatus();
+      }
+
       try {
         const res = await fetch("/api/risk/profile");
         if (res.ok) {
-          const data = await res.json();
-          state.riskProfile = data;
+          const serverData = await res.json();
+          
+          // Bidirectional merge by trade.id: keep all trades from both server & local storage
+          const localJournal = Array.isArray(localProfile?.journal) ? localProfile.journal : [];
+          const serverJournal = Array.isArray(serverData?.journal) ? serverData.journal : [];
+          
+          const journalMap = new Map();
+          // Seed with server journal
+          serverJournal.forEach(t => { if (t && t.id) journalMap.set(t.id, t); });
+          
+          // Merge local journal (if server was reset due to fresh deploy, re-sync)
+          const tradesToSync = [];
+          localJournal.forEach(t => {
+            if (t && t.id) {
+              if (!journalMap.has(t.id)) {
+                tradesToSync.push(t);
+              }
+              journalMap.set(t.id, { ...(journalMap.get(t.id) || {}), ...t });
+            }
+          });
+
+          const mergedJournal = Array.from(journalMap.values());
+          serverData.journal = mergedJournal;
+          state.riskProfile = serverData;
+          saveLocalRiskProfile(serverData);
+
           syncRiskSettingsToInputs();
           updateGlobalRiskBar();
           renderRiskHub();
           populateSizerSignalsDropdown();
           calculateSizing();
           checkLockoutStatus();
+
+          // Sync missing trades back to server in background if any
+          if (tradesToSync.length > 0) {
+            for (const trade of tradesToSync) {
+              fetch("/api/risk/journal", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(trade)
+              }).catch(() => {});
+            }
+          }
         }
       } catch (err) {
         console.warn("Failed to fetch risk profile from server, using local fallback", err);
@@ -9634,8 +9731,10 @@
       const mistake = document.getElementById("journalMistake").value;
       const notes = (document.getElementById("journalNotes")?.value || "").trim();
       const isDisciplined = mistake === "NONE" && emotion === "CALM";
+      const tradeId = `trade_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
       const tradePayload = {
+        id: tradeId,
         symbol,
         side,
         assetType: asset,
@@ -9650,6 +9749,23 @@
         createdAt: new Date().toISOString()
       };
 
+      // Instant local persistence
+      if (!state.riskProfile) state.riskProfile = { journal: [] };
+      if (!Array.isArray(state.riskProfile.journal)) state.riskProfile.journal = [];
+      state.riskProfile.journal = [tradePayload, ...state.riskProfile.journal.filter((t) => t.id !== tradeId)];
+      saveLocalRiskProfile(state.riskProfile);
+
+      renderJournalTable();
+      updateGlobalRiskBar();
+      renderRiskHub();
+
+      showToast(`✅ Logged ${symbol} (${pnl >= 0 ? "+" : ""}₹${pnl})!`);
+      document.getElementById("journalSymbol").value = "";
+      document.getElementById("journalPnl").value = "";
+      if (document.getElementById("journalNotes")) document.getElementById("journalNotes").value = "";
+      state.pendingJournalScreenshots = [];
+      renderPendingJournalScreenshots();
+
       try {
         const res = await fetch("/api/risk/journal", {
           method: "POST",
@@ -9657,21 +9773,15 @@
           body: JSON.stringify(tradePayload)
         });
         if (res.ok) {
-          showToast(`✅ Logged ${symbol} (${pnl >= 0 ? "+" : ""}₹${pnl}) with ${state.pendingJournalScreenshots.length} screenshot(s)!`);
-          document.getElementById("journalSymbol").value = "";
-          document.getElementById("journalPnl").value = "";
-          if (document.getElementById("journalNotes")) document.getElementById("journalNotes").value = "";
-          state.pendingJournalScreenshots = [];
-          renderPendingJournalScreenshots();
           await fetchRiskProfile();
-
-          // If loss, trigger cooldown notice
-          if (pnl < 0) {
-            showToast("⚠️ Loss logged: 15-minute cooling period started. Do not revenge trade.", true);
-          }
         }
       } catch (err) {
-        showToast("Error recording journal entry", true);
+        console.warn("Server sync pending, trade safely saved in browser storage");
+      }
+
+      // If loss, trigger cooldown notice
+      if (pnl < 0) {
+        showToast("⚠️ Loss logged: 15-minute cooling period started. Do not revenge trade.", true);
       }
     }
 
@@ -9827,6 +9937,23 @@
       const newNotes = document.getElementById("journalDetailNotesInput").value.trim();
       trade.notes = newNotes;
 
+      // Update locally immediately
+      saveLocalRiskProfile(state.riskProfile);
+      renderJournalTable();
+
+      const notesView = document.getElementById("journalDetailNotesView");
+      if (newNotes) {
+        notesView.textContent = newNotes;
+        notesView.style.fontStyle = "normal";
+        notesView.style.color = "#e2e8f0";
+      } else {
+        notesView.textContent = "No notes recorded for this trade.";
+        notesView.style.fontStyle = "italic";
+        notesView.style.color = "var(--muted)";
+      }
+      toggleEditJournalNotes(true);
+      showToast("Trade notes updated successfully!");
+
       try {
         const res = await fetch("/api/risk/journal", {
           method: "POST",
@@ -9834,22 +9961,10 @@
           body: JSON.stringify(trade)
         });
         if (res.ok) {
-          showToast("Trade notes updated successfully!");
           await fetchRiskProfile();
-          const notesView = document.getElementById("journalDetailNotesView");
-          if (newNotes) {
-            notesView.textContent = newNotes;
-            notesView.style.fontStyle = "normal";
-            notesView.style.color = "#e2e8f0";
-          } else {
-            notesView.textContent = "No notes recorded for this trade.";
-            notesView.style.fontStyle = "italic";
-            notesView.style.color = "var(--muted)";
-          }
-          toggleEditJournalNotes(true);
         }
       } catch (err) {
-        showToast("Failed to save updated notes", true);
+        console.warn("Server sync pending, notes saved in local storage");
       }
     }
 
@@ -9857,7 +9972,7 @@
       const tbody = document.getElementById("journalTableBody");
       if (!tbody) return;
 
-      const journal = state.riskProfile.journal || [];
+      const journal = state.riskProfile?.journal || [];
       const filter = state.journalFilter || "ALL";
 
       // Update Counts
@@ -9969,6 +10084,14 @@
     }
 
     async function deleteJournalTrade(id) {
+      if (state.riskProfile && Array.isArray(state.riskProfile.journal)) {
+        state.riskProfile.journal = state.riskProfile.journal.filter((t) => t.id !== id);
+        saveLocalRiskProfile(state.riskProfile);
+        renderJournalTable();
+        updateGlobalRiskBar();
+        renderRiskHub();
+      }
+
       try {
         const res = await fetch(`/api/risk/journal?id=${id}`, { method: "DELETE" });
         if (res.ok) {
@@ -9976,12 +10099,21 @@
           await fetchRiskProfile();
         }
       } catch (err) {
-        showToast("Failed to delete trade", true);
+        showToast("Trade deleted locally");
       }
     }
 
     async function clearJournalHistory() {
       if (!confirm("Are you sure you want to clear your entire trade journal history?")) return;
+
+      if (state.riskProfile) {
+        state.riskProfile.journal = [];
+        saveLocalRiskProfile(state.riskProfile);
+        renderJournalTable();
+        updateGlobalRiskBar();
+        renderRiskHub();
+      }
+
       try {
         const res = await fetch("/api/risk/journal", { method: "DELETE" });
         if (res.ok) {
@@ -9989,7 +10121,7 @@
           await fetchRiskProfile();
         }
       } catch (err) {
-        showToast("Failed to clear journal", true);
+        showToast("Journal cleared locally");
       }
     }
 
@@ -10073,11 +10205,24 @@
     };
 
     async function fetchPracticePortfolio(silent = false) {
+      // 1. Instant local storage hydration
+      const cached = getLocalPracticePortfolio();
+      if (cached && cached.summary) {
+        growwState.portfolio = cached;
+        renderGrowwSummary(cached.summary, cached.account);
+        renderGrowwPositions(cached.positions || []);
+        renderGrowwHoldings(cached.holdings || [], cached.positions || []);
+        renderGrowwOrders(cached.orders || []);
+        renderGrowwHistory(cached.tradeHistory || []);
+        renderGrowwAnalytics(cached.summary?.analytics, cached.summary);
+      }
+
       try {
         const res = await fetch("/api/practice/portfolio");
         if (!res.ok) throw new Error("Failed to load practice portfolio");
         const portfolio = await res.json();
         growwState.portfolio = portfolio;
+        saveLocalPracticePortfolio(portfolio);
 
         renderGrowwSummary(portfolio.summary, portfolio.account);
         renderGrowwPositions(portfolio.positions || []);
