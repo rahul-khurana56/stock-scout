@@ -26,6 +26,8 @@ useVWAPFilter   = input.bool(true, title="Require VWAP Side for TREND")
 enablePullbackScalps = input.bool(true,  title="Enable 21-EMA Pullback Scalps", group="Scalp Engine")
 maxDailyScalps       = input.int(3,      title="Max Scalps Per Day (Quota)", minval=1, maxval=10, group="Scalp Engine", tooltip="Limits pullback scalp signals per trading day to prevent overtrading.")
 rejectionWickPct     = input.float(0.45, title="Min Rejection Wick % (Pullback)", step=0.05, minval=0.1, maxval=0.9, group="Scalp Engine", tooltip="Requires candle to have >= 45% wick rejecting off the 21-EMA ribbon.")
+minDiSpreadScalp     = input.float(6.0,  title="Min DI Spread Gap (Scalp)", minval=0.0, step=0.5, group="Scalp Engine", tooltip="Requires significant gap between +DI and -DI (at least 6 pts) to strictly filter out narrow/tangled lines in sideways chop.")
+minAdxScalp          = input.float(18.0, title="Min ADX for Scalp", minval=0.0, step=1.0, group="Scalp Engine", tooltip="Ensures minimum baseline momentum before taking a pullback scalp.")
 minAtrRatioScalp     = input.float(0.60, title="Min ATR Ratio for Scalp", step=0.05, group="Scalp Engine")
 maxAtrRatioScalp     = input.float(1.80, title="Max ATR Ratio for Scalp", step=0.05, group="Scalp Engine")
 
@@ -482,10 +484,15 @@ touchLowerEma = low <= lower and close > lower
 touchUpperEma = high >= upper and close < upper
 
 atrRatioValid = not na(atrRatio) and atrRatio >= minAtrRatioScalp and atrRatio <= maxAtrRatioScalp
+adxScalpValid = adxVal >= minAdxScalp
 
-scalpPullbackLongCondition = enablePullbackScalps and touchLowerEma and (longWick >= rejectionWickPct) and diSpreadExpandingUp and (close > close[1]) and atrRatioValid and (not nearResistance) and (not useVWAPFilter or close > dailyVWAP) and (dailyScalpCount < maxDailyScalps)
+// Strict DI dominance and minimum spread gap (filters narrow / tangled chop)
+diBullishScalp = plusDiVal > minusDiVal and diSpread >= minDiSpreadScalp and diSpreadExpandingUp
+diBearishScalp = minusDiVal > plusDiVal and bearDiSpread >= minDiSpreadScalp and diSpreadExpandingDown
 
-scalpPullbackShortCondition = enablePullbackScalps and touchUpperEma and (shortWick >= rejectionWickPct) and diSpreadExpandingDown and (close < close[1]) and atrRatioValid and (not nearSupport) and (not useVWAPFilter or close < dailyVWAP) and (dailyScalpCount < maxDailyScalps)
+scalpPullbackLongCondition = enablePullbackScalps and touchLowerEma and (longWick >= rejectionWickPct) and diBullishScalp and adxScalpValid and (close > close[1]) and atrRatioValid and (not nearResistance) and (not useVWAPFilter or close > dailyVWAP) and (dailyScalpCount < maxDailyScalps)
+
+scalpPullbackShortCondition = enablePullbackScalps and touchUpperEma and (shortWick >= rejectionWickPct) and diBearishScalp and adxScalpValid and (close < close[1]) and atrRatioValid and (not nearSupport) and (not useVWAPFilter or close < dailyVWAP) and (dailyScalpCount < maxDailyScalps)
 
 // --- Rearm Conditions ---
 // bool longRearmCondition =
