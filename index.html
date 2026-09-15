@@ -7758,12 +7758,12 @@
 
             <!-- Day Range Slider -->
             <div class="day-range-bar-wrap" style="margin: 0;">
-              <div class="day-range-labels">
-                <span>L: ₹${Number(opt.dayLow).toLocaleString("en-IN", { minimumFractionDigits: 1 })}</span>
+              <div class="day-range-labels" style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; white-space: nowrap;">
+                <span>L: ₹${Number(opt.dayLow).toLocaleString("en-IN", { maximumFractionDigits: 1 })}</span>
                 <span style="color: ${opt.dayRangePct >= 70 ? '#22c55e' : (opt.dayRangePct <= 30 ? '#ef4444' : 'var(--text)')}; font-weight: 700;">
                   Day Range: ${Math.round(opt.dayRangePct)}%
                 </span>
-                <span>H: ₹${Number(opt.dayHigh).toLocaleString("en-IN", { minimumFractionDigits: 1 })}</span>
+                <span>H: ₹${Number(opt.dayHigh).toLocaleString("en-IN", { maximumFractionDigits: 1 })}</span>
               </div>
               <div class="day-range-track">
                 <div class="day-range-fill" style="width: ${opt.dayRangePct}%; background: ${isConfirmedCall ? 'linear-gradient(90deg, #10b981, #22c55e)' : (isConfirmedPut ? 'linear-gradient(90deg, #f87171, #ef4444)' : '#64748b')};"></div>
@@ -7801,25 +7801,22 @@
             </div>
 
             <!-- Card Footer Actions -->
-            <div class="signal-footer">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span>🕒 <strong>${formatStamp(opt.time || opt.timestamp)}</strong></span>
+            <div class="signal-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 6px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.07);">
+              <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); white-space: nowrap;">
+                <span>🕒 <strong style="color: #cbd5e1;">${formatStamp(opt.time || opt.timestamp)}</strong></span>
                 <span>•</span>
-                <span>BE: <strong>${opt.breakeven ? `₹${opt.breakeven}` : '--'}</strong></span>
+                <span>BE: <strong style="color: #e2e8f0;">${opt.breakeven ? `₹${opt.breakeven}` : '--'}</strong></span>
               </div>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <button class="btn-chart-link" style="font-size: 11.5px; padding: 4px 10px; color: #00d09c; border-color: rgba(0, 208, 156, 0.4); background: rgba(0, 208, 156, 0.1);" onclick="openPracticeTradeFromSignal('${opt.symbol}', ${opt.underlyingPrice || opt.strike || 100}, '${isConfirmedPut ? 'SELL' : 'BUY'}', ${opt.dayLow || 0}, ${opt.dayHigh || 0})">
+              <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                <button class="btn-chart-link" style="font-size: 11px; padding: 4px 8px; color: #00d09c; border-color: rgba(0, 208, 156, 0.4); background: rgba(0, 208, 156, 0.1);" onclick="openPracticeTradeFromSignal('${opt.symbol}', ${opt.underlyingPrice || opt.strike || 100}, '${isConfirmedPut ? 'SELL' : 'BUY'}', ${opt.dayLow || 0}, ${opt.dayHigh || 0})">
                   🌱 Practice
                 </button>
-                <button class="btn-chart-link" style="font-size: 11.5px; padding: 4px 10px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1);" onclick="openPositionSizer('${opt.symbol}', ${opt.underlyingPrice || opt.strike || 100}, '${isConfirmedPut ? 'SELL' : 'BUY'}', ${opt.dayLow || 0}, ${opt.dayHigh || 0}, 'OPTIONS')">
+                <button class="btn-chart-link" style="font-size: 11px; padding: 4px 8px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1);" onclick="openPositionSizer('${opt.symbol}', ${opt.underlyingPrice || opt.strike || 100}, '${isConfirmedPut ? 'SELL' : 'BUY'}', ${opt.dayLow || 0}, ${opt.dayHigh || 0}, 'OPTIONS')">
                   🛡️ Sizer
                 </button>
-                <a href="${tvUrl}" target="_blank" class="btn-chart-link" style="font-size: 11.5px; padding: 4px 10px;">
-                  📈 ${opt.symbol} TV ↗
+                <a href="${tvUrl}" target="_blank" class="btn-chart-link" style="font-size: 11px; padding: 4px 8px;" title="Open ${opt.symbol} Chart on TradingView">
+                  📈 TV ↗
                 </a>
-                <button class="btn-add-universe" style="font-size: 11px; padding: 4px 10px;" onclick="addSingleStockToUniverse('${opt.symbol}')">
-                  + Add to Scanner
-                </button>
               </div>
             </div>
           </div>

@@ -1654,6 +1654,35 @@ async function getOptionsScoutData(forceRefresh = false) {
   const indexOpportunities = indexResults.map((r, i) => r.status === "fulfilled" ? r.value : null).filter(Boolean);
 
   // 2. Process F&O Equities Universe with Live OI and 5-Pillar Confluence Filtering
+  const FNO_CALIBRATED_SPOT_BASES = {
+    "RELIANCE": 2980, "TCS": 4250, "INFY": 1920, "HDFCBANK": 1640, "ICICIBANK": 1220,
+    "SBIN": 810, "AXISBANK": 1190, "KOTAKBANK": 1780, "BAJFINANCE": 7150, "BAJAJFINSV": 1855,
+    "TATAMOTORS": 985, "MARUTI": 12400, "M&M": 2750, "SUNPHARMA": 1850, "CIPLA": 1580,
+    "DRREDDY": 6650, "DIVISLAB": 5200, "TITAN": 3450, "TATASTEEL": 152, "JSWSTEEL": 965,
+    "HINDALCO": 680, "VEDL": 475, "COALINDIA": 490, "NTPC": 395, "POWERGRID": 330,
+    "ONGC": 295, "BPCL": 345, "IOC": 175, "BHARTIARTL": 1560, "LT": 3650,
+    "ADANIENT": 2980, "ADANIPORTS": 1420, "ASIANPAINT": 2402, "ITC": 505, "HINDUNILVR": 2680,
+    "NESTLEIND": 2450, "TATACONSUM": 1180, "TRENT": 7100, "EICHERMOT": 4850, "HEROMOTOCO": 5600,
+    "TVSMOTOR": 2650, "BAJAJ-AUTO": 11400, "ULTRACEMCO": 11200, "GRASIM": 2650, "BEL": 290,
+    "HAL": 4650, "DIXON": 12800, "POLYCAB": 6850, "HAVELLS": 1920, "VOLTAS": 1780,
+    "GODREJPROP": 3150, "DLF": 860, "OBEROIRLTY": 1820, "INDIGO": 4750, "PERSISTENT": 5150,
+    "COFORGE": 7250, "LTIM": 6150, "TECHM": 1580, "WIPRO": 535, "HCLTECH": 1780,
+    "PFC": 530, "RECLTD": 580, "CANBK": 105, "BANKBARODA": 250, "PNB": 108,
+    "FEDERALBNK": 190, "INDUSINDBK": 1460, "AUBANK": 670, "IDFCFIRSTB": 74, "BANDHANBNK": 205,
+    "MUTHOOTFIN": 1920, "CHOLAFIN": 1520, "SHRIRAMFIN": 3250, "APOLLOHOSP": 6950, "MAXHEALTH": 980,
+    "AUROPHARMA": 1475, "LUPIN": 2150, "BIOCON": 360, "GLENMARK": 1720, "TORNTPHARM": 3350,
+    "ZYDUSLIFE": 1020, "ALKEM": 5650, "MANKIND": 2550, "JINDALSTEL": 960, "NMDC": 225,
+    "SAIL": 135, "NATIONALUM": 210, "TATAPOWER": 420, "JSWENERGY": 690, "GAIL": 205,
+    "PETRONET": 340, "IGL": 410, "MGL": 1780, "AMBUJACEM": 610, "SHREECEM": 24500,
+    "PIDILITIND": 3100, "SRF": 2250, "TATACHEM": 1020, "UPL": 540, "DABUR": 520,
+    "MARICO": 660, "COLPAL": 3450, "VBL": 620, "BRITANNIA": 5800, "BOSCHLTD": 33800,
+    "MOTHERSON": 170, "ASHOKLEY": 220, "BALKRISIND": 2850, "APOLLOTYRE": 490, "BHARATFORG": 1420,
+    "CUMMINSIND": 3700, "SIEMENS": 7200, "ABB": 7800, "CGPOWER": 710, "IRCTC": 890,
+    "CONCOR": 940, "BHEL": 275, "IRFC": 160, "RVNL": 380, "SUZLON": 65,
+    "IREDA": 220, "HUDCO": 230, "COCHINSHIP": 1700, "BDL": 1200, "MAZDOCK": 4400,
+    "MCX": 6100, "BSE": 4100, "NAUKRI": 7400, "JUBLFOOD": 610, "KPITTECH": 1450, "MPHASIS": 2900
+  };
+
   const fnoSymbols = Object.keys(fnoLotSizes);
   let totalAdv = 0;
   let totalDec = 0;
@@ -1679,7 +1708,7 @@ async function getOptionsScoutData(forceRefresh = false) {
       name = quote.name || sym;
       sector = quote.sector || quote.type || "F&O Active";
     } else {
-      const base = 400 + ((index * 233) % 4500);
+      const base = FNO_CALIBRATED_SPOT_BASES[sym] || (400 + ((index * 233) % 4500));
       pChange = round(((index % 7) - 3) * 0.58 + ((index % 3 === 0) ? 0.9 : -0.4), 2);
       change = round(base * (pChange / 100), 2);
       price = round(base + change, 2);
@@ -1754,7 +1783,7 @@ async function getOptionsScoutData(forceRefresh = false) {
 
     if (isStrongBull) {
       state = "CONFIRMED_BUY_CALL";
-      grade = (isOptionAboveVwap && pChange >= 2.0 && dayRangePct >= 85) ? "A+" : (isOptionAboveVwap ? "A" : `A (Trigger: > ₹${optionVwap})`);
+      grade = (isOptionAboveVwap && pChange >= 2.0 && dayRangePct >= 85) ? "A+" : "A";
       action = "BUY CALL";
       side = "call";
       optionType = "CE";
@@ -1789,7 +1818,7 @@ async function getOptionsScoutData(forceRefresh = false) {
 
     } else if (isStrongBear) {
       state = "CONFIRMED_BUY_PUT";
-      grade = (isOptionAboveVwap && pChange <= -2.0 && dayRangePct <= 15) ? "A+" : (isOptionAboveVwap ? "A" : `A (Trigger: > ₹${optionVwap})`);
+      grade = (isOptionAboveVwap && pChange <= -2.0 && dayRangePct <= 15) ? "A+" : "A";
       action = "BUY PUT";
       side = "put";
       optionType = "PE";
