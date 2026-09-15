@@ -2715,6 +2715,109 @@
       opacity: 0.9;
     }
 
+    /* Journal Trade Details & Notes Modal */
+    .journal-detail-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(3, 7, 18, 0.88);
+      backdrop-filter: blur(14px);
+      z-index: 99990;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      animation: modalFadeIn 0.2s ease-out forwards;
+    }
+
+    .journal-detail-modal-container {
+      background: linear-gradient(145deg, rgba(17, 24, 39, 0.98), rgba(10, 16, 28, 0.99));
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85), 0 0 32px rgba(56, 189, 248, 0.12);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 680px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .journal-detail-modal-header {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(15, 23, 42, 0.65);
+    }
+
+    .journal-detail-modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .journal-detail-metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .journal-detail-metric-card {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    .journal-detail-metric-card .label {
+      font-size: 11px;
+      color: var(--muted, #94a3b8);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .journal-detail-metric-card .val {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #f8fafc;
+      font-feature-settings: "tnum";
+    }
+
+    .journal-detail-notes-card {
+      background: rgba(2, 6, 23, 0.7);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .journal-detail-notes-text {
+      font-size: 13.5px;
+      line-height: 1.65;
+      color: #e2e8f0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .journal-notes-cell {
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+    .journal-notes-cell:hover {
+      background: rgba(56, 189, 248, 0.12) !important;
+    }
+    .journal-notes-cell:hover .journal-notes-pill {
+      border-color: rgba(56, 189, 248, 0.5) !important;
+      color: #38bdf8 !important;
+    }
+
     /* ========================================================= */
     /* RESPONSIVE DESIGN FOR TABLETS, MOBILES & ALL SCREEN SIZES */
     /* ========================================================= */
@@ -6300,6 +6403,101 @@
       <div class="zoom-thumbnails-strip" id="zoomThumbnailsStrip" style="display: none;"></div>
     </div>
 
+    <!-- ========================================================= -->
+    <!-- MODAL: JOURNAL TRADE DETAILS & NOTES POPUP MODAL          -->
+    <!-- ========================================================= -->
+    <div id="journalTradeDetailModal" class="journal-detail-modal-overlay" onclick="handleJournalDetailOverlayClick(event)">
+      <div class="journal-detail-modal-container">
+        <!-- Modal Header -->
+        <div class="journal-detail-modal-header">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); display: flex; align-items: center; justify-content: center; font-size: 20px;">
+              📖
+            </div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <strong id="journalDetailSymbol" style="font-size: 15px; color: #fff; letter-spacing: 0.02em;">SYMBOL</strong>
+                <span id="journalDetailSideBadge" class="tag-badge buy" style="font-size: 10.5px; padding: 2px 7px;">BUY</span>
+                <span id="journalDetailAssetBadge" class="tag-badge" style="font-size: 10.5px; background: rgba(255,255,255,0.08); color: var(--muted);">OPTIONS</span>
+              </div>
+              <div id="journalDetailTimestamp" style="font-size: 11.5px; color: var(--muted); margin-top: 2px;">Logged on Date / Time</div>
+            </div>
+          </div>
+          <button class="btn" onclick="closeJournalDetailModal()" title="Close (Esc)" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: #fff; padding: 6px 12px; font-weight: 800; font-size: 13px;">✕</button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="journal-detail-modal-body">
+          <!-- Metric Grid -->
+          <div class="journal-detail-metric-grid">
+            <div class="journal-detail-metric-card">
+              <div class="label">Entry Price</div>
+              <div class="val" id="journalDetailEntry">₹0.00</div>
+            </div>
+            <div class="journal-detail-metric-card">
+              <div class="label">Exit Price</div>
+              <div class="val" id="journalDetailExit">₹0.00</div>
+            </div>
+            <div class="journal-detail-metric-card">
+              <div class="label">Realized P&L</div>
+              <div class="val" id="journalDetailPnl">₹0.00</div>
+            </div>
+            <div class="journal-detail-metric-card">
+              <div class="label">Emotion State</div>
+              <div class="val" id="journalDetailEmotion">🟢 Calm</div>
+            </div>
+            <div class="journal-detail-metric-card">
+              <div class="label">Discipline / Rule</div>
+              <div class="val" id="journalDetailDiscipline">✅ 100% Rules</div>
+            </div>
+          </div>
+
+          <!-- Notes & Execution Rationale Card -->
+          <div class="journal-detail-notes-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; color: #38bdf8;">
+                <span>📝</span> Trade Execution Notes & Rationale
+              </div>
+              <button class="btn" id="journalDetailEditNoteBtn" onclick="toggleEditJournalNotes()" style="font-size: 11px; padding: 3px 8px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); background: rgba(56, 189, 248, 0.1);">
+                ✏️ Edit Note
+              </button>
+            </div>
+            
+            <div id="journalDetailNotesView" class="journal-detail-notes-text">
+              No notes recorded for this trade.
+            </div>
+
+            <!-- Inline Edit Form -->
+            <div id="journalDetailNotesEditArea" style="display: none; margin-top: 8px;">
+              <textarea id="journalDetailNotesInput" class="input-text" rows="4" style="width: 100%; font-size: 13px; line-height: 1.5; padding: 10px; resize: vertical; box-sizing: border-box;" placeholder="Add detailed trade notes, setup triggers, reasoning, or lessons learned..."></textarea>
+              <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+                <button class="btn" onclick="toggleEditJournalNotes(true)" style="font-size: 11.5px; padding: 4px 10px;">Cancel</button>
+                <button class="btn btn-primary" onclick="saveEditedJournalNotes()" style="font-size: 11.5px; padding: 4px 14px;">💾 Save Note</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Attached Screenshots Gallery -->
+          <div id="journalDetailScreenshotsSection" style="display: none;">
+            <div style="font-weight: 700; font-size: 12px; color: var(--muted); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+              <span>📷</span> Attached Chart Screenshots (<span id="journalDetailScreenshotCount">0</span>)
+            </div>
+            <div id="journalDetailScreenshotsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px;"></div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div style="padding: 12px 20px; background: rgba(15, 23, 42, 0.7); border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between;">
+          <button class="btn" id="journalDetailDeleteBtn" style="font-size: 11.5px; padding: 6px 12px; color: #ef4444; border-color: rgba(239,68,68,0.3);">
+            🗑️ Delete Trade
+          </button>
+          <button class="btn" onclick="closeJournalDetailModal()" style="font-size: 12px; padding: 6px 18px; background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700;">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <script>
@@ -9486,6 +9684,175 @@
       renderJournalTable();
     }
 
+    // =========================================================
+    // JOURNAL TRADE DETAILS & FULL NOTES MODAL ENGINE
+    // =========================================================
+    let activeDetailTradeId = null;
+
+    function openJournalTradeModal(tradeId) {
+      const journal = state.riskProfile?.journal || [];
+      const trade = journal.find((t) => t.id === tradeId);
+      if (!trade) return;
+
+      activeDetailTradeId = tradeId;
+      const modal = document.getElementById("journalTradeDetailModal");
+      if (!modal) return;
+
+      // Header Info
+      document.getElementById("journalDetailSymbol").textContent = trade.symbol || "UNKNOWN";
+      const sideBadge = document.getElementById("journalDetailSideBadge");
+      sideBadge.textContent = trade.side || "BUY";
+      sideBadge.className = `tag-badge ${trade.side === 'BUY' ? 'buy' : 'sell'}`;
+      document.getElementById("journalDetailAssetBadge").textContent = trade.assetType || "OPTIONS";
+      document.getElementById("journalDetailTimestamp").textContent = `Logged on ${formatStamp(trade.createdAt)}`;
+
+      // Key Metrics
+      document.getElementById("journalDetailEntry").textContent = `₹${Number(trade.entryPrice || 0).toFixed(2)}`;
+      document.getElementById("journalDetailExit").textContent = `₹${Number(trade.exitPrice || 0).toFixed(2)}`;
+
+      const isPos = (trade.pnl || 0) >= 0;
+      const pnlEl = document.getElementById("journalDetailPnl");
+      pnlEl.textContent = `${isPos ? '+₹' : '-₹'}${Math.abs(trade.pnl || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+      pnlEl.className = `val ${isPos ? 'pos-text' : 'neg-text'}`;
+
+      const emotionMap = {
+        CALM: "🟢 Calm & In The Zone",
+        FOMO: "🟡 FOMO / Chased Move",
+        REVENGE: "🔴 Revenge / Frustrated",
+        HESITANT: "🟣 Hesitant / Fearful",
+        GREEDY: "🟠 Greedy / Oversized"
+      };
+      document.getElementById("journalDetailEmotion").textContent = emotionMap[trade.emotionTag] || trade.emotionTag || "🟢 Calm";
+
+      let discText = trade.disciplineFollowed !== false ? "✅ 100% Rules" : "❌ Rule Breached";
+      if (Array.isArray(trade.mistakeTags) && trade.mistakeTags.length > 0) {
+        const labels = trade.mistakeTags.map(m => m === "MOVED_SL" ? "Moved SL" : (m === "OVERSIZED" ? "Oversized" : (m === "REVENGE_TRADE" ? "Revenge" : (m === "NO_SETUP" ? "No Setup" : "Early Exit"))));
+        discText += ` • ${labels.join(", ")}`;
+      }
+      document.getElementById("journalDetailDiscipline").textContent = discText;
+
+      // Full Notes View
+      const notesView = document.getElementById("journalDetailNotesView");
+      if (trade.notes && trade.notes.trim()) {
+        notesView.textContent = trade.notes;
+        notesView.style.fontStyle = "normal";
+        notesView.style.color = "#e2e8f0";
+      } else {
+        notesView.textContent = "No notes recorded for this trade. Click 'Edit Note' to add trade execution rationale, setup triggers, or lessons.";
+        notesView.style.fontStyle = "italic";
+        notesView.style.color = "var(--muted)";
+      }
+
+      // Reset inline editor
+      toggleEditJournalNotes(true); // force close edit mode
+      const notesInput = document.getElementById("journalDetailNotesInput");
+      if (notesInput) notesInput.value = trade.notes || "";
+
+      // Attached Screenshots Gallery
+      const screenshots = Array.isArray(trade.screenshots) ? trade.screenshots : [];
+      const ssSection = document.getElementById("journalDetailScreenshotsSection");
+      const ssGrid = document.getElementById("journalDetailScreenshotsGrid");
+      if (screenshots.length > 0) {
+        ssSection.style.display = "block";
+        document.getElementById("journalDetailScreenshotCount").textContent = screenshots.length;
+        ssGrid.innerHTML = screenshots.map((url, idx) => `
+          <div style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); cursor: pointer; aspect-ratio: 16/9; background: #000;" onclick="openTradeScreenshotZoom('${trade.id}', ${idx})">
+            <img src="${String(url).replace(/"/g, '&quot;')}" style="width: 100%; height: 100%; object-fit: cover;" title="Click to zoom screenshot ${idx + 1}">
+            <div style="position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.75); font-size: 9px; padding: 2px 5px; border-radius: 4px; color: #fff; font-weight: 700;">🔍 Zoom</div>
+          </div>
+        `).join("");
+      } else {
+        ssSection.style.display = "none";
+        ssGrid.innerHTML = "";
+      }
+
+      // Delete Button wiring
+      const delBtn = document.getElementById("journalDetailDeleteBtn");
+      if (delBtn) {
+        delBtn.onclick = async () => {
+          if (!confirm(`Are you sure you want to delete ${trade.symbol} trade from journal?`)) return;
+          closeJournalDetailModal();
+          await deleteJournalTrade(trade.id);
+        };
+      }
+
+      modal.style.display = "flex";
+    }
+
+    function closeJournalDetailModal() {
+      const modal = document.getElementById("journalTradeDetailModal");
+      if (modal) modal.style.display = "none";
+      activeDetailTradeId = null;
+    }
+
+    function handleJournalDetailOverlayClick(event) {
+      if (event.target.id === "journalTradeDetailModal") {
+        closeJournalDetailModal();
+      }
+    }
+
+    function toggleEditJournalNotes(forceClose) {
+      const viewEl = document.getElementById("journalDetailNotesView");
+      const editArea = document.getElementById("journalDetailNotesEditArea");
+      const editBtn = document.getElementById("journalDetailEditNoteBtn");
+      if (!viewEl || !editArea) return;
+
+      if (forceClose === true) {
+        editArea.style.display = "none";
+        viewEl.style.display = "block";
+        if (editBtn) editBtn.textContent = "✏️ Edit Note";
+        return;
+      }
+
+      const isCurrentlyEditing = editArea.style.display !== "none";
+      if (isCurrentlyEditing) {
+        editArea.style.display = "none";
+        viewEl.style.display = "block";
+        if (editBtn) editBtn.textContent = "✏️ Edit Note";
+      } else {
+        editArea.style.display = "block";
+        viewEl.style.display = "none";
+        if (editBtn) editBtn.textContent = "Cancel";
+        const input = document.getElementById("journalDetailNotesInput");
+        if (input) input.focus();
+      }
+    }
+
+    async function saveEditedJournalNotes() {
+      if (!activeDetailTradeId) return;
+      const journal = state.riskProfile?.journal || [];
+      const trade = journal.find((t) => t.id === activeDetailTradeId);
+      if (!trade) return;
+
+      const newNotes = document.getElementById("journalDetailNotesInput").value.trim();
+      trade.notes = newNotes;
+
+      try {
+        const res = await fetch("/api/risk/journal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(trade)
+        });
+        if (res.ok) {
+          showToast("Trade notes updated successfully!");
+          await fetchRiskProfile();
+          const notesView = document.getElementById("journalDetailNotesView");
+          if (newNotes) {
+            notesView.textContent = newNotes;
+            notesView.style.fontStyle = "normal";
+            notesView.style.color = "#e2e8f0";
+          } else {
+            notesView.textContent = "No notes recorded for this trade.";
+            notesView.style.fontStyle = "italic";
+            notesView.style.color = "var(--muted)";
+          }
+          toggleEditJournalNotes(true);
+        }
+      } catch (err) {
+        showToast("Failed to save updated notes", true);
+      }
+    }
+
     function renderJournalTable() {
       const tbody = document.getElementById("journalTableBody");
       if (!tbody) return;
@@ -9548,12 +9915,14 @@
           `;
         }
 
+        const cleanNotes = (t.notes || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
         return `
           <tr>
             <td style="font-size: 11.5px; color: var(--muted);">${formatStamp(t.createdAt)}</td>
             <td>
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <strong style="color: #fff;">${t.symbol}</strong>
+              <div style="display: flex; align-items: center; gap: 6px; cursor: pointer;" onclick="openJournalTradeModal('${t.id}')" title="Click to view full trade review">
+                <strong style="color: #fff; text-decoration: underline; text-decoration-color: rgba(56,189,248,0.4); text-underline-offset: 2px;">${t.symbol}</strong>
                 <span class="tag-badge ${t.side === 'BUY' ? 'buy' : 'sell'}" style="font-size: 10px; padding: 1px 6px;">${t.side}</span>
               </div>
             </td>
@@ -9578,11 +9947,19 @@
             <td>
               ${screenshotsHtml}
             </td>
-            <td style="font-size: 11px; color: var(--muted); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-              ${t.notes || '--'}
+            <td class="journal-notes-cell" onclick="openJournalTradeModal('${t.id}')" title="Click to read full trade notes & review in popup">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="color: #38bdf8; font-size: 12px;">📝</span>
+                <span class="journal-notes-pill" style="max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: ${cleanNotes ? '#e2e8f0' : 'var(--muted)'};">
+                  ${cleanNotes || '<em style="color: var(--muted); font-size: 10.5px;">Click to view / add</em>'}
+                </span>
+              </div>
             </td>
-            <td style="text-align: center;">
-              <button class="btn" onclick="deleteJournalTrade('${t.id}')" style="padding: 2px 6px; font-size: 10px; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">
+            <td style="text-align: center; white-space: nowrap;">
+              <button class="btn" onclick="openJournalTradeModal('${t.id}')" title="View Full Trade Details & Notes" style="padding: 2px 7px; font-size: 11px; margin-right: 4px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); background: rgba(56, 189, 248, 0.1);">
+                👁️
+              </button>
+              <button class="btn" onclick="deleteJournalTrade('${t.id}')" title="Delete Trade" style="padding: 2px 6px; font-size: 10px; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">
                 ✕
               </button>
             </td>
