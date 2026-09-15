@@ -6094,8 +6094,9 @@
             </div>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <select id="growwOcUnderlyingSelect" class="input-text" onchange="openGrowwOptionChain(this.value)" style="font-size: 12px; padding: 6px 10px; min-width: 140px; background: rgba(255,255,255,0.06);">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <select id="growwOcUnderlyingSelect" class="input-text" onchange="openGrowwOptionChain(this.value, null)" style="font-size: 12px; padding: 6px 10px; min-width: 140px; background: rgba(255,255,255,0.06);">
+              <option value="MARUTI">🚗 MARUTI (Stock)</option>
               <option value="CRUDEOILM">🛢️ CRUDE OIL MINI (10 bbl)</option>
               <option value="CRUDEOIL">🛢️ CRUDE OIL MEGA (100 bbl)</option>
               <option value="NATGASMINI">🔥 NATURAL GAS MINI (250)</option>
@@ -6113,6 +6114,9 @@
               <option value="INFY">INFOSYS</option>
               <option value="SBIN">SBI</option>
               <option value="TATAMOTORS">TATA MOTORS</option>
+            </select>
+            <select id="growwOcExpirySelect" class="input-text" onchange="changeGrowwOcExpiry(this.value)" style="font-size: 12px; padding: 6px 10px; min-width: 150px; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); font-weight: 600;">
+              <option value="">📅 Loading Expiries...</option>
             </select>
             <button class="refresh-btn" onclick="closeGrowwOptionChainModal()" style="width: 32px; height: 32px; font-size: 14px;">✕</button>
           </div>
@@ -9870,7 +9874,9 @@
                 <span class="pill pill-buy" style="font-size: 9.5px; padding: 2px 6px;">CE CALL</span>
                 <div>
                   <strong style="color: #ffffff; font-size: 12.5px;">${opt.symbol}</strong>
-                  <div style="font-size: 10.5px; color: #94a3b8;">Strike: ₹${opt.strike} • Delta: ${opt.delta || 0.5} • IV: ${opt.iv || 14}%</div>
+                  <div style="font-size: 10.5px; color: #94a3b8;">
+                    Strike: ₹${opt.strike} • <span style="color: #38bdf8; font-weight: 600;">Exp: ${opt.expiry || 'Active'}</span> • Delta: ${opt.delta || 0.5} • IV: ${opt.iv || 22}%
+                  </div>
                 </div>
               </div>
               <div style="text-align: right;">
@@ -9894,7 +9900,9 @@
                 <span class="pill pill-sell" style="font-size: 9.5px; padding: 2px 6px;">PE PUT</span>
                 <div>
                   <strong style="color: #ffffff; font-size: 12.5px;">${opt.symbol}</strong>
-                  <div style="font-size: 10.5px; color: #94a3b8;">Strike: ₹${opt.strike} • Delta: ${opt.delta || -0.5} • IV: ${opt.iv || 14}%</div>
+                  <div style="font-size: 10.5px; color: #94a3b8;">
+                    Strike: ₹${opt.strike} • <span style="color: #38bdf8; font-weight: 600;">Exp: ${opt.expiry || 'Active'}</span> • Delta: ${opt.delta || -0.5} • IV: ${opt.iv || 22}%
+                  </div>
                 </div>
               </div>
               <div style="text-align: right;">
@@ -9931,7 +9939,7 @@
     // =========================================================
     // GROWW OPTION CHAIN CONTROLLER
     // =========================================================
-    async function openGrowwOptionChain(customSymbol = null) {
+    async function openGrowwOptionChain(customSymbol = null, customExpiry = null) {
       const modal = document.getElementById("growwOptionChainModal");
       if (!modal) return;
       modal.style.display = "flex";
@@ -9939,13 +9947,14 @@
       let symbol = customSymbol;
       if (!symbol) {
         const active = growwState.activeQuote;
-        symbol = active?.underlying || active?.symbol || growwState.activeSymbol || "NIFTY";
+        symbol = active?.underlying || active?.symbol || growwState.activeSymbol || "MARUTI";
       }
 
-      // Clean symbol (e.g. if "NIFTY 23400 CE", extract "NIFTY")
+      // Clean symbol (e.g. if "MARUTI 12400 PE", extract "MARUTI")
       const m = symbol.match(/^([A-Z0-9\-]+)/);
-      const cleanSym = m ? m[1].toUpperCase() : "NIFTY";
+      const cleanSym = m ? m[1].toUpperCase() : "MARUTI";
       growwState.activeOcSymbol = cleanSym;
+      if (customExpiry) growwState.activeOcExpiry = customExpiry;
 
       const selectEl = document.getElementById("growwOcUnderlyingSelect");
       if (selectEl) {
@@ -9971,7 +9980,8 @@
       async function fetchOcData() {
         if (!modal || modal.style.display === "none") return;
         try {
-          const res = await fetch(`/api/practice/option-chain?symbol=${encodeURIComponent(growwState.activeOcSymbol || cleanSym)}`);
+          const expParam = growwState.activeOcExpiry ? `&expiry=${encodeURIComponent(growwState.activeOcExpiry)}` : '';
+          const res = await fetch(`/api/practice/option-chain?symbol=${encodeURIComponent(growwState.activeOcSymbol || cleanSym)}${expParam}`);
           if (!res.ok) throw new Error("Failed to load option chain");
           const chain = await res.json();
           renderGrowwOptionChain(chain);
@@ -9985,6 +9995,11 @@
       if (growwState.ocPollTimer) clearInterval(growwState.ocPollTimer);
       await fetchOcData();
       growwState.ocPollTimer = setInterval(fetchOcData, 4000);
+    }
+
+    function changeGrowwOcExpiry(expiryVal) {
+      growwState.activeOcExpiry = expiryVal;
+      openGrowwOptionChain(growwState.activeOcSymbol, expiryVal);
     }
 
     function closeGrowwOptionChainModal() {
@@ -10002,6 +10017,7 @@
       const atmEl = document.getElementById("growwOcAtmDisplay");
       const metaEl = document.getElementById("growwOcMetaSub");
       const logoEl = document.getElementById("growwOcLogo");
+      const expSelect = document.getElementById("growwOcExpirySelect");
       const tbody = document.getElementById("growwOcTableBody");
 
       if (symEl) symEl.textContent = chain.symbol;
@@ -10014,7 +10030,17 @@
       }
       if (atmEl) atmEl.textContent = `ATM Strike: ₹${chain.atmStrike}`;
       if (metaEl) {
-        metaEl.innerHTML = `PCR: <strong style="color: #38bdf8;">${chain.pcr}</strong> • Lot Size: <strong style="color: #cbd5e1;">${chain.lotSize}</strong> • Expiry: <strong style="color: #cbd5e1;">${chain.expiry}</strong>`;
+        metaEl.innerHTML = `PCR: <strong style="color: #38bdf8;">${chain.pcr}</strong> • Lot Size: <strong style="color: #cbd5e1;">${chain.lotSize}</strong> • Expiry: <strong style="color: #38bdf8;">${chain.expiry}</strong> (${chain.expiryTag || ''} • ${chain.dte || 0} DTE)`;
+      }
+
+      // Populate Expiry Dropdown
+      if (expSelect && chain.availableExpiries && chain.availableExpiries.length) {
+        const currentVal = growwState.activeOcExpiry || chain.expiry;
+        expSelect.innerHTML = chain.availableExpiries.map(exp => `
+          <option value="${exp.dateStr}" ${exp.dateStr === currentVal ? 'selected' : ''}>
+            📅 ${exp.label || exp.dateStr}
+          </option>
+        `).join("");
       }
 
       if (!tbody || !chain.strikes) return;
@@ -10152,7 +10178,7 @@
       }
 
       if (exchTag) {
-        exchTag.textContent = quote.isOption ? `F&O ${quote.optionType}` : quote.isCommodity ? "MCX" : quote.isIndex ? "INDEX" : "NSE";
+        exchTag.textContent = quote.isOption ? `F&O ${quote.optionType}${quote.expiry ? ` • ${quote.expiry}` : ''}` : quote.isCommodity ? "MCX" : quote.isIndex ? "INDEX" : "NSE";
         exchTag.style.color = quote.isOption ? (quote.optionType === "CE" ? "#00d09c" : "#eb5b3c") : "#cbd5e1";
       }
 

@@ -1448,7 +1448,8 @@ const server = http.createServer(async (request, response) => {
     try {
       const parsedUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
       const symbol = parsedUrl.searchParams.get("symbol") || "NIFTY";
-      const chain = await getOptionChain(symbol);
+      const expiry = parsedUrl.searchParams.get("expiry") || null;
+      const chain = await getOptionChain(symbol, expiry);
       writeJson(response, 200, chain);
     } catch (error) {
       writeJson(response, 500, { error: error.message || "Failed to fetch option chain" });

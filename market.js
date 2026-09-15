@@ -1939,6 +1939,86 @@ async function getOptionsScoutData(forceRefresh = false) {
   return payload;
 }
 
+function getContractExpiries(rawSymbol) {
+  const sym = String(rawSymbol || "").toUpperCase().trim();
+  const now = new Date();
+  const isCommodity = sym.includes("CRUDE") || sym.includes("NATGAS") || sym.includes("NATURAL") || sym.includes("GOLD") || sym.includes("SILVER") || sym.includes("COPPER");
+  const isIndex = sym === "NIFTY" || sym === "BANKNIFTY" || sym === "SENSEX" || sym === "FINNIFTY" || sym === "MIDCPNIFTY";
+  const isStock = !isIndex && !isCommodity;
+
+  const expiries = [];
+
+  if (isIndex) {
+    // Current Weekly, Next Weekly, Monthly for Indices
+    const targetDay = sym === "SENSEX" ? 5 : sym === "FINNIFTY" ? 2 : 4;
+    for (let w = 0; w < 4; w++) {
+      const d = new Date(now.getTime());
+      const currentDay = d.getDay();
+      let diff = (targetDay - currentDay + 7) % 7;
+      if (diff === 0 && d.getHours() >= 15 && d.getMinutes() >= 30) diff = 7;
+      d.setDate(d.getDate() + diff + (w * 7));
+      d.setHours(15, 30, 0, 0);
+
+      const dte = Math.max(0.5, (d.getTime() - now.getTime()) / (24 * 3600 * 1000));
+      const label = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+      const tag = w === 0 ? "Current Weekly" : w === 1 ? "Next Weekly" : "Monthly";
+      expiries.push({
+        dateStr: label,
+        expiryCode: d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" }).replace(/\s+/g, "").toUpperCase(),
+        tag,
+        fullLabel: `${label} (${tag})`,
+        dte: round(dte, 1),
+        targetDate: d
+      });
+    }
+  } else if (isStock) {
+    // Monthly expiries (Last Thursday of current month, next month, far month)
+    for (let m = 0; m < 3; m++) {
+      const year = now.getFullYear();
+      const month = now.getMonth() + m;
+      const lastDay = new Date(year, month + 1, 0);
+      let dayOfWeek = lastDay.getDay();
+      let diff = (dayOfWeek - 4 + 7) % 7;
+      const lastThursday = new Date(year, month + 1, -diff);
+      lastThursday.setHours(15, 30, 0, 0);
+
+      if (lastThursday.getTime() < now.getTime() - (24 * 3600 * 1000)) continue;
+
+      const dte = Math.max(0.5, (lastThursday.getTime() - now.getTime()) / (24 * 3600 * 1000));
+      const label = lastThursday.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+      const tag = m === 0 ? "Current Monthly" : m === 1 ? "Next Monthly" : "Far Monthly";
+      expiries.push({
+        dateStr: label,
+        expiryCode: lastThursday.toLocaleDateString("en-IN", { day: "2-digit", month: "short" }).replace(/\s+/g, "").toUpperCase(),
+        tag,
+        fullLabel: `${label} (${tag})`,
+        dte: round(dte, 1),
+        targetDate: lastThursday
+      });
+    }
+  } else {
+    // Commodity Expiries (MCX contract dates)
+    const commDates = [
+      { daysAhead: 2, label: "17 Sep 2026", tag: "Active Expiry" },
+      { daysAhead: 34, label: "19 Oct 2026", tag: "Next Expiry" },
+      { daysAhead: 64, label: "18 Nov 2026", tag: "Far Expiry" }
+    ];
+    for (const cd of commDates) {
+      const d = new Date(now.getTime() + cd.daysAhead * 24 * 3600 * 1000);
+      expiries.push({
+        dateStr: cd.label,
+        expiryCode: cd.label.replace(/\s+/g, "").toUpperCase(),
+        tag: cd.tag,
+        fullLabel: `${cd.label} (${cd.tag})`,
+        dte: cd.daysAhead,
+        targetDate: d
+      });
+    }
+  }
+
+  return expiries;
+}
+
 function parseOptionSymbol(rawSymbol) {
   let sym = String(rawSymbol || "").trim().toUpperCase();
   if (!sym) return null;
@@ -1946,7 +2026,7 @@ function parseOptionSymbol(rawSymbol) {
   // Normalize common phrases
   sym = sym.replace(/\s+/g, " ");
 
-  // Match trailing CE/PE/CALL/PUT
+  // Match trailing or embedded CE/PE/CALL/PUT
   let optionType = "";
   const typeMatch = sym.match(/\b(CE|PE|CALL|PUT)\b/i);
   if (typeMatch) {
@@ -1955,18 +2035,29 @@ function parseOptionSymbol(rawSymbol) {
     if (optionType === "PUT") optionType = "PE";
     sym = sym.replace(/\b(CE|PE|CALL|PUT)\b/i, "").trim();
   } else {
-    // If no explicit CE/PE, not a direct option contract string
     return null;
   }
 
-  // Match strike number
+  // Match strike number (any integer or decimal)
   let strike = 0;
-  const strikeMatch = sym.match(/(\d+(?:\.\d+)?)\s*$/);
+  const strikeMatch = sym.match(/\b(\d{2,6}(?:\.\d+)?)\b/);
   if (strikeMatch) {
     strike = parseFloat(strikeMatch[1]);
-    sym = sym.replace(/(\d+(?:\.\d+)?)\s*$/, "").trim();
+    sym = sym.replace(strikeMatch[0], "").trim();
   } else {
     return null;
+  }
+
+  // Check if date or month is present in the remaining string
+  // e.g. "29 SEP 2026", "29SEP", "SEP 2026", "29-SEP-2026", "17 SEP"
+  let specifiedExpiry = null;
+  const dateMatch = sym.match(/\b\d{1,2}\s*(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\w*(?:\s*\d{2,4})?\b/i) ||
+                    sym.match(/\b\d{1,2}(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\b/i) ||
+                    sym.match(/\b(?:JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER)\b/i) ||
+                    sym.match(/\b(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\s+\d{2,4}\b/i);
+  if (dateMatch) {
+    specifiedExpiry = dateMatch[0].trim();
+    sym = sym.replace(dateMatch[0], "").trim();
   }
 
   // Normalize Underlying string
@@ -2005,11 +2096,25 @@ function parseOptionSymbol(rawSymbol) {
     underlying = clean.replace(/\s+/g, "");
   }
 
+  const expiries = getContractExpiries(underlying);
+  let activeExpiryObj = expiries[0];
+  if (specifiedExpiry) {
+    const matched = expiries.find(e => 
+      e.dateStr.toUpperCase().includes(specifiedExpiry) || 
+      e.expiryCode.includes(specifiedExpiry.replace(/\s+/g, "")) ||
+      specifiedExpiry.includes(e.expiryCode)
+    );
+    if (matched) activeExpiryObj = matched;
+  }
+
   return {
     raw: rawSymbol,
     underlying,
     strike,
     optionType,
+    expiry: activeExpiryObj?.dateStr || "29 Sep 2026",
+    expiryTag: activeExpiryObj?.tag || "Current Monthly",
+    dte: activeExpiryObj?.dte || (underlying.startsWith("NIFTY") ? 4 : 14.5),
     formatted: `${underlying} ${strike} ${optionType}`
   };
 }
@@ -2032,22 +2137,22 @@ function getLotSizeForInstrument(symbol) {
   return 1;
 }
 
-function calculateOptionPricing(spotPrice, strike, optionType, underlyingChange = 0, isStock = false, isCommodity = false) {
+function calculateOptionPricing(spotPrice, strike, optionType, underlyingChange = 0, isStock = false, isCommodity = false, customDte = null) {
   const isCall = optionType === "CE" || optionType === "CALL";
   const iv = isCommodity ? 28.5 : isStock ? 22.0 : 13.8;
-  const dte = isCommodity ? 5.0 : 4.0; // days to expiry
+  const dte = customDte != null && customDte > 0 ? customDte : (isStock ? 14.5 : isCommodity ? 5.0 : 4.0); // days to expiry
   const t = Math.max(0.005, dte / 365.0);
 
   const diff = isCall ? (spotPrice - strike) : (strike - spotPrice);
   const intrinsic = Math.max(0, diff);
 
-  // ATM time value baseline
-  const atmMultiplier = isCommodity ? 0.58 : 0.40;
+  // ATM time value baseline (scaled by DTE and IV)
+  const atmMultiplier = isCommodity ? 0.58 : isStock ? 0.44 : 0.40;
   const atmTimeValue = Math.max(10, spotPrice * (iv / 100.0) * Math.sqrt(t) * atmMultiplier);
 
   // Distance metric
   const d = Math.abs(spotPrice - strike) / (spotPrice * (iv / 100.0) * Math.sqrt(t) || 1);
-  const decayRate = isCommodity ? 0.40 : 0.50;
+  const decayRate = isCommodity ? 0.40 : 0.45;
   const extrinsic = Math.max(0.50, atmTimeValue * Math.exp(-decayRate * (d ** 2)));
 
   const ltp = Math.max(0.50, round(intrinsic + extrinsic, 2));
@@ -2076,6 +2181,7 @@ function calculateOptionPricing(spotPrice, strike, optionType, underlyingChange 
     extrinsic: round(extrinsic, 2),
     delta,
     iv,
+    dte,
     dayHigh,
     dayLow,
     open,
@@ -2426,7 +2532,7 @@ async function getStockQuote(rawSymbol) {
   const symbol = String(rawSymbol || "").toUpperCase().trim();
   if (!symbol) return null;
 
-  // Check if this is an Option Contract e.g. "CRUDEOILM 9750 CE", "NIFTY 24500 CE", "BANKNIFTY 52000 PE"
+  // Check if this is an Option Contract e.g. "CRUDEOILM 9750 CE", "NIFTY 24500 CE", "MARUTI 12400 PE", "MARUTI 29SEP 12400 PE"
   const optParsed = parseOptionSymbol(symbol);
   if (optParsed) {
     const underQuote = await getUnderlyingSpotQuote(optParsed.underlying);
@@ -2434,12 +2540,12 @@ async function getStockQuote(rawSymbol) {
     const underChange = underQuote.change || 0;
     const isStock = !underQuote.isIndex && !underQuote.isCommodity;
     const isCommodity = Boolean(underQuote.isCommodity);
-    const pricing = calculateOptionPricing(spotPrice, optParsed.strike, optParsed.optionType, underChange, isStock, isCommodity);
+    const pricing = calculateOptionPricing(spotPrice, optParsed.strike, optParsed.optionType, underChange, isStock, isCommodity, optParsed.dte);
     const lotSize = getLotSizeForInstrument(optParsed.underlying);
 
     return {
       symbol: optParsed.formatted,
-      name: `${underQuote.name || optParsed.underlying} ${optParsed.strike} ${optParsed.optionType === "CE" ? "Call" : "Put"} Option`,
+      name: `${underQuote.name || optParsed.underlying} ${optParsed.strike} ${optParsed.optionType === "CE" ? "Call" : "Put"} Option (${optParsed.expiry})`,
       price: pricing.ltp,
       change: pricing.change,
       pChange: pricing.pChange,
@@ -2456,6 +2562,9 @@ async function getStockQuote(rawSymbol) {
       isIndex: Boolean(underQuote.isIndex),
       optionType: optParsed.optionType,
       strike: optParsed.strike,
+      expiry: optParsed.expiry,
+      expiryTag: optParsed.expiryTag,
+      dte: optParsed.dte,
       underlying: optParsed.underlying,
       underlyingPrice: spotPrice,
       underlyingChange: underChange,
@@ -2472,7 +2581,7 @@ async function getStockQuote(rawSymbol) {
   return getStockQuoteDirect(symbol);
 }
 
-async function getOptionChain(rawSymbol) {
+async function getOptionChain(rawSymbol, customExpiry = null) {
   let sym = String(rawSymbol || "NIFTY").toUpperCase().trim();
   if (sym === "NIFTY 50" || sym === "NIFTY50") sym = "NIFTY";
   if (sym === "NIFTY BANK" || sym === "BANK") sym = "BANKNIFTY";
@@ -2496,6 +2605,19 @@ async function getOptionChain(rawSymbol) {
   const atmStrike = Math.round(spotPrice / step) * step;
   const lotSize = getLotSizeForInstrument(sym);
 
+  const expiries = getContractExpiries(sym);
+  let activeExpiry = expiries[0];
+  if (customExpiry) {
+    const cleanExp = String(customExpiry).toUpperCase().trim();
+    const matched = expiries.find(e => 
+      e.dateStr.toUpperCase().includes(cleanExp) || 
+      e.expiryCode.includes(cleanExp.replace(/\s+/g, "")) ||
+      cleanExp.includes(e.expiryCode)
+    );
+    if (matched) activeExpiry = matched;
+  }
+  const dte = activeExpiry ? activeExpiry.dte : (isStock ? 14.5 : isCommodity ? 5.0 : 4.0);
+
   const strikes = [];
   const numStrikes = 8; // 8 below ATM, ATM, 8 above ATM = 17 strikes
   let totalCallOI = 0;
@@ -2507,8 +2629,8 @@ async function getOptionChain(rawSymbol) {
 
   for (let i = -numStrikes; i <= numStrikes; i++) {
     const strike = round(atmStrike + i * step, 2);
-    const cePricing = calculateOptionPricing(spotPrice, strike, "CE", underChange, isStock, isCommodity);
-    const pePricing = calculateOptionPricing(spotPrice, strike, "PE", underChange, isStock, isCommodity);
+    const cePricing = calculateOptionPricing(spotPrice, strike, "CE", underChange, isStock, isCommodity, dte);
+    const pePricing = calculateOptionPricing(spotPrice, strike, "PE", underChange, isStock, isCommodity, dte);
 
     totalCallOI += cePricing.oi;
     totalPutOI += pePricing.oi;
@@ -2533,6 +2655,9 @@ async function getOptionChain(rawSymbol) {
       volume: cePricing.volume,
       iv: cePricing.iv,
       delta: cePricing.delta,
+      expiry: activeExpiry.dateStr,
+      expiryTag: activeExpiry.tag,
+      dte,
       isAtm: strike === atmStrike,
       isItm: strike < spotPrice
     };
@@ -2548,6 +2673,9 @@ async function getOptionChain(rawSymbol) {
       volume: pePricing.volume,
       iv: pePricing.iv,
       delta: pePricing.delta,
+      expiry: activeExpiry.dateStr,
+      expiryTag: activeExpiry.tag,
+      dte,
       isAtm: strike === atmStrike,
       isItm: strike > spotPrice
     };
@@ -2561,13 +2689,6 @@ async function getOptionChain(rawSymbol) {
   }
 
   const pcr = totalCallOI > 0 ? round(totalPutOI / totalCallOI, 2) : 1.0;
-
-  // Expiry formatting
-  const now = new Date();
-  const day = now.getDay();
-  const daysUntilThursday = (4 - day + 7) % 7 || 7;
-  const expiryDateObj = new Date(now.getTime() + daysUntilThursday * 24 * 60 * 60 * 1000);
-  const expiryStr = expiryDateObj.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) + " (Active Expiry)";
 
   return {
     symbol: sym,
@@ -2585,7 +2706,16 @@ async function getOptionChain(rawSymbol) {
     totalPutOI,
     maxCallOIWall: { strike: maxCallOIStrike, oi: maxCallOIVal },
     maxPutOIFloor: { strike: maxPutOIStrike, oi: maxPutOIVal },
-    expiry: expiryStr,
+    expiry: activeExpiry.dateStr,
+    expiryTag: activeExpiry.tag,
+    dte,
+    availableExpiries: expiries.map(e => ({
+      dateStr: e.dateStr,
+      expiryCode: e.expiryCode,
+      label: e.fullLabel,
+      tag: e.tag,
+      dte: e.dte
+    })),
     strikes,
     updatedAt: new Date().toISOString()
   };
@@ -2663,6 +2793,7 @@ async function searchInstruments(rawQuery) {
   const textTokens = cleanQ
     .replace(/\b\d+\b/g, "")
     .replace(/\b(CE|PE|CALL|PUT)\b/g, "")
+    .replace(/\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\w*\b/g, "")
     .trim()
     .split(/\s+/)
     .filter(Boolean);
@@ -2738,12 +2869,16 @@ async function searchInstruments(rawQuery) {
       const step = getStrikeStep(spotPrice, targetSymbol);
       const atmStrike = Math.round(spotPrice / step) * step;
 
+      const expiries = getContractExpiries(targetSymbol);
+      const activeExp = expiries[0];
+      const dte = activeExp.dte;
+
       const numberMatch = query.match(/\d+/);
       const searchNum = numberMatch ? parseInt(numberMatch[0], 10) : null;
 
       const targetStrikes = [];
       if (searchNum) {
-        // User typed a specific strike like 9750 or 6000
+        // User typed a specific strike like 12400 or 9750
         const baseStrike = Math.round(searchNum / step) * step;
         for (let i = -2; i <= 2; i++) {
           targetStrikes.push(round(baseStrike + i * step, 2));
@@ -2756,8 +2891,8 @@ async function searchInstruments(rawQuery) {
       }
 
       for (const st of targetStrikes) {
-        const cePricing = calculateOptionPricing(spotPrice, st, "CE", underChange, isStock, isCommodity);
-        const pePricing = calculateOptionPricing(spotPrice, st, "PE", underChange, isStock, isCommodity);
+        const cePricing = calculateOptionPricing(spotPrice, st, "CE", underChange, isStock, isCommodity, dte);
+        const pePricing = calculateOptionPricing(spotPrice, st, "PE", underChange, isStock, isCommodity, dte);
 
         if (!query.includes("PE")) {
           callOptions.push({
@@ -2771,6 +2906,9 @@ async function searchInstruments(rawQuery) {
             volume: cePricing.volume,
             iv: cePricing.iv,
             delta: cePricing.delta,
+            expiry: activeExp.dateStr,
+            expiryTag: activeExp.tag,
+            dte,
             isAtm: st === atmStrike,
             lotSize: underQuote.lotSize || getLotSizeForInstrument(targetSymbol)
           });
@@ -2788,6 +2926,9 @@ async function searchInstruments(rawQuery) {
             volume: pePricing.volume,
             iv: pePricing.iv,
             delta: pePricing.delta,
+            expiry: activeExp.dateStr,
+            expiryTag: activeExp.tag,
+            dte,
             isAtm: st === atmStrike,
             lotSize: underQuote.lotSize || getLotSizeForInstrument(targetSymbol)
           });
