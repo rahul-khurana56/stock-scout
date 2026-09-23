@@ -6495,7 +6495,8 @@
     <!-- MODAL: FULLSCREEN CIRCUIT BREAKER LOCKOUT OVERLAY         -->
     <!-- ========================================================= -->
     <div id="riskLockoutModal" class="lockout-modal-overlay">
-      <div class="lockout-card">
+      <div class="lockout-card" style="position: relative;">
+        <button class="btn" onclick="closeLockoutModal()" title="Close overlay" style="position: absolute; top: 12px; right: 12px; background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.2); color: #fff; padding: 4px 10px; font-weight: 800; font-size: 13px;">✕</button>
         <div class="lockout-icon">🛑</div>
         <h2>TERMINAL LOCKDOWN ACTIVATED</h2>
         <p id="lockoutModalReasonText">
@@ -11139,12 +11140,24 @@
       }
     }
 
+    function closeLockoutModal() {
+      const modal = document.getElementById("riskLockoutModal");
+      if (modal) modal.style.display = "none";
+      state.lockoutDismissedForSession = true;
+    }
+
     // Terminal Lockout Handling
     function checkLockoutStatus() {
-      const daily = state.riskProfile.dailyState || {};
-      const settings = state.riskProfile.settings || {};
+      const daily = state.riskProfile?.dailyState || {};
+      const settings = state.riskProfile?.settings || {};
       const modal = document.getElementById("riskLockoutModal");
       if (!modal) return;
+
+      // DO NOT block the user when they are reviewing/editing their Journal or on the Risk tab
+      if (state.activeTab === "tab-risk" || state.lockoutDismissedForSession) {
+        modal.style.display = "none";
+        return;
+      }
 
       if (daily.isLockedOut && settings.lockoutEnabled !== false) {
         modal.style.display = "flex";
@@ -11156,6 +11169,7 @@
     }
 
     function triggerManualLockout() {
+      state.lockoutDismissedForSession = false;
       state.riskProfile.dailyState.isLockedOut = true;
       state.riskProfile.dailyState.lockoutReason = "Manual trader self-preservation lockout activated.";
       updateGlobalRiskBar();
@@ -11164,8 +11178,7 @@
     }
 
     function openRiskMindsetTabFromLockout() {
-      const modal = document.getElementById("riskLockoutModal");
-      if (modal) modal.style.display = "none";
+      closeLockoutModal();
 
       document.querySelectorAll(".tab-item").forEach((b) => b.classList.remove("active"));
       document.querySelectorAll(".tab-content").forEach((c) => c.classList.remove("active"));
@@ -11178,13 +11191,22 @@
       fetchRiskProfile();
     }
 
-    function overrideLockoutEmergency() {
+    async function overrideLockoutEmergency() {
       if (!confirm("⚠️ CAUTION: Are you sure you want to bypass your safety lockout? Overriding your pre-defined rules is the leading cause of catastrophic losses.")) return;
-      state.riskProfile.dailyState.isLockedOut = false;
-      state.riskProfile.dailyState.lockoutReason = null;
-      checkLockoutStatus();
+      state.lockoutDismissedForSession = true;
+      if (state.riskProfile && state.riskProfile.dailyState) {
+        state.riskProfile.dailyState.isLockedOut = false;
+        state.riskProfile.dailyState.lockoutReason = null;
+        saveLocalRiskProfile(state.riskProfile);
+      }
+      closeLockoutModal();
       updateGlobalRiskBar();
       renderRiskHub();
+      try {
+        await fetch("/api/risk/reset-daily", { method: "POST" });
+      } catch (e) {
+        console.warn("Reset daily sync pending");
+      }
       showToast("⚠️ Lockout bypassed. Trade with extreme discipline!", true);
     }
 
