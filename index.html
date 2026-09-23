@@ -5391,20 +5391,58 @@
       <!-- BOTTOM SECTION: TRADE JOURNAL & PSYCHOLOGY ANALYTICS     -->
       <!-- ========================================================= -->
       <div class="panel" style="margin-top: 20px;">
-        <div class="panel-header">
-          <div class="panel-title-group">
-            <h2>📖 Trader Psychology Journal & Discipline Scorecard</h2>
-            <p>Track execution quality, emotional states, and quantify the exact rupee cost of discipline breaches.</p>
+        <div class="panel-header" style="flex-direction: column; align-items: stretch; gap: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div class="panel-title-group">
+              <h2>📖 Trader Psychology Journal & Discipline Scorecard</h2>
+              <p>Track execution quality, net profit/loss, and quantify the exact rupee cost of discipline breaches for any date or range.</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button class="btn" onclick="clearJournalHistory()" style="font-size: 11px; color: var(--muted);">
+                🗑️ Clear History
+              </button>
+            </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <button class="btn" onclick="clearJournalHistory()" style="font-size: 11px; color: var(--muted);">
-              🗑️ Clear History
-            </button>
+
+          <!-- Top Global Date Filter Bar for Scorecard & Journal -->
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 10px 14px; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--line); border-radius: var(--radius-sm);">
+            <!-- Preset Date Chips -->
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;" id="journalTopDateChips">
+              <span style="font-size: 11.5px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 4px;">
+                📅 <span>Scorecard Period:</span>
+              </span>
+              <button class="risk-chip active" data-date-filter="ALL" onclick="setJournalDatePreset('ALL')">All Time</button>
+              <button class="risk-chip" data-date-filter="TODAY" onclick="setJournalDatePreset('TODAY')">Today</button>
+              <button class="risk-chip" data-date-filter="YESTERDAY" onclick="setJournalDatePreset('YESTERDAY')">Yesterday</button>
+              <button class="risk-chip" data-date-filter="THIS_WEEK" onclick="setJournalDatePreset('THIS_WEEK')">This Week</button>
+              <button class="risk-chip" data-date-filter="THIS_MONTH" onclick="setJournalDatePreset('THIS_MONTH')">This Month</button>
+            </div>
+
+            <!-- Custom Date Range Pickers -->
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <label style="font-size: 11px; color: var(--muted);">From:</label>
+                <input type="date" id="journalTopFilterFrom" class="input-text" style="font-size: 11.5px; padding: 4px 7px;" onchange="onJournalTopDateRangeChange()">
+              </div>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <label style="font-size: 11px; color: var(--muted);">To:</label>
+                <input type="date" id="journalTopFilterTo" class="input-text" style="font-size: 11.5px; padding: 4px 7px;" onchange="onJournalTopDateRangeChange()">
+              </div>
+              <button class="btn" onclick="resetJournalFilters()" title="Reset to All Time" style="font-size: 11px; padding: 4px 10px; color: var(--muted);">
+                ↺ Reset
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Psychology Analytics Bar -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 18px;">
+        <!-- Psychology Analytics Bar with Net Realized P&L -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px;">
+          <div class="risk-metric-card" style="padding: 12px 14px; border-color: rgba(56, 189, 248, 0.3);">
+            <div class="risk-metric-title">Net Realized P&L (₹)</div>
+            <div class="risk-metric-value" id="statsNetRealizedPnl" style="color: #4ade80; font-size: 20px;">₹0.00</div>
+            <div class="risk-metric-subtext" id="statsNetRealizedPnlSubtext">0 Trades in chosen period</div>
+          </div>
+
           <div class="risk-metric-card" style="padding: 12px 14px;">
             <div class="risk-metric-title">Disciplined Win Rate</div>
             <div class="risk-metric-value" id="statsDisciplinedWinRate" style="color: #4ade80; font-size: 20px;">0%</div>
@@ -5434,30 +5472,42 @@
         <div class="journal-log-bar">
           <div>
             <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Symbol:</label>
-            <input type="text" id="journalSymbol" class="input-text" placeholder="e.g. TATASTEEL" style="font-size: 12px; padding: 6px 10px;">
+            <input type="text" id="journalSymbol" class="input-text" placeholder="e.g. TATASTEEL" style="font-size: 12px; padding: 6px 10px; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
           </div>
           <div>
             <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Side:</label>
-            <select id="journalSide" class="select" style="font-size: 12px; padding: 6px 8px;">
+            <select id="journalSide" class="select" style="font-size: 12px; padding: 6px 8px;" onchange="autoCalculateJournalPnl()">
               <option value="BUY">BUY ↗</option>
               <option value="SELL">SELL ↘</option>
             </select>
           </div>
           <div>
             <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Asset:</label>
-            <select id="journalAsset" class="select" style="font-size: 12px; padding: 6px 8px;">
+            <select id="journalAsset" class="select" style="font-size: 12px; padding: 6px 8px;" onchange="autoCalculateJournalPnl()">
               <option value="EQUITY">Equity</option>
               <option value="FUTURES">Futures</option>
               <option value="OPTIONS">Options</option>
             </select>
           </div>
           <div>
+            <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Quantity / Lots:</label>
+            <input type="number" id="journalQty" class="input-text" placeholder="100" min="1" step="1" style="font-size: 12px; padding: 6px 10px;" oninput="autoCalculateJournalPnl()">
+          </div>
+          <div>
             <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Entry ₹:</label>
-            <input type="number" id="journalEntry" class="input-text" placeholder="150.00" step="0.05" style="font-size: 12px; padding: 6px 10px;">
+            <input type="number" id="journalEntry" class="input-text" placeholder="150.00" step="0.05" style="font-size: 12px; padding: 6px 10px;" oninput="autoCalculateJournalPnl()">
           </div>
           <div>
             <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Exit ₹:</label>
-            <input type="number" id="journalExit" class="input-text" placeholder="154.50" step="0.05" style="font-size: 12px; padding: 6px 10px;">
+            <input type="number" id="journalExit" class="input-text" placeholder="154.50" step="0.05" style="font-size: 12px; padding: 6px 10px;" oninput="autoCalculateJournalPnl()">
+          </div>
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Entry Time:</label>
+            <input type="time" id="journalEntryTime" class="input-text" style="font-size: 12px; padding: 6px 6px;">
+          </div>
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Exit Time:</label>
+            <input type="time" id="journalExitTime" class="input-text" style="font-size: 12px; padding: 6px 6px;">
           </div>
           <div>
             <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Net P&L (₹):</label>
@@ -5503,17 +5553,51 @@
           </div>
         </div>
 
-        <!-- Journal Table Filter Chips -->
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-          <div class="risk-chip-group" id="journalFilterChips">
-            <button class="risk-chip active" data-filter="ALL" onclick="filterJournal('ALL')">All Trades (<span id="journalCountAll">0</span>)</button>
-            <button class="risk-chip" data-filter="DISCIPLINED" onclick="filterJournal('DISCIPLINED')">Disciplined (100%) (<span id="journalCountDisciplined">0</span>)</button>
-            <button class="risk-chip" data-filter="BREACHED" onclick="filterJournal('BREACHED')">Rule Breaches (<span id="journalCountBreached">0</span>)</button>
-            <button class="risk-chip" data-filter="WINS" onclick="filterJournal('WINS')">Winners (<span id="journalCountWins">0</span>)</button>
-            <button class="risk-chip" data-filter="LOSSES" onclick="filterJournal('LOSSES')">Losses (<span id="journalCountLosses">0</span>)</button>
+        <!-- Journal Table Filter Toolbar -->
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px;">
+          <!-- Top Row: Status Chips & Summary -->
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div class="risk-chip-group" id="journalFilterChips">
+              <button class="risk-chip active" data-filter="ALL" onclick="filterJournal('ALL')">All Trades (<span id="journalCountAll">0</span>)</button>
+              <button class="risk-chip" data-filter="DISCIPLINED" onclick="filterJournal('DISCIPLINED')">Disciplined (100%) (<span id="journalCountDisciplined">0</span>)</button>
+              <button class="risk-chip" data-filter="BREACHED" onclick="filterJournal('BREACHED')">Rule Breaches (<span id="journalCountBreached">0</span>)</button>
+              <button class="risk-chip" data-filter="WINS" onclick="filterJournal('WINS')">Winners (<span id="journalCountWins">0</span>)</button>
+              <button class="risk-chip" data-filter="LOSSES" onclick="filterJournal('LOSSES')">Losses (<span id="journalCountLosses">0</span>)</button>
+            </div>
+            <div style="font-size: 12px; color: var(--muted);" id="journalTotalPnlSummary">
+              Total Logged P&L: <strong style="color: var(--text);">₹0.00</strong>
+            </div>
           </div>
-          <div style="font-size: 12px; color: var(--muted);" id="journalTotalPnlSummary">
-            Total Logged P&L: <strong style="color: var(--text);">₹0.00</strong>
+
+          <!-- Bottom Row: Date Filter Presets, Date Range & Search -->
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;">
+            <!-- Date Preset Chips -->
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;" id="journalDateChips">
+              <span style="font-size: 11px; font-weight: 700; color: var(--muted); margin-right: 2px;">📅 Date:</span>
+              <button class="risk-chip active" data-date-filter="ALL" onclick="setJournalDatePreset('ALL')">All Time</button>
+              <button class="risk-chip" data-date-filter="TODAY" onclick="setJournalDatePreset('TODAY')">Today</button>
+              <button class="risk-chip" data-date-filter="YESTERDAY" onclick="setJournalDatePreset('YESTERDAY')">Yesterday</button>
+              <button class="risk-chip" data-date-filter="THIS_WEEK" onclick="setJournalDatePreset('THIS_WEEK')">This Week</button>
+              <button class="risk-chip" data-date-filter="THIS_MONTH" onclick="setJournalDatePreset('THIS_MONTH')">This Month</button>
+            </div>
+
+            <!-- Custom Date Range & Symbol Search -->
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <label style="font-size: 11px; color: var(--muted);">From:</label>
+                <input type="date" id="journalFilterFrom" class="input-text" style="font-size: 11.5px; padding: 4px 7px;" onchange="onJournalDateRangeChange()">
+              </div>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <label style="font-size: 11px; color: var(--muted);">To:</label>
+                <input type="date" id="journalFilterTo" class="input-text" style="font-size: 11.5px; padding: 4px 7px;" onchange="onJournalDateRangeChange()">
+              </div>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <input type="text" id="journalFilterSymbol" class="input-text" placeholder="🔍 Symbol..." style="font-size: 11.5px; padding: 4px 8px; width: 95px; text-transform: uppercase;" oninput="onJournalSymbolSearch(this.value)">
+              </div>
+              <button class="btn" onclick="resetJournalFilters()" title="Reset all active filters" style="font-size: 11px; padding: 4px 9px; color: var(--muted);">
+                ↺ Reset
+              </button>
+            </div>
           </div>
         </div>
 
@@ -5525,13 +5609,13 @@
                 <th style="width: 130px;">Time / Date</th>
                 <th>Symbol & Side</th>
                 <th>Asset</th>
-                <th>Entry / Exit</th>
+                <th>Entry / Exit (Qty)</th>
                 <th>P&L (₹ & %)</th>
                 <th>Emotion Tag</th>
                 <th>Discipline Tag</th>
                 <th>📷 Charts</th>
                 <th>Notes</th>
-                <th style="text-align: center; width: 60px;">Action</th>
+                <th style="text-align: center; width: 90px;">Action</th>
               </tr>
             </thead>
             <tbody id="journalTableBody">
@@ -5542,6 +5626,29 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Journal Pagination & Page Size Toolbar -->
+        <div id="journalPaginationBar" style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px; flex-wrap: wrap; gap: 10px; padding: 8px 12px; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--line); border-radius: var(--radius-sm);">
+          <div style="font-size: 12px; color: var(--muted);" id="journalPaginationInfo">
+            Showing 0 of 0 trades
+          </div>
+
+          <!-- Page Buttons Group -->
+          <div style="display: flex; align-items: center; gap: 4px;" id="journalPageButtons">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Page Size Selector -->
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <label style="font-size: 11.5px; color: var(--muted);">Per page:</label>
+            <select id="journalPageSizeSelect" class="select" style="font-size: 11.5px; padding: 3px 8px;" onchange="changeJournalPageSize(this.value)">
+              <option value="10" selected>10 Trades</option>
+              <option value="25">25 Trades</option>
+              <option value="50">50 Trades</option>
+              <option value="ALL">Show All</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -6447,6 +6554,10 @@
           <!-- Metric Grid -->
           <div class="journal-detail-metric-grid">
             <div class="journal-detail-metric-card">
+              <div class="label">Quantity / Lots</div>
+              <div class="val" id="journalDetailQty">--</div>
+            </div>
+            <div class="journal-detail-metric-card">
               <div class="label">Entry Price</div>
               <div class="val" id="journalDetailEntry">₹0.00</div>
             </div>
@@ -6457,6 +6568,10 @@
             <div class="journal-detail-metric-card">
               <div class="label">Realized P&L</div>
               <div class="val" id="journalDetailPnl">₹0.00</div>
+            </div>
+            <div class="journal-detail-metric-card">
+              <div class="label">Timing & Duration</div>
+              <div class="val" id="journalDetailTiming" style="font-size: 12.5px;">--</div>
             </div>
             <div class="journal-detail-metric-card">
               <div class="label">Emotion State</div>
@@ -6507,8 +6622,134 @@
           <button class="btn" id="journalDetailDeleteBtn" style="font-size: 11.5px; padding: 6px 12px; color: #ef4444; border-color: rgba(239,68,68,0.3);">
             🗑️ Delete Trade
           </button>
-          <button class="btn" onclick="closeJournalDetailModal()" style="font-size: 12px; padding: 6px 18px; background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700;">
-            Close
+          <div style="display: flex; gap: 8px;">
+            <button class="btn" id="journalDetailEditFullBtn" onclick="openJournalEditModal(activeDetailTradeId)" style="font-size: 12px; padding: 6px 14px; background: rgba(251, 191, 36, 0.15); border-color: rgba(251, 191, 36, 0.4); color: #fbbf24; font-weight: 700;">
+              ✏️ Edit Full Entry
+            </button>
+            <button class="btn" onclick="closeJournalDetailModal()" style="font-size: 12px; padding: 6px 18px; background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700;">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- MODAL: EDIT JOURNAL TRADE ENTRY (FULL EDIT POPUP)         -->
+    <!-- ========================================================= -->
+    <div id="journalEditTradeModal" class="journal-detail-modal-overlay" onclick="handleJournalEditOverlayClick(event)">
+      <div class="journal-detail-modal-container" style="max-width: 640px;">
+        <!-- Modal Header -->
+        <div class="journal-detail-modal-header" style="background: rgba(15, 23, 42, 0.95);">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.3); display: flex; align-items: center; justify-content: center; font-size: 20px;">
+              ✏️
+            </div>
+            <div>
+              <div style="font-size: 15px; font-weight: 800; color: #fff; letter-spacing: 0.02em;">Edit Journal Entry</div>
+              <div id="editJournalSubtitle" style="font-size: 11.5px; color: var(--muted); margin-top: 2px;">Modify trade details, timing, quantity, prices, or review notes</div>
+            </div>
+          </div>
+          <button class="btn" onclick="closeJournalEditModal()" title="Close (Esc)" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: #fff; padding: 6px 12px; font-weight: 800; font-size: 13px;">✕</button>
+        </div>
+
+        <!-- Modal Body Form -->
+        <div class="journal-detail-modal-body" style="padding: 20px;">
+          <input type="hidden" id="editJournalId">
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 14px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Symbol:</label>
+              <input type="text" id="editJournalSymbol" class="input-text" placeholder="e.g. RELIANCE" style="font-size: 12.5px; padding: 7px 10px; width: 100%; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Side:</label>
+              <select id="editJournalSide" class="select" style="font-size: 12.5px; padding: 7px 8px; width: 100%;" onchange="autoCalculateEditPnl()">
+                <option value="BUY">BUY ↗</option>
+                <option value="SELL">SELL ↘</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Asset Type:</label>
+              <select id="editJournalAsset" class="select" style="font-size: 12.5px; padding: 7px 8px; width: 100%;">
+                <option value="EQUITY">Equity</option>
+                <option value="FUTURES">Futures</option>
+                <option value="OPTIONS">Options</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 4px;">Quantity / Lots:</label>
+              <input type="number" id="editJournalQty" class="input-text" placeholder="100" min="1" step="1" style="font-size: 12.5px; padding: 7px 10px; width: 100%; border-color: rgba(56,189,248,0.4);" oninput="autoCalculateEditPnl()">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; margin-bottom: 14px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Trade Date:</label>
+              <input type="date" id="editJournalDate" class="input-text" style="font-size: 12px; padding: 7px 8px; width: 100%;">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 4px;">Entry Time:</label>
+              <input type="time" id="editJournalEntryTime" class="input-text" style="font-size: 12px; padding: 7px 8px; width: 100%; border-color: rgba(56,189,248,0.4);">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 4px;">Exit Time:</label>
+              <input type="time" id="editJournalExitTime" class="input-text" style="font-size: 12px; padding: 7px 8px; width: 100%; border-color: rgba(56,189,248,0.4);">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 14px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Entry Price (₹):</label>
+              <input type="number" id="editJournalEntry" class="input-text" placeholder="150.00" step="0.05" style="font-size: 12.5px; padding: 7px 10px; width: 100%;" oninput="autoCalculateEditPnl()">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Exit Price (₹):</label>
+              <input type="number" id="editJournalExit" class="input-text" placeholder="154.50" step="0.05" style="font-size: 12.5px; padding: 7px 10px; width: 100%;" oninput="autoCalculateEditPnl()">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #4ade80; display: block; margin-bottom: 4px;">Realized Net P&L (₹):</label>
+              <input type="number" id="editJournalPnl" class="input-text" placeholder="+1200 or -800" step="1" style="font-size: 12.5px; padding: 7px 10px; width: 100%; font-weight: 800; border-color: rgba(74,222,128,0.4);">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Emotion at Entry:</label>
+              <select id="editJournalEmotion" class="select" style="font-size: 12px; padding: 7px 8px; width: 100%;">
+                <option value="CALM">🟢 Calm & In The Zone</option>
+                <option value="FOMO">🟡 FOMO / Chased Move</option>
+                <option value="REVENGE">🔴 Revenge / Frustrated</option>
+                <option value="HESITANT">🟣 Hesitant / Fearful</option>
+                <option value="GREEDY">🟠 Greedy / Oversized</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Discipline / Mistake:</label>
+              <select id="editJournalMistake" class="select" style="font-size: 12px; padding: 7px 8px; width: 100%;">
+                <option value="NONE">✅ Followed Rules 100%</option>
+                <option value="MOVED_SL">❌ Moved Stop Loss Away</option>
+                <option value="OVERSIZED">❌ Oversized (Broke 1% Risk)</option>
+                <option value="EARLY_EXIT">❌ Cut Winner Prematurely</option>
+                <option value="NO_SETUP">❌ Random Entry / No Setup</option>
+                <option value="REVENGE_TRADE">❌ Revenge Trade Post-Loss</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Execution Notes & Setup Triggers:</label>
+            <textarea id="editJournalNotes" class="input-text" rows="3" style="width: 100%; font-size: 12.5px; line-height: 1.5; padding: 8px 10px; resize: vertical; box-sizing: border-box;" placeholder="Add setup triggers, reasoning, or trade review notes..."></textarea>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div style="padding: 12px 20px; background: rgba(15, 23, 42, 0.7); border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: flex-end; gap: 10px;">
+          <button class="btn" onclick="closeJournalEditModal()" style="font-size: 12px; padding: 6px 14px;">
+            Cancel
+          </button>
+          <button class="btn btn-primary" onclick="saveEditedJournalTrade()" style="font-size: 12px; padding: 6px 20px; font-weight: 800; background: #fbbf24; border-color: #f59e0b; color: #000;">
+            💾 Save Changes
           </button>
         </div>
       </div>
@@ -6571,6 +6812,12 @@
       },
       sizerAsset: "EQUITY_MIS",
       journalFilter: "ALL",
+      journalDatePreset: "ALL",
+      journalDateFrom: "",
+      journalDateTo: "",
+      journalSearchSymbol: "",
+      journalPage: 1,
+      journalPageSize: 10,
       pendingJournalScreenshots: [],
       zoomModalState: {
         images: [],
@@ -8968,8 +9215,32 @@
     }
 
     function calculatePsychologyMetrics() {
-      const journal = state.riskProfile.journal || [];
+      const allJournal = state.riskProfile.journal || [];
+
+      // Filter journal by active date range if any
+      let journal = allJournal;
+      if (state.journalDateFrom) {
+        journal = journal.filter((t) => {
+          const tDate = t.tradeDate || (t.createdAt ? t.createdAt.slice(0, 10) : "");
+          return tDate >= state.journalDateFrom;
+        });
+      }
+      if (state.journalDateTo) {
+        journal = journal.filter((t) => {
+          const tDate = t.tradeDate || (t.createdAt ? t.createdAt.slice(0, 10) : "");
+          return tDate <= state.journalDateTo;
+        });
+      }
+
+      const pnlEl = document.getElementById("statsNetRealizedPnl");
+      const pnlSubEl = document.getElementById("statsNetRealizedPnlSubtext");
+
       if (!journal.length) {
+        if (pnlEl) {
+          pnlEl.textContent = "₹0.00";
+          pnlEl.style.color = "var(--text)";
+        }
+        if (pnlSubEl) pnlSubEl.textContent = "0 Trades in chosen period";
         document.getElementById("statsDisciplinedWinRate").textContent = "0%";
         document.getElementById("statsEmotionalWinRate").textContent = "0%";
         document.getElementById("statsCostOfMistakes").textContent = "₹0.00";
@@ -8978,17 +9249,31 @@
         return;
       }
 
+      // Net Realized P&L for filtered period
+      const netPnl = journal.reduce((acc, t) => acc + (t.pnl || 0), 0);
+      const isPos = netPnl >= 0;
+      const winsCount = journal.filter((t) => (t.pnl || 0) > 0).length;
+      const overallWinRate = Math.round((winsCount / journal.length) * 100);
+
+      if (pnlEl) {
+        pnlEl.textContent = `${isPos ? '+₹' : '-₹'}${Math.abs(netPnl).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+        pnlEl.style.color = isPos ? "#4ade80" : "#f87171";
+      }
+      if (pnlSubEl) {
+        pnlSubEl.textContent = `${journal.length} Trades • ${overallWinRate}% Win Rate (${winsCount}W/${journal.length - winsCount}L)`;
+      }
+
       const disciplinedTrades = journal.filter((t) => t.disciplineFollowed !== false);
       const emotionalTrades = journal.filter((t) => t.disciplineFollowed === false);
 
-      const discWins = disciplinedTrades.filter((t) => t.pnl > 0).length;
+      const discWins = disciplinedTrades.filter((t) => (t.pnl || 0) > 0).length;
       const discWinRate = disciplinedTrades.length ? Math.round((discWins / disciplinedTrades.length) * 100) : 0;
 
-      const emoWins = emotionalTrades.filter((t) => t.pnl > 0).length;
+      const emoWins = emotionalTrades.filter((t) => (t.pnl || 0) > 0).length;
       const emoWinRate = emotionalTrades.length ? Math.round((emoWins / emotionalTrades.length) * 100) : 0;
 
       // Cost of mistakes: sum of negative P&L on emotional trades or rule breach trades
-      const mistakeLosses = emotionalTrades.filter((t) => t.pnl < 0).reduce((acc, t) => acc + Math.abs(t.pnl), 0);
+      const mistakeLosses = emotionalTrades.filter((t) => (t.pnl || 0) < 0).reduce((acc, t) => acc + Math.abs(t.pnl), 0);
 
       const overallDisciplineScore = Math.round((disciplinedTrades.length / journal.length) * 100);
 
@@ -9096,6 +9381,8 @@
         rrBadge.textContent = `1 : ${rrRatio.toFixed(1)} R:R`;
         rrBadge.className = `rr-badge ${rrRatio >= 2.0 ? "good" : (rrRatio >= 1.5 ? "warning" : "bad")}`;
       }
+
+      state.lastCalculatedQty = calculatedQty;
     }
 
     function setSizerAsset(assetType) {
@@ -9187,14 +9474,20 @@
       const side = document.getElementById("sizerSide").value;
       const entry = document.getElementById("sizerEntry").value;
       const t1 = document.getElementById("sizerTarget1").value;
+      const asset = state.sizerAsset || "EQUITY";
 
       document.getElementById("journalSymbol").value = symbol;
       document.getElementById("journalSide").value = side;
+      document.getElementById("journalAsset").value = asset;
       document.getElementById("journalEntry").value = entry;
       document.getElementById("journalExit").value = t1;
+      if (state.lastCalculatedQty) {
+        document.getElementById("journalQty").value = state.lastCalculatedQty;
+      }
+      autoCalculateJournalPnl();
 
       document.getElementById("tab-risk").scrollIntoView({ behavior: "smooth" });
-      showToast(`📝 Pre-filled ${symbol} in Journal Logger below!`);
+      showToast(`📝 Pre-filled ${symbol} (Qty: ${state.lastCalculatedQty || 'default'}) in Journal Logger below!`);
     }
 
     // Modal Sizer for universal clicks
@@ -9728,6 +10021,56 @@
       });
     }
 
+    function autoCalculateJournalPnl() {
+      const side = document.getElementById("journalSide")?.value || "BUY";
+      const entry = Number(document.getElementById("journalEntry")?.value) || 0;
+      const exit = Number(document.getElementById("journalExit")?.value) || 0;
+      const qty = Number(document.getElementById("journalQty")?.value) || 0;
+
+      if (entry > 0 && exit > 0 && qty > 0) {
+        const isBuy = side === "BUY";
+        const delta = isBuy ? (exit - entry) : (entry - exit);
+        const pnl = Math.round(delta * qty * 100) / 100;
+        const pnlInput = document.getElementById("journalPnl");
+        if (pnlInput) pnlInput.value = pnl;
+      }
+    }
+
+    function autoCalculateEditPnl() {
+      const side = document.getElementById("editJournalSide")?.value || "BUY";
+      const entry = Number(document.getElementById("editJournalEntry")?.value) || 0;
+      const exit = Number(document.getElementById("editJournalExit")?.value) || 0;
+      const qty = Number(document.getElementById("editJournalQty")?.value) || 0;
+
+      if (entry > 0 && exit > 0 && qty > 0) {
+        const isBuy = side === "BUY";
+        const delta = isBuy ? (exit - entry) : (entry - exit);
+        const pnl = Math.round(delta * qty * 100) / 100;
+        const pnlInput = document.getElementById("editJournalPnl");
+        if (pnlInput) pnlInput.value = pnl;
+      }
+    }
+
+    function calculateTimingDuration(entryTime, exitTime) {
+      if (!entryTime && !exitTime) return "--";
+      if (!entryTime) return `Exit: ${exitTime}`;
+      if (!exitTime) return `Entry: ${entryTime}`;
+
+      try {
+        const [eH, eM] = entryTime.split(':').map(Number);
+        const [xH, xM] = exitTime.split(':').map(Number);
+        if (!isNaN(eH) && !isNaN(eM) && !isNaN(xH) && !isNaN(xM)) {
+          let diff = (xH * 60 + xM) - (eH * 60 + eM);
+          if (diff < 0) diff += 24 * 60;
+          const hrs = Math.floor(diff / 60);
+          const mins = diff % 60;
+          const durStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+          return `${entryTime} → ${exitTime} (${durStr})`;
+        }
+      } catch (e) {}
+      return `${entryTime} → ${exitTime}`;
+    }
+
     async function submitJournalTrade() {
       const symbol = (document.getElementById("journalSymbol").value || "").toUpperCase().trim();
       if (!symbol) {
@@ -9737,22 +10080,30 @@
 
       const side = document.getElementById("journalSide").value;
       const asset = document.getElementById("journalAsset").value;
+      const qty = Number(document.getElementById("journalQty")?.value) || 0;
       const entry = Number(document.getElementById("journalEntry").value) || 0;
       const exit = Number(document.getElementById("journalExit").value) || 0;
+      const entryTime = (document.getElementById("journalEntryTime")?.value || "").trim();
+      const exitTime = (document.getElementById("journalExitTime")?.value || "").trim();
       const pnl = Number(document.getElementById("journalPnl").value) || 0;
       const emotion = document.getElementById("journalEmotion").value;
       const mistake = document.getElementById("journalMistake").value;
       const notes = (document.getElementById("journalNotes")?.value || "").trim();
       const isDisciplined = mistake === "NONE" && emotion === "CALM";
       const tradeId = `trade_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      const todayDate = new Date().toISOString().slice(0, 10);
 
       const tradePayload = {
         id: tradeId,
         symbol,
         side,
         assetType: asset,
+        quantity: qty,
         entryPrice: entry,
         exitPrice: exit,
+        entryTime,
+        exitTime,
+        tradeDate: todayDate,
         pnl,
         emotionTag: emotion,
         mistakeTags: mistake !== "NONE" ? [mistake] : [],
@@ -9774,6 +10125,11 @@
 
       showToast(`✅ Logged ${symbol} (${pnl >= 0 ? "+" : ""}₹${pnl})!`);
       document.getElementById("journalSymbol").value = "";
+      if (document.getElementById("journalQty")) document.getElementById("journalQty").value = "";
+      document.getElementById("journalEntry").value = "";
+      document.getElementById("journalExit").value = "";
+      if (document.getElementById("journalEntryTime")) document.getElementById("journalEntryTime").value = "";
+      if (document.getElementById("journalExitTime")) document.getElementById("journalExitTime").value = "";
       document.getElementById("journalPnl").value = "";
       if (document.getElementById("journalNotes")) document.getElementById("journalNotes").value = "";
       state.pendingJournalScreenshots = [];
@@ -9800,11 +10156,180 @@
 
     function filterJournal(filterType) {
       state.journalFilter = filterType;
+      state.journalPage = 1;
       document.querySelectorAll("#journalFilterChips .risk-chip").forEach((chip) => {
         if (chip.getAttribute("data-filter") === filterType) chip.classList.add("active");
         else chip.classList.remove("active");
       });
       renderJournalTable();
+    }
+
+    function setJournalDatePreset(preset) {
+      state.journalDatePreset = preset;
+      state.journalPage = 1;
+
+      const now = new Date();
+      const todayStr = now.toISOString().slice(0, 10);
+
+      const fromInput = document.getElementById("journalFilterFrom");
+      const toInput = document.getElementById("journalFilterTo");
+      const topFromInput = document.getElementById("journalTopFilterFrom");
+      const topToInput = document.getElementById("journalTopFilterTo");
+
+      if (preset === "ALL") {
+        state.journalDateFrom = "";
+        state.journalDateTo = "";
+        if (fromInput) fromInput.value = "";
+        if (toInput) toInput.value = "";
+        if (topFromInput) topFromInput.value = "";
+        if (topToInput) topToInput.value = "";
+      } else if (preset === "TODAY") {
+        state.journalDateFrom = todayStr;
+        state.journalDateTo = todayStr;
+        if (fromInput) fromInput.value = todayStr;
+        if (toInput) toInput.value = todayStr;
+        if (topFromInput) topFromInput.value = todayStr;
+        if (topToInput) topToInput.value = todayStr;
+      } else if (preset === "YESTERDAY") {
+        const yest = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const yestStr = yest.toISOString().slice(0, 10);
+        state.journalDateFrom = yestStr;
+        state.journalDateTo = yestStr;
+        if (fromInput) fromInput.value = yestStr;
+        if (toInput) toInput.value = yestStr;
+        if (topFromInput) topFromInput.value = yestStr;
+        if (topToInput) topToInput.value = yestStr;
+      } else if (preset === "THIS_WEEK") {
+        const curr = new Date();
+        const day = curr.getDay(); // 0 is Sunday
+        const diff = curr.getDate() - day + (day === 0 ? -6 : 1); // Monday
+        const monday = new Date(curr.setDate(diff));
+        const mondayStr = monday.toISOString().slice(0, 10);
+        state.journalDateFrom = mondayStr;
+        state.journalDateTo = todayStr;
+        if (fromInput) fromInput.value = mondayStr;
+        if (toInput) toInput.value = todayStr;
+        if (topFromInput) topFromInput.value = mondayStr;
+        if (topToInput) topToInput.value = todayStr;
+      } else if (preset === "THIS_MONTH") {
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const firstDayStr = firstDay.toISOString().slice(0, 10);
+        state.journalDateFrom = firstDayStr;
+        state.journalDateTo = todayStr;
+        if (fromInput) fromInput.value = firstDayStr;
+        if (toInput) toInput.value = todayStr;
+        if (topFromInput) topFromInput.value = firstDayStr;
+        if (topToInput) topToInput.value = todayStr;
+      }
+
+      // Sync active classes on both chip groups
+      document.querySelectorAll("#journalDateChips .risk-chip, #journalTopDateChips .risk-chip").forEach((chip) => {
+        if (chip.getAttribute("data-date-filter") === preset) chip.classList.add("active");
+        else chip.classList.remove("active");
+      });
+
+      calculatePsychologyMetrics();
+      renderJournalTable();
+    }
+
+    function onJournalDateRangeChange() {
+      const fromVal = document.getElementById("journalFilterFrom")?.value || "";
+      const toVal = document.getElementById("journalFilterTo")?.value || "";
+
+      state.journalDateFrom = fromVal;
+      state.journalDateTo = toVal;
+      state.journalDatePreset = "CUSTOM";
+      state.journalPage = 1;
+
+      // Sync top inputs
+      const topFrom = document.getElementById("journalTopFilterFrom");
+      const topTo = document.getElementById("journalTopFilterTo");
+      if (topFrom) topFrom.value = fromVal;
+      if (topTo) topTo.value = toVal;
+
+      document.querySelectorAll("#journalDateChips .risk-chip, #journalTopDateChips .risk-chip").forEach((chip) => {
+        chip.classList.remove("active");
+      });
+
+      calculatePsychologyMetrics();
+      renderJournalTable();
+    }
+
+    function onJournalTopDateRangeChange() {
+      const fromVal = document.getElementById("journalTopFilterFrom")?.value || "";
+      const toVal = document.getElementById("journalTopFilterTo")?.value || "";
+
+      state.journalDateFrom = fromVal;
+      state.journalDateTo = toVal;
+      state.journalDatePreset = "CUSTOM";
+      state.journalPage = 1;
+
+      // Sync bottom table inputs
+      const fromInput = document.getElementById("journalFilterFrom");
+      const toInput = document.getElementById("journalFilterTo");
+      if (fromInput) fromInput.value = fromVal;
+      if (toInput) toInput.value = toVal;
+
+      document.querySelectorAll("#journalDateChips .risk-chip, #journalTopDateChips .risk-chip").forEach((chip) => {
+        chip.classList.remove("active");
+      });
+
+      calculatePsychologyMetrics();
+      renderJournalTable();
+    }
+
+    function onJournalSymbolSearch(query) {
+      state.journalSearchSymbol = (query || "").trim().toUpperCase();
+      state.journalPage = 1;
+      renderJournalTable();
+    }
+
+    function resetJournalFilters() {
+      state.journalFilter = "ALL";
+      state.journalDatePreset = "ALL";
+      state.journalDateFrom = "";
+      state.journalDateTo = "";
+      state.journalSearchSymbol = "";
+      state.journalPage = 1;
+
+      document.querySelectorAll("#journalFilterChips .risk-chip").forEach((chip) => {
+        if (chip.getAttribute("data-filter") === "ALL") chip.classList.add("active");
+        else chip.classList.remove("active");
+      });
+
+      document.querySelectorAll("#journalDateChips .risk-chip, #journalTopDateChips .risk-chip").forEach((chip) => {
+        if (chip.getAttribute("data-date-filter") === "ALL") chip.classList.add("active");
+        else chip.classList.remove("active");
+      });
+
+      const fromInput = document.getElementById("journalFilterFrom");
+      const toInput = document.getElementById("journalFilterTo");
+      const topFromInput = document.getElementById("journalTopFilterFrom");
+      const topToInput = document.getElementById("journalTopFilterTo");
+      const symInput = document.getElementById("journalFilterSymbol");
+
+      if (fromInput) fromInput.value = "";
+      if (toInput) toInput.value = "";
+      if (topFromInput) topFromInput.value = "";
+      if (topToInput) topToInput.value = "";
+      if (symInput) symInput.value = "";
+
+      calculatePsychologyMetrics();
+      renderJournalTable();
+      showToast("Reset all journal filters");
+    }
+
+    function changeJournalPageSize(size) {
+      state.journalPageSize = size === "ALL" ? "ALL" : Number(size);
+      state.journalPage = 1;
+      renderJournalTable();
+    }
+
+    function goToJournalPage(pageNum) {
+      state.journalPage = pageNum;
+      renderJournalTable();
+      const tableEl = document.getElementById("journalTableBody");
+      if (tableEl) tableEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
 
     // =========================================================
@@ -9830,8 +10355,17 @@
       document.getElementById("journalDetailTimestamp").textContent = `Logged on ${formatStamp(trade.createdAt)}`;
 
       // Key Metrics
+      const qtyEl = document.getElementById("journalDetailQty");
+      if (qtyEl) {
+        qtyEl.textContent = trade.quantity ? `${Number(trade.quantity).toLocaleString("en-IN")} Qty` : "--";
+      }
       document.getElementById("journalDetailEntry").textContent = `₹${Number(trade.entryPrice || 0).toFixed(2)}`;
       document.getElementById("journalDetailExit").textContent = `₹${Number(trade.exitPrice || 0).toFixed(2)}`;
+
+      const timingEl = document.getElementById("journalDetailTiming");
+      if (timingEl) {
+        timingEl.textContent = calculateTimingDuration(trade.entryTime, trade.exitTime);
+      }
 
       const isPos = (trade.pnl || 0) >= 0;
       const pnlEl = document.getElementById("journalDetailPnl");
@@ -9981,6 +10515,121 @@
       }
     }
 
+    // =========================================================
+    // JOURNAL FULL EDIT MODAL ENGINE
+    // =========================================================
+    function openJournalEditModal(tradeId) {
+      const journal = state.riskProfile?.journal || [];
+      const trade = journal.find((t) => t.id === tradeId);
+      if (!trade) return;
+
+      closeJournalDetailModal();
+
+      document.getElementById("editJournalId").value = trade.id;
+      document.getElementById("editJournalSymbol").value = trade.symbol || "";
+      document.getElementById("editJournalSide").value = trade.side || "BUY";
+      document.getElementById("editJournalAsset").value = trade.assetType || "EQUITY";
+      document.getElementById("editJournalQty").value = trade.quantity || "";
+      document.getElementById("editJournalDate").value = trade.tradeDate || (trade.createdAt ? trade.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10));
+      document.getElementById("editJournalEntryTime").value = trade.entryTime || "";
+      document.getElementById("editJournalExitTime").value = trade.exitTime || "";
+      document.getElementById("editJournalEntry").value = trade.entryPrice !== undefined ? trade.entryPrice : "";
+      document.getElementById("editJournalExit").value = trade.exitPrice !== undefined ? trade.exitPrice : "";
+      document.getElementById("editJournalPnl").value = trade.pnl !== undefined ? trade.pnl : "";
+      document.getElementById("editJournalEmotion").value = trade.emotionTag || "CALM";
+
+      const mistake = (Array.isArray(trade.mistakeTags) && trade.mistakeTags.length > 0) ? trade.mistakeTags[0] : "NONE";
+      document.getElementById("editJournalMistake").value = mistake;
+      document.getElementById("editJournalNotes").value = trade.notes || "";
+
+      const modal = document.getElementById("journalEditTradeModal");
+      if (modal) modal.style.display = "flex";
+    }
+
+    function closeJournalEditModal() {
+      const modal = document.getElementById("journalEditTradeModal");
+      if (modal) modal.style.display = "none";
+    }
+
+    function handleJournalEditOverlayClick(event) {
+      if (event.target.id === "journalEditTradeModal") {
+        closeJournalEditModal();
+      }
+    }
+
+    async function saveEditedJournalTrade() {
+      const tradeId = document.getElementById("editJournalId").value;
+      if (!tradeId) return;
+
+      const symbol = (document.getElementById("editJournalSymbol").value || "").toUpperCase().trim();
+      if (!symbol) {
+        showToast("Please enter a valid symbol", true);
+        return;
+      }
+
+      const side = document.getElementById("editJournalSide").value;
+      const asset = document.getElementById("editJournalAsset").value;
+      const qty = Number(document.getElementById("editJournalQty").value) || 0;
+      const tradeDate = document.getElementById("editJournalDate").value || "";
+      const entryTime = (document.getElementById("editJournalEntryTime").value || "").trim();
+      const exitTime = (document.getElementById("editJournalExitTime").value || "").trim();
+      const entry = Number(document.getElementById("editJournalEntry").value) || 0;
+      const exit = Number(document.getElementById("editJournalExit").value) || 0;
+      const pnl = Number(document.getElementById("editJournalPnl").value) || 0;
+      const emotion = document.getElementById("editJournalEmotion").value;
+      const mistake = document.getElementById("editJournalMistake").value;
+      const notes = (document.getElementById("editJournalNotes").value || "").trim();
+      const isDisciplined = mistake === "NONE" && emotion === "CALM";
+
+      if (!state.riskProfile) state.riskProfile = { journal: [] };
+      if (!Array.isArray(state.riskProfile.journal)) state.riskProfile.journal = [];
+
+      const existingTrade = state.riskProfile.journal.find((t) => t.id === tradeId) || {};
+      const updatedTrade = {
+        ...existingTrade,
+        id: tradeId,
+        symbol,
+        side,
+        assetType: asset,
+        quantity: qty,
+        tradeDate,
+        entryTime,
+        exitTime,
+        entryPrice: entry,
+        exitPrice: exit,
+        pnl,
+        emotionTag: emotion,
+        mistakeTags: mistake !== "NONE" ? [mistake] : [],
+        disciplineFollowed: isDisciplined,
+        notes,
+        screenshots: existingTrade.screenshots || [],
+        createdAt: existingTrade.createdAt || new Date().toISOString()
+      };
+
+      state.riskProfile.journal = state.riskProfile.journal.map((t) => (t.id === tradeId ? updatedTrade : t));
+      saveLocalRiskProfile(state.riskProfile);
+
+      renderJournalTable();
+      updateGlobalRiskBar();
+      renderRiskHub();
+
+      closeJournalEditModal();
+      showToast(`✅ Saved changes for ${symbol}!`);
+
+      try {
+        const res = await fetch("/api/risk/journal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatedTrade)
+        });
+        if (res.ok) {
+          await fetchRiskProfile();
+        }
+      } catch (err) {
+        console.warn("Server sync pending, trade updated in local browser storage");
+      }
+    }
+
     function renderJournalTable() {
       const tbody = document.getElementById("journalTableBody");
       if (!tbody) return;
@@ -9988,12 +10637,12 @@
       const journal = state.riskProfile?.journal || [];
       const filter = state.journalFilter || "ALL";
 
-      // Update Counts
+      // Update Counts on the main status chips
       const countAll = journal.length;
       const countDisc = journal.filter((t) => t.disciplineFollowed !== false).length;
       const countBreach = journal.filter((t) => t.disciplineFollowed === false).length;
-      const countWins = journal.filter((t) => t.pnl > 0).length;
-      const countLosses = journal.filter((t) => t.pnl < 0).length;
+      const countWins = journal.filter((t) => (t.pnl || 0) > 0).length;
+      const countLosses = journal.filter((t) => (t.pnl || 0) < 0).length;
 
       if (document.getElementById("journalCountAll")) document.getElementById("journalCountAll").textContent = countAll;
       if (document.getElementById("journalCountDisciplined")) document.getElementById("journalCountDisciplined").textContent = countDisc;
@@ -10001,24 +10650,94 @@
       if (document.getElementById("journalCountWins")) document.getElementById("journalCountWins").textContent = countWins;
       if (document.getElementById("journalCountLosses")) document.getElementById("journalCountLosses").textContent = countLosses;
 
-      const totalPnl = journal.reduce((acc, t) => acc + (t.pnl || 0), 0);
-      const summaryEl = document.getElementById("journalTotalPnlSummary");
-      if (summaryEl) {
-        summaryEl.innerHTML = `Total Logged P&L: <strong class="${totalPnl >= 0 ? 'pos-text' : 'neg-text'}">${totalPnl >= 0 ? '+₹' : '-₹'}${Math.abs(totalPnl).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>`;
-      }
-
+      // 1. Filter by Status
       let filtered = journal;
       if (filter === "DISCIPLINED") filtered = journal.filter((t) => t.disciplineFollowed !== false);
       if (filter === "BREACHED") filtered = journal.filter((t) => t.disciplineFollowed === false);
-      if (filter === "WINS") filtered = journal.filter((t) => t.pnl > 0);
-      if (filter === "LOSSES") filtered = journal.filter((t) => t.pnl < 0);
+      if (filter === "WINS") filtered = journal.filter((t) => (t.pnl || 0) > 0);
+      if (filter === "LOSSES") filtered = journal.filter((t) => (t.pnl || 0) < 0);
 
-      if (!filtered.length) {
-        tbody.innerHTML = `<tr><td colspan="10" class="empty-placeholder" style="padding: 30px;">No journal entries matching active filter.</td></tr>`;
+      // 2. Filter by Date / Date Range
+      if (state.journalDateFrom) {
+        filtered = filtered.filter((t) => {
+          const tDate = t.tradeDate || (t.createdAt ? t.createdAt.slice(0, 10) : "");
+          return tDate >= state.journalDateFrom;
+        });
+      }
+      if (state.journalDateTo) {
+        filtered = filtered.filter((t) => {
+          const tDate = t.tradeDate || (t.createdAt ? t.createdAt.slice(0, 10) : "");
+          return tDate <= state.journalDateTo;
+        });
+      }
+
+      // 3. Filter by Symbol Search
+      if (state.journalSearchSymbol) {
+        const q = state.journalSearchSymbol.toUpperCase();
+        filtered = filtered.filter((t) => (t.symbol || "").toUpperCase().includes(q));
+      }
+
+      // Live Total PnL for filtered trades
+      const totalPnl = filtered.reduce((acc, t) => acc + (t.pnl || 0), 0);
+      const summaryEl = document.getElementById("journalTotalPnlSummary");
+      if (summaryEl) {
+        const hasDateFilter = Boolean(state.journalDateFrom || state.journalDateTo || state.journalSearchSymbol || filter !== "ALL");
+        summaryEl.innerHTML = `${hasDateFilter ? 'Filtered' : 'Total'} (${filtered.length}) P&L: <strong class="${totalPnl >= 0 ? 'pos-text' : 'neg-text'}">${totalPnl >= 0 ? '+₹' : '-₹'}${Math.abs(totalPnl).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>`;
+      }
+
+      const totalFiltered = filtered.length;
+      const pageSize = state.journalPageSize === "ALL" ? totalFiltered || 1 : (Number(state.journalPageSize) || 10);
+      const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+
+      if (state.journalPage > totalPages) state.journalPage = totalPages;
+      if (state.journalPage < 1) state.journalPage = 1;
+
+      const startIndex = (state.journalPage - 1) * pageSize;
+      const pageTrades = filtered.slice(startIndex, startIndex + pageSize);
+
+      // Render Pagination Info & Buttons
+      const pageInfoEl = document.getElementById("journalPaginationInfo");
+      if (pageInfoEl) {
+        if (totalFiltered === 0) {
+          pageInfoEl.textContent = "Showing 0 of 0 trades";
+        } else {
+          const endDisplay = Math.min(startIndex + pageSize, totalFiltered);
+          pageInfoEl.innerHTML = `Showing <strong>${startIndex + 1}–${endDisplay}</strong> of <strong>${totalFiltered}</strong> trades (Page ${state.journalPage} of ${totalPages})`;
+        }
+      }
+
+      const pageButtonsEl = document.getElementById("journalPageButtons");
+      if (pageButtonsEl) {
+        if (totalPages <= 1) {
+          pageButtonsEl.innerHTML = ``;
+        } else {
+          let btns = ``;
+          // Prev
+          btns += `<button class="btn" style="font-size: 11px; padding: 3px 8px; ${state.journalPage === 1 ? 'opacity: 0.4; cursor: not-allowed;' : ''}" onclick="goToJournalPage(${state.journalPage - 1})" ${state.journalPage === 1 ? 'disabled' : ''}>◀ Prev</button>`;
+
+          // Page Numbers (Smart window)
+          for (let p = 1; p <= totalPages; p++) {
+            if (p === 1 || p === totalPages || (p >= state.journalPage - 2 && p <= state.journalPage + 2)) {
+              const isActive = p === state.journalPage;
+              btns += `<button class="btn ${isActive ? 'btn-primary' : ''}" style="font-size: 11px; padding: 3px 8px; min-width: 28px; font-weight: ${isActive ? '800' : 'normal'};" onclick="goToJournalPage(${p})">${p}</button>`;
+            } else if (p === state.journalPage - 3 || p === state.journalPage + 3) {
+              btns += `<span style="color: var(--muted); font-size: 11px; padding: 0 3px;">...</span>`;
+            }
+          }
+
+          // Next
+          btns += `<button class="btn" style="font-size: 11px; padding: 3px 8px; ${state.journalPage === totalPages ? 'opacity: 0.4; cursor: not-allowed;' : ''}" onclick="goToJournalPage(${state.journalPage + 1})" ${state.journalPage === totalPages ? 'disabled' : ''}>Next ▶</button>`;
+
+          pageButtonsEl.innerHTML = btns;
+        }
+      }
+
+      if (!pageTrades.length) {
+        tbody.innerHTML = `<tr><td colspan="10" class="empty-placeholder" style="padding: 30px;">No journal entries matching active filters. Try changing date or search.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = filtered.map((t) => {
+      tbody.innerHTML = pageTrades.map((t) => {
         const isPos = (t.pnl || 0) >= 0;
         const pnlFormatted = `${isPos ? '+₹' : '-₹'}${Math.abs(t.pnl || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
         const emotionClass = String(t.emotionTag || "CALM").toLowerCase();
@@ -10047,7 +10766,14 @@
 
         return `
           <tr>
-            <td style="font-size: 11.5px; color: var(--muted);">${formatStamp(t.createdAt)}</td>
+            <td style="font-size: 11.5px; color: var(--muted); line-height: 1.4;">
+              <div>${t.tradeDate || formatStamp(t.createdAt).split(' ')[0]}</div>
+              ${(t.entryTime || t.exitTime) ? `
+                <div style="font-size: 10.5px; color: #38bdf8; font-weight: 600; margin-top: 2px;">
+                  ⏰ ${t.entryTime || '--'} → ${t.exitTime || '--'}
+                </div>
+              ` : `<div style="font-size: 10px; color: var(--muted); margin-top: 2px;">${formatStamp(t.createdAt).split(' ').slice(1).join(' ')}</div>`}
+            </td>
             <td>
               <div style="display: flex; align-items: center; gap: 6px; cursor: pointer;" onclick="openJournalTradeModal('${t.id}')" title="Click to view full trade review">
                 <strong style="color: #fff; text-decoration: underline; text-decoration-color: rgba(56,189,248,0.4); text-underline-offset: 2px;">${t.symbol}</strong>
@@ -10056,7 +10782,8 @@
             </td>
             <td style="font-size: 11.5px; color: var(--muted);">${t.assetType || 'EQUITY'}</td>
             <td style="font-size: 12px; font-feature-settings: 'tnum';">
-              ₹${Number(t.entryPrice || 0).toFixed(2)} → ₹${Number(t.exitPrice || 0).toFixed(2)}
+              <div>₹${Number(t.entryPrice || 0).toFixed(2)} → ₹${Number(t.exitPrice || 0).toFixed(2)}</div>
+              ${t.quantity ? `<div style="font-size: 10.5px; color: #38bdf8; margin-top: 2px; font-weight: 600;">⚡ ${Number(t.quantity).toLocaleString('en-IN')} Qty</div>` : ''}
             </td>
             <td>
               <strong class="${isPos ? 'pos-text' : 'neg-text'}" style="font-size: 13px; font-feature-settings: 'tnum';">
@@ -10086,6 +10813,9 @@
             <td style="text-align: center; white-space: nowrap;">
               <button class="btn" onclick="openJournalTradeModal('${t.id}')" title="View Full Trade Details & Notes" style="padding: 2px 7px; font-size: 11px; margin-right: 4px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); background: rgba(56, 189, 248, 0.1);">
                 👁️
+              </button>
+              <button class="btn" onclick="openJournalEditModal('${t.id}')" title="Edit Full Trade Details" style="padding: 2px 7px; font-size: 11px; margin-right: 4px; color: #fbbf24; border-color: rgba(251, 191, 36, 0.3); background: rgba(251, 191, 36, 0.1);">
+                ✏️
               </button>
               <button class="btn" onclick="deleteJournalTrade('${t.id}')" title="Delete Trade" style="padding: 2px 6px; font-size: 10px; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">
                 ✕

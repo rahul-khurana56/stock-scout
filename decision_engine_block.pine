@@ -1,0 +1,483 @@
+// =====================================================================================
+// ============ TRADE DECISION ENGINE  -  PASTE AT THE VERY END OF THE SCRIPT ==========
+// Reads what your script already computes (signals, ADX/DI, VWAP, HTF, key levels,
+// delta-zone exhaustion) and answers: GO / WAIT / SKIP / NO TRADE.
+// It does NOT change your original signals. It filters and grades them.
+// =====================================================================================
+deGroup = "Decision Engine"
+
+dePanelMode    = input.string("Main dashboard rows", "Where to show decision", options=["Main dashboard rows", "Separate panel", "Both", "Off"], group=deGroup, tooltip="'Main dashboard rows' adds DECISION and Veto rows at the bottom of your existing dashboard (needs table.new rows changed to 17). 'Separate panel' shows the full checklist in its own table.")
+showMainRows   = dePanelMode == "Main dashboard rows" or dePanelMode == "Both"
+showSepPanel   = dePanelMode == "Separate panel" or dePanelMode == "Both"
+dePanelPos     = input.string("bottom_right", "Separate Panel Position", options=["top_left","top_center","top_right","bottom_left","bottom_center","bottom_right","center_left"], group=deGroup)
+showGoMarkers  = input.bool(true, "Show GO / BLOCKED markers on chart", group=deGroup)
+deMinScorePct  = input.float(60, "Min score % for GO", minval=30, maxval=100, step=5, group=deGroup, tooltip="Share of ENABLED score conditions that must pass.")
+deAGradePct    = input.float(80, "A-grade score %", minval=50, maxval=100, step=5, group=deGroup)
+deTriggerBars  = input.int(2, "Signal stays valid for N bars", minval=0, maxval=10, group=deGroup, tooltip="Signal stays eligible for GO for N bars. 2 allows the candle close confirmation.")
+
+// --- Score conditions (each can be switched off) ---
+useCTrend = input.bool(true,  "Score: Trend context (EMA9/21 + DI)", group=deGroup)
+useCAdx   = input.bool(true,  "Score: ADX strong and rising",        group=deGroup)
+useCVwap  = input.bool(true,  "Score: Price on correct side of VWAP", group=deGroup)
+useCRsi   = input.bool(true,  "Score: RSI in healthy zone (not chasing)", group=deGroup)
+useCVol   = input.bool(true,  "Score: Recent volume spike",          group=deGroup)
+useCHtf   = input.bool(true,  "Score: 15m HTF alignment",            group=deGroup)
+useCExh   = input.bool(true,  "Bonus point: supportive exhaustion zone holding (SE for long / BE for short)", group=deGroup)
+
+deMinAdx      = input.float(18, "Min ADX", minval=10, step=1, group=deGroup)
+deRsiMax      = input.float(75, "RSI ceiling for longs (shorts use 100 - this)", minval=60, maxval=90, step=1, group=deGroup, tooltip="Blocks chasing. With 75, longs need RSI 50-75 and shorts need RSI 25-50.")
+deVolBars     = input.int(4, "Volume spike counts if within N bars", minval=1, maxval=10, group=deGroup)
+deExhLookback = input.int(20, "Supportive exhaustion lookback (bars)", minval=3, maxval=60, group=deGroup)
+
+// --- Hard vetoes: any failed veto = SKIP, whatever the score ---
+useVetoRoom = input.bool(true,  "Veto: Not enough room to next Daily/Hourly level", group=deGroup)
+useVetoExh  = input.bool(true,  "Veto: Opposing exhaustion (BE for long / SE for short)", group=deGroup)
+useVetoExt  = input.bool(false, "Veto: Price extended from EMA21 (chasing)", group=deGroup)
+
+deMinRoomATR    = input.float(0.8, "Min room to next level (x ATR)", minval=0.2, step=0.1, group=deGroup, tooltip="Room required before hitting a Daily/Hourly level (0.8 ATR is balanced).")
+deVetoBars      = input.int(3, "Opposing exhaustion veto window (bars)", minval=1, maxval=30, group=deGroup)
+deMaxExtendATR  = input.float(2.5, "Max distance from EMA21 (x ATR)", minval=0.5, step=0.1, group=deGroup)
+deBreakoutExempt = input.bool(true, "Extension veto: allow fresh volume breakouts", group=deGroup, tooltip="If price just broke an N-bar extreme or a Daily/Hourly level (last 3 bars) on recent volume, the distance limit becomes the hard cap below.")
+deExtHardCap    = input.float(3.5, "Extension hard cap for breakouts (x ATR)", minval=1.0, step=0.1, group=deGroup)
+deExtTrendExempt = input.bool(true, "Extension veto: also allow TREND (🔥T) signals up to the hard cap", group=deGroup, tooltip="A 🔥T signal has already passed your script's own volume, 15m, ADX-slope, DI-expansion, VWAP and key-level checks, so re-checking distance from the EMA21 mostly blocks trend-day continuation.")
+
+// --- Extra strength filters (added) ---
+deRequireTrend = input.bool(false, "GO only for TREND (🔥T) signals - scalps can't be GO", group=deGroup)
+useCIndex      = input.bool(false, "Score: Index aligned with the trade (not used on MCX)", group=deGroup, tooltip="Turn ON if you specifically want to require Nifty 50 to also be in an EMA uptrend.")
+deIdxSym       = input.symbol("NSE:NIFTY", "Index symbol for alignment", group=deGroup, tooltip="Use NSE:BANKNIFTY for Bank Nifty stocks.")
+useCClose      = input.bool(true,  "Score: Signal candle closes strong (near its high/low)", group=deGroup)
+deCloseStrong  = input.float(0.55, "Strong close = close in the top (long) / bottom (short) share of the range", minval=0.5, maxval=0.95, step=0.05, group=deGroup)
+useVetoCost    = input.bool(false, "Veto: TP1 too close to cover costs", group=deGroup)
+deMinTP1Pct    = input.float(0.15, "Min TP1 distance (% of price)", minval=0.02, step=0.01, group=deGroup)
+useDayLimits   = input.bool(false, "Daily limits: stop new GO after max losses / max trades", group=deGroup)
+deMaxLossesDay = input.int(2, "Max losing GO trades per day", minval=1, maxval=10, group=deGroup)
+deMaxGoPerDay  = input.int(3, "Max GO trades per day", minval=1, maxval=10, group=deGroup)
+useSessionGate = input.bool(false, "Only allow GO inside a time window (IST)", group=deGroup)
+deSession      = input.session("0930-1500", "GO time window (IST)", group=deGroup)
+useVetoZone    = input.bool(true,  "Veto: Delta zone in the way (BE zone above a long / SE zone below a short)", group=deGroup)
+deVwapMust     = input.bool(true,  "Veto: Price on the wrong side of daily VWAP (hard rule)", group=deGroup)
+
+// --- Delta Zone HTF & Source Settings ---
+deDeltaTf     = input.timeframe("15", "Delta Zone HTF Timeframe", group=deGroup, tooltip="Timeframe used to detect SE/BE Delta Zones for the Decision Engine.")
+deDeltaSource = input.string("Both (15m + Chart)", "Delta Zone Source for DE", options=["15m HTF", "Chart Timeframe", "Both (15m + Chart)"], group=deGroup, tooltip="'15m HTF' evaluates Delta Zones on 15m. 'Chart Timeframe' uses chart TF. 'Both' checks both.")
+
+// ---------- Delta Zones Function (runs on HTF via request.security or Chart) ----------
+f_calcDeltaZones(lookback, devLevel) =>
+    _uptop = high - close
+    _upbot = open - low
+    _dntop = high - open
+    _dnbot = close - low
+    _up_delta   = _upbot - _uptop
+    _down_delta = _dntop - _dnbot
+    _delta      = _up_delta != 0 ? _up_delta : _down_delta != 0 ? _down_delta : na
+    _pos_delta  = _delta > 0 ? _delta : na
+    _neg_delta  = _delta < 0 ? _delta : na
+    _wickdevup  = ta.stdev(_pos_delta, lookback) * devLevel
+    _wickdevdn  = ta.stdev(_neg_delta, lookback) * -devLevel
+    _hUp        = _pos_delta >= _wickdevup
+    _hDn        = _neg_delta <= _wickdevdn
+    _seLow      = low
+    _seHigh     = (open <= close ? (open + low) / 2.0 : (close + low) / 2.0)
+    _beHigh     = high
+    _beLow      = (open < close ? (close + high) / 2.0 : (open + high) / 2.0)
+    [_hUp, _hDn, _seLow, _seHigh, _beHigh, _beLow]
+
+// Fallbacks for stddev params if block is compiled standalone
+int   _dzLookback = 20
+float _dzDevLevel = 3.5
+
+[htfSE_raw, htfBE_raw, htfSELow_raw, htfSEHigh_raw, htfBEHigh_raw, htfBELow_raw] = request.security(
+     syminfo.tickerid,
+     deDeltaTf,
+     f_calcDeltaZones(_dzLookback, _dzDevLevel),
+     lookahead=barmerge.lookahead_off
+)
+
+// ---------- Chart Delta Zones Memory ----------
+seNowChart = showDeltaZones and nz(huntingup, false)
+beNowChart = showDeltaZones and nz(huntingdn, false)
+
+var int   lastSEBarChart      = na
+var float lastSEZoneLowChart  = na
+var float lastSEZoneHighChart = na
+var int   lastBEBarChart      = na
+var float lastBEZoneHighChart = na
+var float lastBEZoneLowChart  = na
+
+if newSessionD != 0
+    lastSEBarChart      := na
+    lastSEZoneLowChart  := na
+    lastSEZoneHighChart := na
+    lastBEBarChart      := na
+    lastBEZoneHighChart := na
+    lastBEZoneLowChart  := na
+
+if seNowChart
+    lastSEBarChart      := bar_index
+    lastSEZoneLowChart  := low
+    lastSEZoneHighChart := (open <= close ? (open + low) / 2.0 : (close + low) / 2.0)
+if beNowChart
+    lastBEBarChart      := bar_index
+    lastBEZoneHighChart := high
+    lastBEZoneLowChart  := (open < close ? (close + high) / 2.0 : (open + high) / 2.0)
+
+// ---------- 15m HTF Delta Zones Memory ----------
+htfSENow = showDeltaZones and nz(htfSE_raw, false)
+htfBENow = showDeltaZones and nz(htfBE_raw, false)
+
+var int   lastSEBarHtf      = na
+var float lastSEZoneLowHtf  = na
+var float lastSEZoneHighHtf = na
+var int   lastBEBarHtf      = na
+var float lastBEZoneHighHtf = na
+var float lastBEZoneLowHtf  = na
+
+if newSessionD != 0
+    lastSEBarHtf      := na
+    lastSEZoneLowHtf  := na
+    lastSEZoneHighHtf := na
+    lastBEBarHtf      := na
+    lastBEZoneHighHtf := na
+    lastBEZoneLowHtf  := na
+
+bool isNewHtfSE = htfSENow and (na(lastSEZoneLowHtf) or htfSELow_raw != lastSEZoneLowHtf or htfSEHigh_raw != lastSEZoneHighHtf)
+bool isNewHtfBE = htfBENow and (na(lastBEZoneHighHtf) or htfBEHigh_raw != lastBEZoneHighHtf or htfBELow_raw != lastBEZoneLowHtf)
+
+if isNewHtfSE
+    lastSEBarHtf      := bar_index
+    lastSEZoneLowHtf  := htfSELow_raw
+    lastSEZoneHighHtf := htfSEHigh_raw
+
+if isNewHtfBE
+    lastBEBarHtf      := bar_index
+    lastBEZoneHighHtf := htfBEHigh_raw
+    lastBEZoneLowHtf  := htfBELow_raw
+
+barsSinceSE_Chart = na(lastSEBarChart) ? 999 : bar_index - lastSEBarChart
+barsSinceBE_Chart = na(lastBEBarChart) ? 999 : bar_index - lastBEBarChart
+
+barsSinceSE_Htf   = na(lastSEBarHtf) ? 999 : bar_index - lastSEBarHtf
+barsSinceBE_Htf   = na(lastBEBarHtf) ? 999 : bar_index - lastBEBarHtf
+
+bool use15mOnly   = deDeltaSource == "15m HTF"
+bool useChartOnly = deDeltaSource == "Chart Timeframe"
+
+int barsSinceSE = use15mOnly ? barsSinceSE_Htf : useChartOnly ? barsSinceSE_Chart : math.min(barsSinceSE_Chart, barsSinceSE_Htf)
+int barsSinceBE = use15mOnly ? barsSinceBE_Htf : useChartOnly ? barsSinceBE_Chart : math.min(barsSinceBE_Chart, barsSinceBE_Htf)
+
+float lastSEZoneLow  = use15mOnly ? lastSEZoneLowHtf  : useChartOnly ? lastSEZoneLowChart  : (barsSinceSE_Htf <= barsSinceSE_Chart ? lastSEZoneLowHtf : lastSEZoneLowChart)
+float lastSEZoneHigh = use15mOnly ? lastSEZoneHighHtf : useChartOnly ? lastSEZoneHighChart : (barsSinceSE_Htf <= barsSinceSE_Chart ? lastSEZoneHighHtf : lastSEZoneHighChart)
+float lastBEZoneHigh = use15mOnly ? lastBEZoneHighHtf : useChartOnly ? lastBEZoneHighChart : (barsSinceBE_Htf <= barsSinceBE_Chart ? lastBEZoneHighHtf : lastBEZoneHighChart)
+float lastBEZoneLow  = use15mOnly ? lastBEZoneLowHtf  : useChartOnly ? lastBEZoneLowChart  : (barsSinceBE_Htf <= barsSinceBE_Chart ? lastBEZoneHighHtf : lastBEZoneHighChart)
+
+seRecent = barsSinceSE <= deExhLookback
+beRecent = barsSinceBE <= deExhLookback
+
+// ---------- Nearest Daily/Hourly levels and room ----------
+// All four levels count from either side: a broken support above price is now resistance,
+// and a broken resistance below price is now support.
+float lvlA1 = (not na(prevDayHigh)  and prevDayHigh  > close) ? prevDayHigh  : na
+float lvlA2 = (not na(prevDayLow)   and prevDayLow   > close) ? prevDayLow   : na
+float lvlA3 = (not na(prevHourHigh) and prevHourHigh > close) ? prevHourHigh : na
+float lvlA4 = (not na(prevHourLow)  and prevHourLow  > close) ? prevHourLow  : na
+float lvlB1 = (not na(prevDayHigh)  and prevDayHigh  < close) ? prevDayHigh  : na
+float lvlB2 = (not na(prevDayLow)   and prevDayLow   < close) ? prevDayLow   : na
+float lvlB3 = (not na(prevHourHigh) and prevHourHigh < close) ? prevHourHigh : na
+float lvlB4 = (not na(prevHourLow)  and prevHourLow  < close) ? prevHourLow  : na
+
+float resAbove = (na(lvlA1) and na(lvlA2) and na(lvlA3) and na(lvlA4)) ? na : math.min(math.min(nz(lvlA1, 1e10), nz(lvlA2, 1e10)), math.min(nz(lvlA3, 1e10), nz(lvlA4, 1e10)))
+float supBelow = (na(lvlB1) and na(lvlB2) and na(lvlB3) and na(lvlB4)) ? na : math.max(math.max(nz(lvlB1, -1e10), nz(lvlB2, -1e10)), math.max(nz(lvlB3, -1e10), nz(lvlB4, -1e10)))
+
+float roomUpATR = (na(resAbove) or atrValue <= 0) ? na : (resAbove - close) / atrValue
+float roomDnATR = (na(supBelow) or atrValue <= 0) ? na : (close - supBelow) / atrValue
+
+// Delta zones as barriers: a BE zone (sell box) above/around a long, an SE zone (buy box) below/around a short.
+float beGapChartATR = (na(lastBEZoneLowChart) or na(lastBEZoneHighChart) or atrValue <= 0 or close > lastBEZoneHighChart) ? na : (lastBEZoneLowChart - close) / atrValue
+float seGapChartATR = (na(lastSEZoneLowChart) or na(lastSEZoneHighChart) or atrValue <= 0 or close < lastSEZoneLowChart)  ? na : (close - lastSEZoneHighChart) / atrValue
+
+float beGapHtfATR   = (na(lastBEZoneLowHtf) or na(lastBEZoneHighHtf) or atrValue <= 0 or close > lastBEZoneHighHtf) ? na : (lastBEZoneLowHtf - close) / atrValue
+float seGapHtfATR   = (na(lastSEZoneLowHtf) or na(lastSEZoneHighHtf) or atrValue <= 0 or close < lastSEZoneLowHtf)  ? na : (close - lastSEZoneHighHtf) / atrValue
+
+float beZoneGapATR  = use15mOnly ? beGapHtfATR : useChartOnly ? beGapChartATR : (na(beGapChartATR) ? beGapHtfATR : na(beGapHtfATR) ? beGapChartATR : math.min(beGapChartATR, beGapHtfATR))
+float seZoneGapATR  = use15mOnly ? seGapHtfATR : useChartOnly ? seGapChartATR : (na(seGapChartATR) ? seGapHtfATR : na(seGapHtfATR) ? seGapChartATR : math.min(seGapChartATR, seGapHtfATR))
+
+// ---------- Shared conditions ----------
+volRecent = nz(ta.barssince(volumeSpike), 999) <= deVolBars
+adxOK     = adxVal >= deMinAdx and adxRising
+
+// ---------- LONG conditions ----------
+L_trend = bullContext
+L_adx   = adxOK
+L_vwap  = close > dailyVWAP
+L_rsi   = rsiValue > 50 and rsiValue <= deRsiMax
+L_vol   = volRecent
+L_htf   = htfBullish
+L_exh   = seRecent and not na(lastSEZoneLow) and close > lastSEZoneLow
+
+// Fresh breakout = broke the N-bar extreme, or crossed a Daily/Hourly level, within the last 3 bars
+brokeUpRecent   = close > nBarHigh or nz(ta.barssince(ta.crossover(close,  prevDayHigh) or ta.crossover(close,  prevHourHigh)), 999) <= 2
+brokeDownRecent = close < nBarLow  or nz(ta.barssince(ta.crossunder(close, prevDayLow)  or ta.crossunder(close, prevHourLow)),  999) <= 2
+
+extLongATR  = atrValue > 0 ? (close - ema21) / atrValue : 0.0
+extShortATR = atrValue > 0 ? (ema21 - close) / atrValue : 0.0
+
+longExtLimit  = ((deBreakoutExempt and brokeUpRecent   and volRecent) or (deExtTrendExempt and tradeDirection ==  1 and tradeQuality == "TREND")) ? deExtHardCap : deMaxExtendATR
+shortExtLimit = ((deBreakoutExempt and brokeDownRecent and volRecent) or (deExtTrendExempt and tradeDirection == -1 and tradeQuality == "TREND")) ? deExtHardCap : deMaxExtendATR
+
+L_room  = na(roomUpATR) or roomUpATR >= deMinRoomATR     // open air above counts as room
+L_noOpp = barsSinceBE > deVetoBars
+L_noExt = extLongATR <= longExtLimit
+L_zone  = na(beZoneGapATR) or beZoneGapATR >= deMinRoomATR
+
+// ---------- SHORT conditions ----------
+S_trend = bearContext
+S_adx   = adxOK
+S_vwap  = close < dailyVWAP
+S_rsi   = rsiValue < 50 and rsiValue >= (100 - deRsiMax)
+S_vol   = volRecent
+S_htf   = htfBearish
+S_exh   = beRecent and not na(lastBEZoneHigh) and close < lastBEZoneHigh
+
+S_room  = na(roomDnATR) or roomDnATR >= deMinRoomATR
+S_noOpp = barsSinceSE > deVetoBars
+S_noExt = extShortATR <= shortExtLimit
+S_zone  = na(seZoneGapATR) or seZoneGapATR >= deMinRoomATR
+
+// ---------- Extra strength checks (added) ----------
+// Index alignment: what is Nifty doing on the same timeframe right now?
+// (EMA-based on purpose: index charts often have no volume, which would break a VWAP comparison.)
+idxApplies = not str.contains(syminfo.prefix, "MCX")
+[idxClose, idxEma9, idxEma21] = request.security(deIdxSym, timeframe.period, [close, ta.ema(close, 9), ta.ema(close, 21)], lookahead=barmerge.lookahead_off)
+L_index   = idxClose > idxEma21 and idxEma9 > idxEma21
+S_index   = idxClose < idxEma21 and idxEma9 < idxEma21
+useIdxEff = useCIndex and idxApplies
+
+// Strong close: the signal candle closes near its high (long) / low (short)
+L_close = longWick  >= deCloseStrong
+S_close = shortWick >= deCloseStrong
+
+// Cost filter: TP1 must be far enough away to be worth the brokerage, STT and slippage
+float tp1DistPct = (not na(tp1) and not na(tradeEntry) and tradeEntry > 0) ? math.abs(tp1 - tradeEntry) / tradeEntry * 100.0 : na
+bool  costOK     = na(tp1DistPct) or tp1DistPct >= deMinTP1Pct
+
+// Signal type and time window
+bool typeOK   = not deRequireTrend or tradeQuality == "TREND"
+bool inWindow = not useSessionGate or not na(time(timeframe.period, deSession, "Asia/Kolkata"))
+
+// Daily limits (counted on the indicator's own trades)
+var int   dayGoCount = 0
+var int   dayLosses  = 0
+var float goEntrySL  = na
+if newSessionD != 0
+    dayGoCount := 0
+    dayLosses  := 0
+bool dayLocked  = useDayLimits and (dayLosses >= deMaxLossesDay or dayGoCount >= deMaxGoPerDay)
+bool gateBlock  = (deRequireTrend and not typeOK) or not inWindow or dayLocked
+
+// ---------- Score ----------
+f_pt(cond, en) => (en and cond) ? 1 : 0
+
+maxPts = (useCTrend ? 1 : 0) + (useCAdx ? 1 : 0) + (useCVwap ? 1 : 0) + (useCRsi ? 1 : 0) + (useCVol ? 1 : 0) + (useCHtf ? 1 : 0) + (useIdxEff ? 1 : 0) + (useCClose ? 1 : 0)
+
+longBase  = f_pt(L_trend, useCTrend) + f_pt(L_adx, useCAdx) + f_pt(L_vwap, useCVwap) + f_pt(L_rsi, useCRsi) + f_pt(L_vol, useCVol) + f_pt(L_htf, useCHtf) + f_pt(L_index, useIdxEff) + f_pt(L_close, useCClose)
+shortBase = f_pt(S_trend, useCTrend) + f_pt(S_adx, useCAdx) + f_pt(S_vwap, useCVwap) + f_pt(S_rsi, useCRsi) + f_pt(S_vol, useCVol) + f_pt(S_htf, useCHtf) + f_pt(S_index, useIdxEff) + f_pt(S_close, useCClose)
+
+// Supportive exhaustion is a BONUS point: it is rare, so its absence should not cap the score
+longPts   = math.min(maxPts, longBase  + f_pt(L_exh, useCExh))
+shortPts  = math.min(maxPts, shortBase + f_pt(S_exh, useCExh))
+
+longPct  = maxPts > 0 ? longPts  / maxPts * 100.0 : 0.0
+shortPct = maxPts > 0 ? shortPts / maxPts * 100.0 : 0.0
+
+// ---------- Vetoes ----------
+longVeto  = (useVetoRoom and not L_room) or (useVetoExh and not L_noOpp) or (useVetoExt and not L_noExt) or (useVetoZone and not L_zone) or (deVwapMust and not L_vwap) or (useVetoCost and not costOK) or gateBlock
+shortVeto = (useVetoRoom and not S_room) or (useVetoExh and not S_noOpp) or (useVetoExt and not S_noExt) or (useVetoZone and not S_zone) or (deVwapMust and not S_vwap) or (useVetoCost and not costOK) or gateBlock
+
+// ---------- Trigger (your original signals) ----------
+longSignalNow  = confirmedLong  or confirmedPullbackLong
+shortSignalNow = confirmedShort or confirmedPullbackShort
+longTrigger    = nz(ta.barssince(longSignalNow),  999) <= deTriggerBars
+shortTrigger   = nz(ta.barssince(shortSignalNow), 999) <= deTriggerBars
+
+longGo  = longTrigger  and not longVeto  and longPct  >= deMinScorePct
+shortGo = shortTrigger and not shortVeto and shortPct >= deMinScorePct
+
+// ---------- Final decision ----------
+bool   domLong   = (longGo and not shortGo) ? true : (shortGo and not longGo) ? false : longPct >= shortPct
+float  domPct    = domLong ? longPct : shortPct
+bool   domGo     = domLong ? longGo : shortGo
+bool   domVeto   = domLong ? longVeto : shortVeto
+string sideTxt   = domLong ? "BUY" : "SELL"
+
+string decision  = "NO TRADE"
+color  decColor  = dashGray
+
+if domGo
+    decision := sideTxt + ((domPct >= deAGradePct and tradeQuality == "TREND") ? "  GO (A)" : "  GO (B)")
+    decColor := domLong ? dashGreenStrong : dashRedStrong
+else if domVeto and domPct >= deMinScorePct
+    decision := "SKIP (" + sideTxt + " vetoed)"
+    decColor := color.orange
+else if domPct >= deMinScorePct
+    decision := "WAIT (" + sideTxt + " forming)"
+    decColor := dashYellow
+
+// ---------- Trade latch ----------
+// Vetoes are ENTRY filters. Once GO fires, price moving in your favour makes it MORE extended,
+// which would flip the panel to SKIP on the next candle even though you are already in.
+// So after GO the panel shows IN TRADE until the stop is hit, all targets are done,
+// the opposite signal fires, or a new day starts.
+var int   goSide = 0
+var int   goBar  = na
+var float goPct  = na
+var bool  goA    = false
+
+entryLongNow  = longGo  and not nz(longGo[1],  false)
+entryShortNow = shortGo and not nz(shortGo[1], false)
+
+bool slHit   = goSide != 0 and bar_index > nz(goBar, bar_index) and not na(activeSL) and ((goSide == 1 and low <= activeSL) or (goSide == -1 and high >= activeSL))
+bool tgtDone = goSide != 0 and nextTargetText == "TARGETS COMPLETE"
+bool flipped = (goSide == 1 and shortSignalNow) or (goSide == -1 and longSignalNow)
+
+if slHit and activeSL == goEntrySL
+    dayLosses += 1
+
+if newSessionD != 0 or slHit or tgtDone or flipped
+    goSide := 0
+
+if entryLongNow
+    goSide := 1
+    goBar  := bar_index
+    goPct  := longPct
+    goA    := longPct >= deAGradePct and tradeQuality == "TREND"
+    goEntrySL := activeSL
+    dayGoCount += 1
+if entryShortNow
+    goSide := -1
+    goBar  := bar_index
+    goPct  := shortPct
+    goA    := shortPct >= deAGradePct and tradeQuality == "TREND"
+    goEntrySL := activeSL
+    dayGoCount += 1
+
+if goSide != 0
+    decision := (goSide == 1 ? "BUY" : "SELL") + " IN TRADE (" + (goA ? "A" : "B") + ")"
+    decColor := goSide == 1 ? dashGreenStrong : dashRedStrong
+
+// ---------- Two extra rows on your MAIN dashboard ----------
+// Lists every veto that is currently blocking the side being evaluated
+string vetoTxt = ""
+float extATR = domLong ? extLongATR : extShortATR
+float extLim = domLong ? longExtLimit : shortExtLimit
+if useVetoRoom and not (domLong ? L_room : S_room)
+    vetoTxt += (domLong ? "Res " + str.tostring(roomUpATR, "#.#") : "Sup " + str.tostring(roomDnATR, "#.#")) + "/" + str.tostring(deMinRoomATR, "#.#") + " ATR  "
+if useVetoExh and not (domLong ? L_noOpp : S_noOpp)
+    vetoTxt += (domLong ? "BE " + str.tostring(barsSinceBE) : "SE " + str.tostring(barsSinceSE)) + " bars ago  "
+if useVetoExt and not (domLong ? L_noExt : S_noExt)
+    vetoTxt += "Ext " + str.tostring(extATR, "#.#") + "/" + str.tostring(extLim, "#.#") + " ATR  "
+if useVetoZone and not (domLong ? L_zone : S_zone)
+    vetoTxt += (domLong ? "BE zone " + str.tostring(beZoneGapATR, "#.#") : "SE zone " + str.tostring(seZoneGapATR, "#.#")) + "/" + str.tostring(deMinRoomATR, "#.#") + " ATR  "
+if deVwapMust and not (domLong ? L_vwap : S_vwap)
+    vetoTxt += (domLong ? "Below VWAP  " : "Above VWAP  ")
+if useVetoCost and not costOK
+    vetoTxt += "TP1 " + str.tostring(tp1DistPct, "#.##") + "%<" + str.tostring(deMinTP1Pct, "#.##") + "%  "
+if deRequireTrend and not typeOK
+    vetoTxt += "Scalp signal  "
+if not inWindow
+    vetoTxt += "Outside window  "
+if dayLocked
+    vetoTxt += "Day limit (" + str.tostring(dayLosses) + "L/" + str.tostring(dayGoCount) + "GO)  "
+bool vetoClear = vetoTxt == ""
+if vetoClear
+    vetoTxt := "Clear"
+
+if goSide != 0
+    vetoTxt := "Cleared at entry (" + str.tostring(goPct, "#") + "%)"
+    vetoClear := true
+
+if showMainRows and barstate.islast
+    table.cell(tableInfo, 0, 15, "DECISION", bgcolor=decColor, text_color=color.black, text_size=dashboardSize)
+    table.cell(tableInfo, 1, 15, decision,   bgcolor=decColor, text_color=color.black, text_size=dashboardSize)
+    table.cell(tableInfo, 0, 16, "Veto (" + sideTxt + " " + str.tostring(domPct, "#") + "%)", bgcolor=dashYellow, text_color=color.black, text_size=dashboardSize)
+    table.cell(tableInfo, 1, 16, vetoTxt, bgcolor=vetoClear ? dashGreenStrong : dashRedStrong, text_color=color.black, text_size=dashboardSize)
+
+// ---------- Separate full checklist panel (optional) ----------
+var table dePanel = na
+
+f_row(row, txt, ok, en) =>
+    table.cell(dePanel, 0, row, txt, bgcolor=dashYellow, text_color=color.black, text_size=dashboardSize, text_halign=text.align_left)
+    table.cell(dePanel, 1, row, en ? (ok ? "✓" : "✗") : "off", bgcolor=en ? (ok ? dashGreenStrong : dashRedStrong) : dashGray, text_color=color.black, text_size=dashboardSize)
+
+f_info(row, lbl, txt) =>
+    table.cell(dePanel, 0, row, lbl, bgcolor=dashYellow, text_color=color.black, text_size=dashboardSize, text_halign=text.align_left)
+    table.cell(dePanel, 1, row, txt, bgcolor=dashGray, text_color=color.black, text_size=dashboardSize)
+
+if showSepPanel and barstate.islast
+    if na(dePanel)
+        tblPos = switch dePanelPos
+            "top_left"      => position.top_left
+            "top_center"    => position.top_center
+            "top_right"     => position.top_right
+            "bottom_left"   => position.bottom_left
+            "bottom_center" => position.bottom_center
+            "center_left"   => position.middle_left
+            =>                 position.bottom_right
+        dePanel := table.new(tblPos, 2, 25, border_width=1)
+
+    table.cell(dePanel, 0, 0, "DECISION ENGINE", bgcolor=color.rgb(60, 60, 60), text_color=color.white, text_size=dashboardSize)
+    table.cell(dePanel, 1, 0, "L " + str.tostring(longPct, "#") + "% | S " + str.tostring(shortPct, "#") + "%", bgcolor=color.rgb(60, 60, 60), text_color=color.white, text_size=dashboardSize)
+
+    table.cell(dePanel, 0, 1, "DECISION", bgcolor=decColor, text_color=color.black, text_size=dashboardSize)
+    table.cell(dePanel, 1, 1, decision, bgcolor=decColor, text_color=color.black, text_size=dashboardSize)
+
+    table.cell(dePanel, 0, 2, "Evaluating " + sideTxt, bgcolor=dashYellow, text_color=color.black, text_size=dashboardSize)
+    table.cell(dePanel, 1, 2, "Score " + str.tostring(domPct, "#") + "% (min " + str.tostring(deMinScorePct, "#") + ")", bgcolor=dashGray, text_color=color.black, text_size=dashboardSize)
+
+    f_row(3, "Signal fired (<=" + str.tostring(deTriggerBars) + " bars)", domLong ? longTrigger : shortTrigger, true)
+
+    f_row(4,  "Trend: EMA9/21 + DI",       domLong ? L_trend : S_trend, useCTrend)
+    f_row(5,  "ADX >= " + str.tostring(deMinAdx, "#") + " & rising", domLong ? L_adx : S_adx, useCAdx)
+    f_row(6,  "Price on right side of VWAP", domLong ? L_vwap : S_vwap, useCVwap)
+    f_row(7,  "RSI not chasing",           domLong ? L_rsi : S_rsi, useCRsi)
+    f_row(8,  "Recent volume spike",       domLong ? L_vol : S_vol, useCVol)
+    f_row(9,  "15m HTF aligned",           domLong ? L_htf : S_htf, useCHtf)
+    f_row(10, "Index aligned",             domLong ? L_index : S_index, useIdxEff)
+    f_row(11, "Strong candle close",       domLong ? L_close : S_close, useCClose)
+    f_row(12, domLong ? "Bonus: SE zone holding" : "Bonus: BE zone holding", domLong ? L_exh : S_exh, useCExh)
+
+    f_row(13, "VETO clear: room to next level", domLong ? L_room : S_room, useVetoRoom)
+    f_row(14, domLong ? "VETO clear: no recent BE" : "VETO clear: no recent SE", domLong ? L_noOpp : S_noOpp, useVetoExh)
+    f_row(15, "VETO clear: not extended from EMA21", domLong ? L_noExt : S_noExt, useVetoExt)
+    f_row(16, "VETO clear: TP1 covers costs", costOK, useVetoCost)
+    f_row(17, "Limits clear (day / window / type)", not gateBlock, true)
+    f_row(18, domLong ? "VETO clear: no BE zone in the way" : "VETO clear: no SE zone in the way", domLong ? L_zone : S_zone, useVetoZone)
+    f_row(19, "VETO clear: right side of VWAP", domLong ? L_vwap : S_vwap, deVwapMust)
+
+    f_info(20, "Resistance above", na(resAbove) ? "open air" : str.tostring(resAbove, "#.##") + "  (" + str.tostring(roomUpATR, "#.#") + " ATR)")
+    f_info(21, "Support below",    na(supBelow) ? "open air" : str.tostring(supBelow, "#.##") + "  (" + str.tostring(roomDnATR, "#.#") + " ATR)")
+
+    exhTxt = (barsSinceSE > deExhLookback and barsSinceBE > deExhLookback) ? "none" : barsSinceSE <= barsSinceBE ? "SE bull " + str.tostring(barsSinceSE) + " bars ago" : "BE bear " + str.tostring(barsSinceBE) + " bars ago"
+    f_info(22, "Last exhaustion", exhTxt)
+    f_info(23, "Signal type", tradeQuality)
+    f_info(24, "Original status", dashboardStatus)
+
+// ---------- Chart markers ----------
+goLongNew   = longGo  and not nz(longGo[1],  false)
+goShortNew  = shortGo and not nz(shortGo[1], false)
+blockedLong  = longSignalNow  and (longVeto  or longPct  < deMinScorePct)
+blockedShort = shortSignalNow and (shortVeto or shortPct < deMinScorePct)
+
+plotshape(showGoMarkers and goLongNew,   title="GO Long",  style=shape.triangleup,   location=location.belowbar, color=color.lime,   size=size.tiny, text="GO")
+plotshape(showGoMarkers and goShortNew,  title="GO Short", style=shape.triangledown, location=location.abovebar, color=color.red,    size=size.tiny, text="GO")
+plotshape(showGoMarkers and blockedLong,  title="Blocked Long",  style=shape.xcross, location=location.belowbar, color=color.gray, size=size.tiny, text="X")
+plotshape(showGoMarkers and blockedShort, title="Blocked Short", style=shape.xcross, location=location.abovebar, color=color.gray, size=size.tiny, text="X")
+
+// Data Window columns (handy for journaling / backtest tagging)
+plot(longPct,  title="DE Long Score %",  display=display.data_window)
+plot(shortPct, title="DE Short Score %", display=display.data_window)
+
+// ---------- Alerts ----------
+alertcondition(goLongNew,  title="Decision Engine: GO LONG",  message="GO LONG on {{ticker}} at {{close}} - all checks passed")
+alertcondition(goShortNew, title="Decision Engine: GO SHORT", message="GO SHORT on {{ticker}} at {{close}} - all checks passed")
+alertcondition(blockedLong or blockedShort, title="Decision Engine: Signal BLOCKED", message="Signal on {{ticker}} at {{close}} was BLOCKED by the decision engine")
+// =====================================================================================
