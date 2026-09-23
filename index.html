@@ -5040,8 +5040,8 @@
             <div class="risk-progress-bar-fill" id="riskLossBarFill" style="width: 100%; background: #22c55e;"></div>
           </div>
           <div class="risk-metric-subtext" style="justify-content: space-between;">
-            <span>0% Loss Used</span>
-            <span>Hard Stop at -₹5,000</span>
+            <span id="riskLossPctUsedDisplay">0% Loss Used</span>
+            <span id="riskLossHardStopDisplay">Hard Stop at -₹5,000</span>
           </div>
         </div>
 
@@ -9110,7 +9110,54 @@
       }
     }
 
+    function syncDailyStateFromJournal() {
+      if (!state.riskProfile) state.riskProfile = { settings: {}, dailyState: {}, journal: [] };
+      if (!state.riskProfile.dailyState) state.riskProfile.dailyState = {};
+
+      const today = new Date().toISOString().slice(0, 10);
+      state.riskProfile.dailyState.date = today;
+
+      const journal = state.riskProfile.journal || [];
+      const todayTrades = journal.filter((t) => {
+        const d = t.tradeDate || (t.createdAt ? t.createdAt.slice(0, 10) : "");
+        return d === today;
+      });
+
+      state.riskProfile.dailyState.tradesCount = todayTrades.length;
+      state.riskProfile.dailyState.realizedPnl = Math.round(todayTrades.reduce((sum, t) => sum + (Number(t.pnl) || 0), 0) * 100) / 100;
+
+      let consecutiveLosses = 0;
+      const sorted = [...todayTrades].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      for (const t of sorted) {
+        if ((Number(t.pnl) || 0) < 0) consecutiveLosses++;
+        else break;
+      }
+      state.riskProfile.dailyState.consecutiveLosses = consecutiveLosses;
+
+      const settings = state.riskProfile.settings || {};
+      const maxLoss = Number(settings.maxDailyLoss || 5000);
+      const maxTrades = Number(settings.maxDailyTrades || 4);
+      const maxConsecLosses = Number(settings.maxConsecutiveLosses || 2);
+
+      if (state.riskProfile.dailyState.realizedPnl <= -Math.abs(maxLoss)) {
+        state.riskProfile.dailyState.isLockedOut = true;
+        state.riskProfile.dailyState.lockoutReason = `Daily Max Loss limit of -₹${Math.abs(maxLoss).toLocaleString("en-IN")} reached.`;
+      } else if (state.riskProfile.dailyState.tradesCount >= maxTrades) {
+        state.riskProfile.dailyState.isLockedOut = true;
+        state.riskProfile.dailyState.lockoutReason = `Max daily trade quota of ${maxTrades} trades reached.`;
+      } else if (consecutiveLosses >= maxConsecLosses) {
+        state.riskProfile.dailyState.isLockedOut = true;
+        state.riskProfile.dailyState.lockoutReason = `Hit ${consecutiveLosses} consecutive losses rule limit.`;
+      } else if (state.riskProfile.dailyState.lockoutReason && !state.riskProfile.dailyState.lockoutReason.includes("Manual")) {
+        state.riskProfile.dailyState.isLockedOut = false;
+        state.riskProfile.dailyState.lockoutReason = null;
+      }
+
+      return state.riskProfile.dailyState;
+    }
+
     function updateGlobalRiskBar() {
+      syncDailyStateFromJournal();
       const daily = state.riskProfile.dailyState || { realizedPnl: 0, tradesCount: 0 };
       const settings = state.riskProfile.settings || { maxDailyLoss: 5000, maxDailyTrades: 4 };
 
@@ -9159,6 +9206,7 @@
     }
 
     function renderRiskHub() {
+      syncDailyStateFromJournal();
       const daily = state.riskProfile.dailyState || { realizedPnl: 0, tradesCount: 0, consecutiveLosses: 0 };
       const settings = state.riskProfile.settings || { accountCapital: 200000, maxDailyLoss: 5000, maxDailyTrades: 4 };
       const journal = state.riskProfile.journal || [];
@@ -9184,9 +9232,12 @@
         pnlBadge.className = `rr-badge ${pnlPct >= 0 ? "good" : "bad"}`;
       }
       if (winLossDisplay) {
-        const todayTrades = journal.filter((t) => (t.createdAt || "").slice(0, 10) === daily.date);
-        const wins = todayTrades.filter((t) => t.pnl > 0).length;
-        const losses = todayTrades.filter((t) => t.pnl < 0).length;
+        const todayTrades = journal.filter((t) => {
+          const d = t.tradeDate || (t.createdAt ? t.createdAt.slice(0, 10) : "");
+          return d === daily.date;
+        });
+        const wins = todayTrades.filter((t) => (t.pnl || 0) > 0).length;
+        const losses = todayTrades.filter((t) => (t.pnl || 0) < 0).length;
         winLossDisplay.textContent = `${wins} Wins • ${losses} Losses today`;
       }
 
@@ -9200,9 +9251,13 @@
       const lossCapText = document.getElementById("riskLossCapDisplay");
       const lossBarFill = document.getElementById("riskLossBarFill");
       const cardLoss = document.getElementById("cardLossBudget");
+      const lossPctEl = document.getElementById("riskLossPctUsedDisplay");
+      const lossStopEl = document.getElementById("riskLossHardStopDisplay");
 
       if (lossRemText) lossRemText.textContent = `₹${remainingLoss.toLocaleString("en-IN")} Left`;
       if (lossCapText) lossCapText.textContent = `₹${maxLoss.toLocaleString("en-IN")} Max Loss`;
+      if (lossPctEl) lossPctEl.textContent = `${lossPctUsed}% Loss Used`;
+      if (lossStopEl) lossStopEl.textContent = `Hard Stop at -₹${maxLoss.toLocaleString("en-IN")}`;
       if (lossBarFill) {
         const remainingPct = Math.max(0, 100 - lossPctUsed);
         lossBarFill.style.width = `${remainingPct}%`;

@@ -421,29 +421,59 @@ async function evaluatePracticePortfolio(portfolio) {
   return portfolio;
 }
 
+function recomputeDailyState(profile) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (!profile.dailyState) profile.dailyState = {};
+  profile.dailyState.date = today;
+
+  const todayTrades = (profile.journal || []).filter((t) => {
+    const d = t.tradeDate || (t.createdAt ? t.createdAt.slice(0, 10) : "");
+    return d === today;
+  });
+
+  profile.dailyState.tradesCount = todayTrades.length;
+  profile.dailyState.realizedPnl = Math.round(todayTrades.reduce((sum, t) => sum + (Number(t.pnl) || 0), 0) * 100) / 100;
+
+  // Compute consecutive losses from latest trade backward
+  let consecutiveLosses = 0;
+  const sorted = [...todayTrades].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  for (const t of sorted) {
+    if ((Number(t.pnl) || 0) < 0) consecutiveLosses++;
+    else break;
+  }
+  profile.dailyState.consecutiveLosses = consecutiveLosses;
+
+  const maxLoss = Number(profile.settings?.maxDailyLoss || 5000);
+  const maxTrades = Number(profile.settings?.maxDailyTrades || 4);
+  const maxConsecLosses = Number(profile.settings?.maxConsecutiveLosses || 2);
+
+  if (profile.dailyState.realizedPnl <= -Math.abs(maxLoss)) {
+    profile.dailyState.isLockedOut = true;
+    profile.dailyState.lockoutReason = `Daily Max Loss limit of -₹${Math.abs(maxLoss).toLocaleString("en-IN")} reached.`;
+  } else if (profile.dailyState.tradesCount >= maxTrades) {
+    profile.dailyState.isLockedOut = true;
+    profile.dailyState.lockoutReason = `Max daily trade quota of ${maxTrades} trades reached.`;
+  } else if (consecutiveLosses >= maxConsecLosses) {
+    profile.dailyState.isLockedOut = true;
+    profile.dailyState.lockoutReason = `Hit ${consecutiveLosses} consecutive losses rule limit. Step away from terminal.`;
+  } else if (profile.dailyState.lockoutReason && !profile.dailyState.lockoutReason.includes("Manual")) {
+    profile.dailyState.isLockedOut = false;
+    profile.dailyState.lockoutReason = null;
+  }
+  return profile.dailyState;
+}
+
 function loadRiskProfile() {
   ensureStore();
   try {
     const data = JSON.parse(fs.readFileSync(riskFile, "utf8"));
-    const today = new Date().toISOString().slice(0, 10);
-    // Auto-rollover daily state if date changed
-    if (!data.dailyState || data.dailyState.date !== today) {
-      data.dailyState = {
-        date: today,
-        realizedPnl: 0,
-        tradesCount: 0,
-        consecutiveLosses: 0,
-        cooldownUntil: null,
-        isLockedOut: false,
-        lockoutReason: null
-      };
-      saveRiskProfile(data);
-    }
-    return {
+    const profile = {
       settings: { ...defaultRiskProfile.settings, ...(data.settings || {}) },
       dailyState: { ...defaultRiskProfile.dailyState, ...(data.dailyState || {}) },
       journal: Array.isArray(data.journal) ? data.journal : []
     };
+    recomputeDailyState(profile);
+    return profile;
   } catch (error) {
     return { ...defaultRiskProfile };
   }
@@ -984,41 +1014,13 @@ const server = http.createServer(async (request, response) => {
 
       profile.journal = [trade, ...profile.journal.filter((t) => t.id !== trade.id)];
 
-      // Update Daily State
-      const isToday = trade.createdAt.slice(0, 10) === profile.dailyState.date;
-      if (isToday) {
-        profile.dailyState.tradesCount += 1;
-        profile.dailyState.realizedPnl = Math.round((profile.dailyState.realizedPnl + trade.pnl) * 100) / 100;
+      // Recompute exact daily metrics from all today trades
+      recomputeDailyState(profile);
 
-        if (trade.pnl < 0) {
-          profile.dailyState.consecutiveLosses += 1;
-          // Set cooldown period
-          const cooldownMs = (profile.settings.cooldownMinutes || 15) * 60 * 1000;
-          profile.dailyState.cooldownUntil = new Date(Date.now() + cooldownMs).toISOString();
-
-          // Check if consecutive losses threshold reached
-          if (profile.dailyState.consecutiveLosses >= (profile.settings.maxConsecutiveLosses || 2)) {
-            profile.dailyState.isLockedOut = true;
-            profile.dailyState.lockoutReason = `Hit ${profile.dailyState.consecutiveLosses} consecutive losses rule limit. Step away from terminal.`;
-          }
-        } else {
-          profile.dailyState.consecutiveLosses = 0;
-          profile.dailyState.cooldownUntil = null;
-        }
-
-        // Check if daily max loss threshold reached
-        const maxDailyLoss = Number(profile.settings.maxDailyLoss || 5000);
-        if (profile.dailyState.realizedPnl <= -Math.abs(maxDailyLoss)) {
-          profile.dailyState.isLockedOut = true;
-          profile.dailyState.lockoutReason = `Daily Max Loss limit of -₹${Math.abs(maxDailyLoss).toLocaleString("en-IN")} breached. Hard lockout active.`;
-        }
-
-        // Check if max daily trades quota reached
-        const maxTrades = Number(profile.settings.maxDailyTrades || 4);
-        if (profile.dailyState.tradesCount >= maxTrades) {
-          profile.dailyState.isLockedOut = true;
-          profile.dailyState.lockoutReason = `Max daily trade quota of ${maxTrades} trades reached. Session complete.`;
-        }
+      // If newly logged trade is a loss, trigger cooldown period
+      if (trade.pnl < 0) {
+        const cooldownMs = (profile.settings.cooldownMinutes || 15) * 60 * 1000;
+        profile.dailyState.cooldownUntil = new Date(Date.now() + cooldownMs).toISOString();
       }
 
       saveRiskProfile(profile);
@@ -1041,8 +1043,9 @@ const server = http.createServer(async (request, response) => {
         profile.journal = [];
       }
 
+      recomputeDailyState(profile);
       saveRiskProfile(profile);
-      writeJson(response, 200, { ok: true, remaining: profile.journal.length });
+      writeJson(response, 200, { ok: true, remaining: profile.journal.length, dailyState: profile.dailyState });
     } catch (error) {
       writeJson(response, 400, { error: error.message || "Failed to delete trade" });
     }
