@@ -5104,6 +5104,7 @@
             <div class="risk-chip-group" id="sizerAssetChips">
               <button class="risk-chip active" data-asset="EQUITY_MIS" onclick="setSizerAsset('EQUITY_MIS')">Equity MIS (5x)</button>
               <button class="risk-chip" data-asset="EQUITY_CNC" onclick="setSizerAsset('EQUITY_CNC')">Cash CNC (1x)</button>
+              <button class="risk-chip" data-asset="COMMODITIES" onclick="setSizerAsset('COMMODITIES')">Commodities (MCX)</button>
               <button class="risk-chip" data-asset="FUTURES" onclick="setSizerAsset('FUTURES')">Futures (F&O)</button>
               <button class="risk-chip" data-asset="OPTIONS" onclick="setSizerAsset('OPTIONS')">Options (Delta 0.5)</button>
             </div>
@@ -5404,33 +5405,51 @@
             </div>
           </div>
 
-          <!-- Top Global Date Filter Bar for Scorecard & Journal -->
-          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 10px 14px; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--line); border-radius: var(--radius-sm);">
-            <!-- Preset Date Chips -->
-            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;" id="journalTopDateChips">
-              <span style="font-size: 11.5px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 4px;">
-                📅 <span>Scorecard Period:</span>
-              </span>
-              <button class="risk-chip active" data-date-filter="ALL" onclick="setJournalDatePreset('ALL')">All Time</button>
-              <button class="risk-chip" data-date-filter="TODAY" onclick="setJournalDatePreset('TODAY')">Today</button>
-              <button class="risk-chip" data-date-filter="YESTERDAY" onclick="setJournalDatePreset('YESTERDAY')">Yesterday</button>
-              <button class="risk-chip" data-date-filter="THIS_WEEK" onclick="setJournalDatePreset('THIS_WEEK')">This Week</button>
-              <button class="risk-chip" data-date-filter="THIS_MONTH" onclick="setJournalDatePreset('THIS_MONTH')">This Month</button>
+          <!-- Top Global Date & Asset Filter Bar for Scorecard & Journal -->
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--line); border-radius: var(--radius-sm);">
+            <!-- Row 1: Scorecard Date Filter Presets & Custom Pickers -->
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;" id="journalTopDateChips">
+                <span style="font-size: 11.5px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 4px;">
+                  📅 <span>Scorecard Period:</span>
+                </span>
+                <button class="risk-chip active" data-date-filter="ALL" onclick="setJournalDatePreset('ALL')">All Time</button>
+                <button class="risk-chip" data-date-filter="TODAY" onclick="setJournalDatePreset('TODAY')">Today</button>
+                <button class="risk-chip" data-date-filter="YESTERDAY" onclick="setJournalDatePreset('YESTERDAY')">Yesterday</button>
+                <button class="risk-chip" data-date-filter="THIS_WEEK" onclick="setJournalDatePreset('THIS_WEEK')">This Week</button>
+                <button class="risk-chip" data-date-filter="THIS_MONTH" onclick="setJournalDatePreset('THIS_MONTH')">This Month</button>
+              </div>
+
+              <!-- Custom Date Range Pickers -->
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <label style="font-size: 11px; color: var(--muted);">From:</label>
+                  <input type="date" id="journalTopFilterFrom" class="input-text" style="font-size: 11.5px; padding: 4px 7px;" onchange="onJournalTopDateRangeChange()">
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <label style="font-size: 11px; color: var(--muted);">To:</label>
+                  <input type="date" id="journalTopFilterTo" class="input-text" style="font-size: 11.5px; padding: 4px 7px;" onchange="onJournalTopDateRangeChange()">
+                </div>
+                <button class="btn" onclick="resetJournalFilters()" title="Reset to All Time" style="font-size: 11px; padding: 4px 10px; color: var(--muted);">
+                  ↺ Reset
+                </button>
+              </div>
             </div>
 
-            <!-- Custom Date Range Pickers -->
-            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <div style="display: flex; align-items: center; gap: 4px;">
-                <label style="font-size: 11px; color: var(--muted);">From:</label>
-                <input type="date" id="journalTopFilterFrom" class="input-text" style="font-size: 11.5px; padding: 4px 7px;" onchange="onJournalTopDateRangeChange()">
+            <!-- Row 2: Asset Filter Selector (Equity, Commodities, Options, Futures, Crypto, Forex) -->
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;">
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;" id="journalTopAssetChips">
+                <span style="font-size: 11.5px; font-weight: 700; color: #fbbf24; display: flex; align-items: center; gap: 4px;">
+                  🏷️ <span>Asset Market:</span>
+                </span>
+                <button class="risk-chip active" data-top-asset-filter="ALL" onclick="filterJournalAsset('ALL')">All Assets</button>
+                <button class="risk-chip" data-top-asset-filter="EQUITY" onclick="filterJournalAsset('EQUITY')">📈 Equity</button>
+                <button class="risk-chip" data-top-asset-filter="COMMODITIES" onclick="filterJournalAsset('COMMODITIES')">🛢️ Commodities (MCX)</button>
+                <button class="risk-chip" data-top-asset-filter="OPTIONS" onclick="filterJournalAsset('OPTIONS')">⚡ Options</button>
+                <button class="risk-chip" data-top-asset-filter="FUTURES" onclick="filterJournalAsset('FUTURES')">📊 Futures</button>
+                <button class="risk-chip" data-top-asset-filter="CRYPTO" onclick="filterJournalAsset('CRYPTO')">🪙 Crypto</button>
+                <button class="risk-chip" data-top-asset-filter="FOREX" onclick="filterJournalAsset('FOREX')">💱 Forex</button>
               </div>
-              <div style="display: flex; align-items: center; gap: 4px;">
-                <label style="font-size: 11px; color: var(--muted);">To:</label>
-                <input type="date" id="journalTopFilterTo" class="input-text" style="font-size: 11.5px; padding: 4px 7px;" onchange="onJournalTopDateRangeChange()">
-              </div>
-              <button class="btn" onclick="resetJournalFilters()" title="Reset to All Time" style="font-size: 11px; padding: 4px 10px; color: var(--muted);">
-                ↺ Reset
-              </button>
             </div>
           </div>
         </div>
@@ -5484,9 +5503,12 @@
           <div>
             <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Asset:</label>
             <select id="journalAsset" class="select" style="font-size: 12px; padding: 6px 8px;" onchange="autoCalculateJournalPnl()">
-              <option value="EQUITY">Equity</option>
+              <option value="EQUITY">Equity (Stock)</option>
+              <option value="COMMODITIES">Commodities (MCX)</option>
+              <option value="OPTIONS">Options (F&O)</option>
               <option value="FUTURES">Futures</option>
-              <option value="OPTIONS">Options</option>
+              <option value="CRYPTO">Crypto</option>
+              <option value="FOREX">Forex</option>
             </select>
           </div>
           <div>
@@ -5569,8 +5591,20 @@
             </div>
           </div>
 
+          <!-- Middle Row: Asset Filter Chips -->
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;" id="journalAssetChips">
+            <span style="font-size: 11px; font-weight: 700; color: #fbbf24; margin-right: 2px;">🏷️ Asset:</span>
+            <button class="risk-chip active" data-asset-filter="ALL" onclick="filterJournalAsset('ALL')">All Assets</button>
+            <button class="risk-chip" data-asset-filter="EQUITY" onclick="filterJournalAsset('EQUITY')">📈 Equity</button>
+            <button class="risk-chip" data-asset-filter="COMMODITIES" onclick="filterJournalAsset('COMMODITIES')">🛢️ Commodities</button>
+            <button class="risk-chip" data-asset-filter="OPTIONS" onclick="filterJournalAsset('OPTIONS')">⚡ Options</button>
+            <button class="risk-chip" data-asset-filter="FUTURES" onclick="filterJournalAsset('FUTURES')">📊 Futures</button>
+            <button class="risk-chip" data-asset-filter="CRYPTO" onclick="filterJournalAsset('CRYPTO')">🪙 Crypto</button>
+            <button class="risk-chip" data-asset-filter="FOREX" onclick="filterJournalAsset('FOREX')">💱 Forex</button>
+          </div>
+
           <!-- Bottom Row: Date Filter Presets, Date Range & Search -->
-          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;">
             <!-- Date Preset Chips -->
             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;" id="journalDateChips">
               <span style="font-size: 11px; font-weight: 700; color: var(--muted); margin-right: 2px;">📅 Date:</span>
@@ -6672,9 +6706,12 @@
             <div>
               <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Asset Type:</label>
               <select id="editJournalAsset" class="select" style="font-size: 12.5px; padding: 7px 8px; width: 100%;">
-                <option value="EQUITY">Equity</option>
+                <option value="EQUITY">Equity (Stock)</option>
+                <option value="COMMODITIES">Commodities (MCX)</option>
+                <option value="OPTIONS">Options (F&O)</option>
                 <option value="FUTURES">Futures</option>
-                <option value="OPTIONS">Options</option>
+                <option value="CRYPTO">Crypto</option>
+                <option value="FOREX">Forex</option>
               </select>
             </div>
             <div>
@@ -6740,6 +6777,25 @@
           <div>
             <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Execution Notes & Setup Triggers:</label>
             <textarea id="editJournalNotes" class="input-text" rows="3" style="width: 100%; font-size: 12.5px; line-height: 1.5; padding: 8px 10px; resize: vertical; box-sizing: border-box;" placeholder="Add setup triggers, reasoning, or trade review notes..."></textarea>
+          </div>
+
+          <!-- Screenshot Attachment & Chart Preview in Edit Modal -->
+          <div style="margin-top: 14px; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px dashed rgba(56, 189, 248, 0.35); border-radius: var(--radius-sm);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <label style="font-size: 11px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 5px; margin: 0;">
+                  📷 Attached Charts & Screenshots (<span id="editScreenshotsCount">0</span>):
+                </label>
+                <div style="font-size: 10.5px; color: var(--muted); margin-top: 2px;">Attach chart image files or paste screenshot directly with Ctrl+V / Cmd+V</div>
+              </div>
+              <div>
+                <input type="file" id="editJournalScreenshotsInput" multiple accept="image/*" style="display: none;" onchange="handleEditJournalFiles(event)">
+                <button type="button" class="btn" onclick="document.getElementById('editJournalScreenshotsInput').click()" style="font-size: 11px; padding: 4px 10px; background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; display: inline-flex; align-items: center; gap: 5px;">
+                  + Upload Charts
+                </button>
+              </div>
+            </div>
+            <div id="editJournalScreenshotsPreview" class="journal-preview-grid" style="min-height: 48px;"></div>
           </div>
         </div>
 
@@ -6812,6 +6868,7 @@
       },
       sizerAsset: "EQUITY_MIS",
       journalFilter: "ALL",
+      journalAssetFilter: "ALL",
       journalDatePreset: "ALL",
       journalDateFrom: "",
       journalDateTo: "",
@@ -6819,6 +6876,7 @@
       journalPage: 1,
       journalPageSize: 10,
       pendingJournalScreenshots: [],
+      editJournalScreenshots: [],
       zoomModalState: {
         images: [],
         activeIndex: 0,
@@ -9232,6 +9290,11 @@
         });
       }
 
+      // Filter journal by active asset type if any
+      if (state.journalAssetFilter && state.journalAssetFilter !== "ALL") {
+        journal = journal.filter((t) => (t.assetType || "EQUITY").toUpperCase() === state.journalAssetFilter.toUpperCase());
+      }
+
       const pnlEl = document.getElementById("statsNetRealizedPnl");
       const pnlSubEl = document.getElementById("statsNetRealizedPnlSubtext");
 
@@ -9260,7 +9323,8 @@
         pnlEl.style.color = isPos ? "#4ade80" : "#f87171";
       }
       if (pnlSubEl) {
-        pnlSubEl.textContent = `${journal.length} Trades • ${overallWinRate}% Win Rate (${winsCount}W/${journal.length - winsCount}L)`;
+        const assetLabel = state.journalAssetFilter && state.journalAssetFilter !== "ALL" ? ` • ${state.journalAssetFilter}` : "";
+        pnlSubEl.textContent = `${journal.length} Trades${assetLabel} • ${overallWinRate}% Win Rate (${winsCount}W/${journal.length - winsCount}L)`;
       }
 
       const disciplinedTrades = journal.filter((t) => t.disciplineFollowed !== false);
@@ -9335,6 +9399,13 @@
         calculatedQty = Math.max(1, Math.min(Math.floor(riskRupeesAllowed / slDistance), maxAffordable));
         marginRequired = calculatedQty * entry;
         displayQty = `${calculatedQty.toLocaleString("en-IN")} Shares (CNC 1x)`;
+      } else if (asset === "COMMODITIES") {
+        // Commodities (MCX contracts approx 15% margin)
+        const rawLots = Math.floor(riskRupeesAllowed / (slDistance * lotSize));
+        const lots = Math.max(1, rawLots);
+        calculatedQty = lots * lotSize;
+        marginRequired = calculatedQty * entry * 0.15;
+        displayQty = `${lots} Lot${lots > 1 ? 's' : ''} (${calculatedQty} Qty MCX)`;
       } else if (asset === "FUTURES") {
         // Futures contracts
         const rawLots = Math.floor(riskRupeesAllowed / (slDistance * lotSize));
@@ -9790,23 +9861,109 @@
       renderPendingJournalScreenshots();
     }
 
+    // Edit Trade Modal Screenshot Management Engine
+    function handleEditJournalFiles(event) {
+      const files = event.target.files;
+      if (!files || !files.length) return;
+      Array.from(files).forEach((file) => compressAndAddEditImage(file));
+      event.target.value = "";
+    }
+
+    function compressAndAddEditImage(file) {
+      if (!file.type.startsWith("image/")) {
+        showToast("Only image files (PNG, JPG, WEBP) are supported", true);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1920;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          if (!Array.isArray(state.editJournalScreenshots)) state.editJournalScreenshots = [];
+          state.editJournalScreenshots.push(compressedDataUrl);
+          renderEditJournalScreenshots();
+          showToast(`📷 Attached chart to edited trade (${state.editJournalScreenshots.length} total)`);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function renderEditJournalScreenshots() {
+      const container = document.getElementById("editJournalScreenshotsPreview");
+      const countEl = document.getElementById("editScreenshotsCount");
+      if (!container) return;
+
+      const screenshots = state.editJournalScreenshots || [];
+      if (countEl) countEl.textContent = screenshots.length;
+
+      if (!screenshots.length) {
+        container.innerHTML = `<div style="font-size: 11px; color: var(--muted); font-style: italic; padding: 6px 0;">No screenshots attached to this trade yet. Click '+ Upload Charts' or paste Ctrl+V / Cmd+V.</div>`;
+        return;
+      }
+
+      container.innerHTML = screenshots.map((imgUrl, idx) => {
+        const safeSrc = String(imgUrl || '').replace(/"/g, '&quot;');
+        return `
+          <div class="journal-thumb-card" title="Click to zoom preview (Chart ${idx + 1})">
+            <img src="${safeSrc}" onclick="openImageZoomModal(state.editJournalScreenshots, ${idx}, 'Edit Trade Chart', 'Screenshot Preview')">
+            <button type="button" class="journal-thumb-delete" onclick="removeEditJournalScreenshot(${idx})" title="Remove">✕</button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function removeEditJournalScreenshot(index) {
+      if (Array.isArray(state.editJournalScreenshots)) {
+        state.editJournalScreenshots.splice(index, 1);
+        renderEditJournalScreenshots();
+      }
+    }
+
     // Global Clipboard Paste Handler (Ctrl+V / Cmd+V for screenshots)
     document.addEventListener("paste", (e) => {
       const items = e.clipboardData?.items;
       if (!items) return;
+
+      const editModal = document.getElementById("journalEditTradeModal");
+      const isEditModalOpen = editModal && editModal.style.display === "flex";
 
       let imagePasted = false;
       for (const item of items) {
         if (item.type.indexOf("image") !== -1) {
           const file = item.getAsFile();
           if (file) {
-            compressAndAddImage(file);
+            if (isEditModalOpen) {
+              compressAndAddEditImage(file);
+            } else {
+              compressAndAddImage(file);
+            }
             imagePasted = true;
           }
         }
       }
 
-      if (imagePasted && state.activeTab !== "tab-risk") {
+      if (imagePasted && !isEditModalOpen && state.activeTab !== "tab-risk") {
         showToast("📷 Chart screenshot captured from clipboard into Trade Journal!");
       }
     });
@@ -10164,6 +10321,21 @@
       renderJournalTable();
     }
 
+    function filterJournalAsset(asset) {
+      state.journalAssetFilter = asset || "ALL";
+      state.journalPage = 1;
+
+      // Sync active states across both top scorecard chips & journal table filter chips
+      document.querySelectorAll("#journalAssetChips .risk-chip, #journalTopAssetChips .risk-chip").forEach((chip) => {
+        const chipAsset = chip.getAttribute("data-asset-filter") || chip.getAttribute("data-top-asset-filter");
+        if (chipAsset === asset) chip.classList.add("active");
+        else chip.classList.remove("active");
+      });
+
+      calculatePsychologyMetrics();
+      renderJournalTable();
+    }
+
     function setJournalDatePreset(preset) {
       state.journalDatePreset = preset;
       state.journalPage = 1;
@@ -10286,6 +10458,7 @@
 
     function resetJournalFilters() {
       state.journalFilter = "ALL";
+      state.journalAssetFilter = "ALL";
       state.journalDatePreset = "ALL";
       state.journalDateFrom = "";
       state.journalDateTo = "";
@@ -10294,6 +10467,12 @@
 
       document.querySelectorAll("#journalFilterChips .risk-chip").forEach((chip) => {
         if (chip.getAttribute("data-filter") === "ALL") chip.classList.add("active");
+        else chip.classList.remove("active");
+      });
+
+      document.querySelectorAll("#journalAssetChips .risk-chip, #journalTopAssetChips .risk-chip").forEach((chip) => {
+        const chipAsset = chip.getAttribute("data-asset-filter") || chip.getAttribute("data-top-asset-filter");
+        if (chipAsset === "ALL") chip.classList.add("active");
         else chip.classList.remove("active");
       });
 
@@ -10542,6 +10721,10 @@
       document.getElementById("editJournalMistake").value = mistake;
       document.getElementById("editJournalNotes").value = trade.notes || "";
 
+      // Load existing screenshots into edit state and render preview
+      state.editJournalScreenshots = Array.isArray(trade.screenshots) ? [...trade.screenshots] : [];
+      renderEditJournalScreenshots();
+
       const modal = document.getElementById("journalEditTradeModal");
       if (modal) modal.style.display = "flex";
     }
@@ -10549,6 +10732,7 @@
     function closeJournalEditModal() {
       const modal = document.getElementById("journalEditTradeModal");
       if (modal) modal.style.display = "none";
+      state.editJournalScreenshots = [];
     }
 
     function handleJournalEditOverlayClick(event) {
@@ -10602,7 +10786,7 @@
         mistakeTags: mistake !== "NONE" ? [mistake] : [],
         disciplineFollowed: isDisciplined,
         notes,
-        screenshots: existingTrade.screenshots || [],
+        screenshots: Array.isArray(state.editJournalScreenshots) ? [...state.editJournalScreenshots] : (existingTrade.screenshots || []),
         createdAt: existingTrade.createdAt || new Date().toISOString()
       };
 
@@ -10614,7 +10798,7 @@
       renderRiskHub();
 
       closeJournalEditModal();
-      showToast(`✅ Saved changes for ${symbol}!`);
+      showToast(`✅ Saved changes & charts for ${symbol}!`);
 
       try {
         const res = await fetch("/api/risk/journal", {
@@ -10657,6 +10841,11 @@
       if (filter === "WINS") filtered = journal.filter((t) => (t.pnl || 0) > 0);
       if (filter === "LOSSES") filtered = journal.filter((t) => (t.pnl || 0) < 0);
 
+      // 1b. Filter by Asset Type (Equity, Commodities, Options, Futures, Crypto, Forex)
+      if (state.journalAssetFilter && state.journalAssetFilter !== "ALL") {
+        filtered = filtered.filter((t) => (t.assetType || "EQUITY").toUpperCase() === state.journalAssetFilter.toUpperCase());
+      }
+
       // 2. Filter by Date / Date Range
       if (state.journalDateFrom) {
         filtered = filtered.filter((t) => {
@@ -10681,7 +10870,7 @@
       const totalPnl = filtered.reduce((acc, t) => acc + (t.pnl || 0), 0);
       const summaryEl = document.getElementById("journalTotalPnlSummary");
       if (summaryEl) {
-        const hasDateFilter = Boolean(state.journalDateFrom || state.journalDateTo || state.journalSearchSymbol || filter !== "ALL");
+        const hasDateFilter = Boolean(state.journalDateFrom || state.journalDateTo || state.journalSearchSymbol || (state.journalAssetFilter && state.journalAssetFilter !== "ALL") || filter !== "ALL");
         summaryEl.innerHTML = `${hasDateFilter ? 'Filtered' : 'Total'} (${filtered.length}) P&L: <strong class="${totalPnl >= 0 ? 'pos-text' : 'neg-text'}">${totalPnl >= 0 ? '+₹' : '-₹'}${Math.abs(totalPnl).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>`;
       }
 
@@ -10733,7 +10922,7 @@
       }
 
       if (!pageTrades.length) {
-        tbody.innerHTML = `<tr><td colspan="10" class="empty-placeholder" style="padding: 30px;">No journal entries matching active filters. Try changing date or search.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="empty-placeholder" style="padding: 30px;">No journal entries matching active filters. Try changing asset, date, or search.</td></tr>`;
         return;
       }
 
@@ -10762,6 +10951,20 @@
           `;
         }
 
+        const rawAsset = (t.assetType || 'EQUITY').toUpperCase();
+        let assetBadge = `<span class="tag-badge" style="font-size: 10px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">EQUITY</span>`;
+        if (rawAsset === 'COMMODITIES') {
+          assetBadge = `<span class="tag-badge" style="font-size: 10px; background: rgba(251, 146, 60, 0.15); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3);">🛢️ MCX</span>`;
+        } else if (rawAsset === 'OPTIONS') {
+          assetBadge = `<span class="tag-badge" style="font-size: 10px; background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3);">⚡ OPTIONS</span>`;
+        } else if (rawAsset === 'FUTURES') {
+          assetBadge = `<span class="tag-badge" style="font-size: 10px; background: rgba(234, 179, 8, 0.15); color: #eab308; border: 1px solid rgba(234, 179, 8, 0.3);">📊 FUTURES</span>`;
+        } else if (rawAsset === 'CRYPTO') {
+          assetBadge = `<span class="tag-badge" style="font-size: 10px; background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">🪙 CRYPTO</span>`;
+        } else if (rawAsset === 'FOREX') {
+          assetBadge = `<span class="tag-badge" style="font-size: 10px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);">💱 FOREX</span>`;
+        }
+
         const cleanNotes = (t.notes || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
         return `
@@ -10780,7 +10983,7 @@
                 <span class="tag-badge ${t.side === 'BUY' ? 'buy' : 'sell'}" style="font-size: 10px; padding: 1px 6px;">${t.side}</span>
               </div>
             </td>
-            <td style="font-size: 11.5px; color: var(--muted);">${t.assetType || 'EQUITY'}</td>
+            <td>${assetBadge}</td>
             <td style="font-size: 12px; font-feature-settings: 'tnum';">
               <div>₹${Number(t.entryPrice || 0).toFixed(2)} → ₹${Number(t.exitPrice || 0).toFixed(2)}</div>
               ${t.quantity ? `<div style="font-size: 10.5px; color: #38bdf8; margin-top: 2px; font-weight: 600;">⚡ ${Number(t.quantity).toLocaleString('en-IN')} Qty</div>` : ''}
