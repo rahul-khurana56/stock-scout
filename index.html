@@ -2520,6 +2520,10 @@
       padding: 20px;
     }
 
+    .lockout-modal-overlay.active {
+      display: flex !important;
+    }
+
     .lockout-card {
       max-width: 580px;
       width: 100%;
@@ -9906,6 +9910,7 @@
     function openPreFlightChecklistModal() {
       const modal = document.getElementById("preFlightChecklistModal");
       if (modal) {
+        modal.style.display = "flex";
         modal.classList.add("active");
         updateGatekeeperStatus();
       }
@@ -9914,6 +9919,7 @@
     function closePreFlightChecklistModal() {
       const modal = document.getElementById("preFlightChecklistModal");
       if (modal) {
+        modal.style.display = "none";
         modal.classList.remove("active");
       }
     }
