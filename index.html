@@ -2277,6 +2277,56 @@
     }
 
     /* Pre-Flight Checklist */
+    .preflight-nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 12px;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(37, 99, 235, 0.12));
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      color: #38bdf8;
+      font-size: 11.5px;
+      font-weight: 700;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      white-space: nowrap;
+      margin-left: 10px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.15);
+    }
+
+    .preflight-nav-btn:hover {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(37, 99, 235, 0.22));
+      border-color: #38bdf8;
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.35);
+    }
+
+    .preflight-nav-btn.ready-all {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.15));
+      border-color: rgba(34, 197, 94, 0.6);
+      color: #4ade80;
+      box-shadow: 0 0 14px rgba(34, 197, 94, 0.25);
+    }
+
+    .nav-rule-counter {
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #e2e8f0;
+      letter-spacing: 0.5px;
+    }
+
+    .preflight-nav-btn.ready-all .nav-rule-counter {
+      background: rgba(34, 197, 94, 0.3);
+      border-color: rgba(34, 197, 94, 0.7);
+      color: #ffffff;
+    }
+
     .checklist-item {
       display: flex;
       align-items: flex-start;
@@ -2287,6 +2337,7 @@
       border-radius: var(--radius-sm);
       margin-bottom: 8px;
       cursor: pointer;
+      user-select: none;
       transition: all 0.15s ease;
     }
 
@@ -2320,6 +2371,57 @@
       color: #ffffff;
       font-size: 12.5px;
       margin-bottom: 2px;
+    }
+
+    .modal-check-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      margin-bottom: 9px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .modal-check-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: var(--line-bright);
+      transform: translateX(2px);
+    }
+
+    .modal-check-card.checked {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: rgba(34, 197, 94, 0.45);
+      box-shadow: 0 0 14px rgba(34, 197, 94, 0.12);
+    }
+
+    .modal-check-card input[type="checkbox"] {
+      width: 19px;
+      height: 19px;
+      accent-color: #22c55e;
+      cursor: pointer;
+      margin: 0;
+      flex-shrink: 0;
+    }
+
+    .modal-check-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+
+    .modal-check-desc {
+      font-size: 11.5px;
+      color: #94a3b8;
+      line-height: 1.35;
     }
 
     /* Journal Section & Analytics */
@@ -3994,13 +4096,20 @@
   <!-- Top Navbar -->
   <header class="navbar">
     <div class="navbar-inner">
-      <a href="#" class="brand">
-        <div class="brand-logo">⚡</div>
-        <div>
-          <div class="brand-title">PROFIT GENIE</div>
-          <div class="brand-subtitle">Heatmaps & Signal Terminal</div>
-        </div>
-      </a>
+      <div style="display: flex; align-items: center; gap: 4px;">
+        <a href="#" class="brand">
+          <div class="brand-logo">⚡</div>
+          <div>
+            <div class="brand-title">PROFIT GENIE</div>
+            <div class="brand-subtitle">Heatmaps & Signal Terminal</div>
+          </div>
+        </a>
+        <button type="button" id="navPreFlightBtn" class="preflight-nav-btn" onclick="openPreFlightChecklistModal()" title="Pre-Flight Rules Checklist (Shortcut: P)">
+          <span style="font-size: 13px;">📋</span>
+          <span>Pre-Flight Rules</span>
+          <span id="navGatekeeperScoreBadge" class="nav-rule-counter">0/5</span>
+        </button>
+      </div>
 
       <!-- Realtime Index Pulse -->
       <div class="market-pulse-strip">
@@ -5300,48 +5409,51 @@
               <h3>📋 Pre-Flight Gatekeeper Checklist</h3>
               <p>5 non-negotiable checks before any trade is executed.</p>
             </div>
-            <span id="gatekeeperScoreBadge" class="rr-badge warning" style="font-size: 10.5px;">0/5 Checks</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span id="gatekeeperScoreBadge" class="rr-badge warning" style="font-size: 10.5px;">0/5 Checks</span>
+              <button type="button" class="btn" onclick="resetGatekeeperChecklist()" title="Reset all 5 checks" style="font-size: 10px; padding: 3px 7px;">🔄 Reset</button>
+            </div>
           </div>
 
           <!-- Interactive Checklist -->
           <div id="gatekeeperChecklistWrap">
-            <label class="checklist-item" id="checkItem1" onclick="toggleCheckItem('check1')">
-              <input type="checkbox" id="check1" onchange="updateGatekeeperStatus()">
+            <label class="checklist-item" id="checkItem1" onclick="handleLabelClick(event, 1)">
+              <input type="checkbox" id="check1" onchange="syncGatekeeperFromHub(1, this.checked)">
               <div class="checklist-text">
-                <strong>1. Valid Edge & Trend Confluence</strong>
-                <span>Confirmed Profit GeNIE 5m breakout, ADX trend momentum, and aligned with sector pulse.</span>
+                <strong>🟢 1. Signal & Trend Confluence</strong>
+                <span>GeNIE 5m signal active + Sector pulse direction aligned.</span>
               </div>
             </label>
 
-            <label class="checklist-item" id="checkItem2" onclick="toggleCheckItem('check2')">
-              <input type="checkbox" id="check2" onchange="updateGatekeeperStatus()">
+            <label class="checklist-item" id="checkItem2" onclick="handleLabelClick(event, 2)">
+              <input type="checkbox" id="check2" onchange="syncGatekeeperFromHub(2, this.checked)">
               <div class="checklist-text">
-                <strong>2. Mathematically Defined Stop Loss</strong>
-                <span>SL is placed at technical invalidation level and order is placed in broker before entering.</span>
+                <strong>🛑 2. Hard SL in Broker</strong>
+                <span>Fixed technical invalidation set & order placed before entry.</span>
               </div>
             </label>
 
-            <label class="checklist-item" id="checkItem3" onclick="toggleCheckItem('check3')">
-              <input type="checkbox" id="check3" onchange="updateGatekeeperStatus()">
+            <label class="checklist-item" id="checkItem3" onclick="handleLabelClick(event, 3)">
+              <input type="checkbox" id="check3" onchange="syncGatekeeperFromHub(3, this.checked)">
               <div class="checklist-text">
-                <strong>3. Minimum 1:2 Reward-to-Risk</strong>
-                <span>Potential profit is at least double the rupee risk. No low-upside scalps.</span>
+                <strong>🎯 3. Minimum 1:2+ R:R</strong>
+                <span>Target potential ≥ 2x rupee risk (no scalps without upside).</span>
               </div>
             </label>
 
-            <label class="checklist-item" id="checkItem4" onclick="toggleCheckItem('check4')">
-              <input type="checkbox" id="check4" onchange="updateGatekeeperStatus()">
+            <label class="checklist-item" id="checkItem4" onclick="handleLabelClick(event, 4)">
+              <input type="checkbox" id="check4" onchange="syncGatekeeperFromHub(4, this.checked)">
               <div class="checklist-text">
-                <strong>4. Zero FOMO & Chasing</strong>
-                <span>Entry is at the initial breakout/pullback. Not chasing green candles 3% above VWAP.</span>
+                <strong>⚡ 4. No Chasing / Zero FOMO</strong>
+                <span>Enter near key level/pullback — never chase extended candles.</span>
               </div>
             </label>
 
-            <label class="checklist-item" id="checkItem5" onclick="toggleCheckItem('check5')">
-              <input type="checkbox" id="check5" onchange="updateGatekeeperStatus()">
+            <label class="checklist-item" id="checkItem5" onclick="handleLabelClick(event, 5)">
+              <input type="checkbox" id="check5" onchange="syncGatekeeperFromHub(5, this.checked)">
               <div class="checklist-text">
-                <strong>5. Emotional Detachment & Risk Accepted</strong>
-                <span>I have fully accepted the 1R rupee loss without anger if this setup fails.</span>
+                <strong>🧘 5. Loss Accepted (1R Max)</strong>
+                <span>100% calm and emotionally detached if stopped out.</span>
               </div>
             </label>
           </div>
@@ -6414,6 +6526,86 @@
           </div>
           <button class="btn" onclick="closeGrowwOptionChainModal()" style="padding: 4px 12px; font-size: 11px;">Close</button>
         </div>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- MODAL: PRE-FLIGHT EXECUTION GATEKEEPER POPUP             -->
+    <!-- ========================================================= -->
+    <div id="preFlightChecklistModal" class="lockout-modal-overlay" onclick="if(event.target === this) closePreFlightChecklistModal()">
+      <div class="lockout-card" style="max-width: 540px; border-color: rgba(56, 189, 248, 0.4); text-align: left; box-shadow: 0 0 50px rgba(56, 189, 248, 0.25); position: relative; padding: 22px;">
+        
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; border-bottom: 1px solid var(--line); padding-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="font-size: 22px;">📋</div>
+            <div>
+              <h3 style="margin: 0; font-size: 16px; color: #ffffff; font-weight: 800; letter-spacing: -0.2px;">Pre-Flight Execution Checklist</h3>
+              <span style="font-size: 11.5px; color: var(--muted);">5 Non-Negotiable Checks Before Clicking Buy/Sell</span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span id="modalGatekeeperScoreBadge" class="rr-badge warning" style="font-size: 11px; font-weight: 800; padding: 4px 10px;">0/5 Pending</span>
+            <button class="btn" onclick="closePreFlightChecklistModal()" style="padding: 4px 10px; font-size: 12px; min-width: 30px; line-height: 1;">✕</button>
+          </div>
+        </div>
+
+        <div id="modalChecklistWrap" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+          <!-- 1 -->
+          <div class="modal-check-card" id="modalCheckCard1" onclick="handleModalCardClick(event, 1)">
+            <input type="checkbox" id="modalCheck1" onchange="syncGatekeeperFromModal(1, this.checked)">
+            <div style="flex: 1;">
+              <div class="modal-check-title"><span>🟢</span> 1. Signal & Trend Confluence</div>
+              <div class="modal-check-desc">GeNIE 5m breakout signal active + Sector pulse aligned</div>
+            </div>
+          </div>
+          <!-- 2 -->
+          <div class="modal-check-card" id="modalCheckCard2" onclick="handleModalCardClick(event, 2)">
+            <input type="checkbox" id="modalCheck2" onchange="syncGatekeeperFromModal(2, this.checked)">
+            <div style="flex: 1;">
+              <div class="modal-check-title"><span>🛑</span> 2. Hard SL in Broker</div>
+              <div class="modal-check-desc">Fixed technical invalidation set & order placed before entry</div>
+            </div>
+          </div>
+          <!-- 3 -->
+          <div class="modal-check-card" id="modalCheckCard3" onclick="handleModalCardClick(event, 3)">
+            <input type="checkbox" id="modalCheck3" onchange="syncGatekeeperFromModal(3, this.checked)">
+            <div style="flex: 1;">
+              <div class="modal-check-title"><span>🎯</span> 3. Minimum 1:2+ R:R</div>
+              <div class="modal-check-desc">Target potential ≥ 2x rupee risk (no scalps without upside)</div>
+            </div>
+          </div>
+          <!-- 4 -->
+          <div class="modal-check-card" id="modalCheckCard4" onclick="handleModalCardClick(event, 4)">
+            <input type="checkbox" id="modalCheck4" onchange="syncGatekeeperFromModal(4, this.checked)">
+            <div style="flex: 1;">
+              <div class="modal-check-title"><span>⚡</span> 4. No Chasing / Zero FOMO</div>
+              <div class="modal-check-desc">Enter near key level/pullback — never chase extended candles</div>
+            </div>
+          </div>
+          <!-- 5 -->
+          <div class="modal-check-card" id="modalCheckCard5" onclick="handleModalCardClick(event, 5)">
+            <input type="checkbox" id="modalCheck5" onchange="syncGatekeeperFromModal(5, this.checked)">
+            <div style="flex: 1;">
+              <div class="modal-check-title"><span>🧘</span> 5. Loss Accepted (1R Max)</div>
+              <div class="modal-check-desc">100% calm and emotionally detached if stopped out</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid var(--line); padding-top: 14px;">
+          <button type="button" class="btn" onclick="resetGatekeeperChecklist()" style="font-size: 11.5px; padding: 6px 12px; color: var(--muted);">
+            🔄 Reset Checks
+          </button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn" onclick="closePreFlightChecklistModal(); openPositionSizer();" style="font-size: 11.5px; padding: 6px 12px; border-color: rgba(56,189,248,0.4); color: #38bdf8;">
+              🛡️ Position Sizer
+            </button>
+            <button type="button" class="btn btn-primary" onclick="closePreFlightChecklistModal()" style="font-size: 11.5px; padding: 6px 16px;">
+              ✓ Done / Ready
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -9708,44 +9900,137 @@
       });
     }
 
-    // Pre-Flight Gatekeeper Checklist
-    function toggleCheckItem(checkId) {
-      const checkbox = document.getElementById(checkId);
-      if (checkbox) {
-        // Toggle if clicked container
-        checkbox.checked = !checkbox.checked;
+    // ==========================================
+    // Pre-Flight Gatekeeper Checklist Logic & Sync
+    // ==========================================
+    function openPreFlightChecklistModal() {
+      const modal = document.getElementById("preFlightChecklistModal");
+      if (modal) {
+        modal.classList.add("active");
         updateGatekeeperStatus();
       }
     }
 
+    function closePreFlightChecklistModal() {
+      const modal = document.getElementById("preFlightChecklistModal");
+      if (modal) {
+        modal.classList.remove("active");
+      }
+    }
+
+    function handleLabelClick(event, idx) {
+      if (event.target && event.target.tagName === 'INPUT') {
+        return; // native checkbox handles change
+      }
+      event.preventDefault();
+      toggleGatekeeperCheck(idx);
+    }
+
+    function handleModalCardClick(event, idx) {
+      if (event.target && event.target.tagName === 'INPUT') {
+        return; // native checkbox handles change
+      }
+      event.preventDefault();
+      toggleGatekeeperCheck(idx);
+    }
+
+    function toggleGatekeeperCheck(idx) {
+      const cHub = document.getElementById(`check${idx}`);
+      const cModal = document.getElementById(`modalCheck${idx}`);
+      const current = cHub ? cHub.checked : (cModal ? cModal.checked : false);
+      const targetState = !current;
+      if (cHub) cHub.checked = targetState;
+      if (cModal) cModal.checked = targetState;
+      updateGatekeeperStatus();
+    }
+
+    function syncGatekeeperFromHub(idx, checked) {
+      const cModal = document.getElementById(`modalCheck${idx}`);
+      if (cModal) cModal.checked = checked;
+      updateGatekeeperStatus();
+    }
+
+    function syncGatekeeperFromModal(idx, checked) {
+      const cHub = document.getElementById(`check${idx}`);
+      if (cHub) cHub.checked = checked;
+      updateGatekeeperStatus();
+    }
+
+    function resetGatekeeperChecklist() {
+      for (let i = 1; i <= 5; i++) {
+        const cHub = document.getElementById(`check${i}`);
+        const cModal = document.getElementById(`modalCheck${i}`);
+        if (cHub) cHub.checked = false;
+        if (cModal) cModal.checked = false;
+      }
+      updateGatekeeperStatus();
+      showToast("🔄 Pre-Flight Checklist reset for next setup");
+    }
+
     function updateGatekeeperStatus() {
-      const checks = [
-        document.getElementById("check1"),
-        document.getElementById("check2"),
-        document.getElementById("check3"),
-        document.getElementById("check4"),
-        document.getElementById("check5")
-      ];
-
       let count = 0;
-      checks.forEach((c, idx) => {
-        const itemWrap = document.getElementById(`checkItem${idx + 1}`);
-        if (c && c.checked) {
-          count++;
-          if (itemWrap) itemWrap.classList.add("checked");
-        } else {
-          if (itemWrap) itemWrap.classList.remove("checked");
-        }
-      });
+      for (let i = 1; i <= 5; i++) {
+        const cHub = document.getElementById(`check${i}`);
+        const cModal = document.getElementById(`modalCheck${i}`);
+        const isChecked = (cHub && cHub.checked) || (cModal && cModal.checked);
+        
+        // Ensure both inputs are strictly in sync
+        if (cHub) cHub.checked = !!isChecked;
+        if (cModal) cModal.checked = !!isChecked;
 
-      const badge = document.getElementById("gatekeeperScoreBadge");
-      if (badge) {
+        // Update card visual styles
+        const hubItem = document.getElementById(`checkItem${i}`);
+        if (hubItem) {
+          if (isChecked) hubItem.classList.add("checked");
+          else hubItem.classList.remove("checked");
+        }
+
+        const modalItem = document.getElementById(`modalCheckCard${i}`);
+        if (modalItem) {
+          if (isChecked) modalItem.classList.add("checked");
+          else modalItem.classList.remove("checked");
+        }
+
+        if (isChecked) count++;
+      }
+
+      // 1. Hub Badge
+      const hubBadge = document.getElementById("gatekeeperScoreBadge");
+      if (hubBadge) {
         if (count === 5) {
-          badge.textContent = "5/5 Cleared 🟢 Ready";
-          badge.className = "rr-badge good";
+          hubBadge.textContent = "5/5 Cleared 🟢 Ready";
+          hubBadge.className = "rr-badge good";
         } else {
-          badge.textContent = `${count}/5 Checks ⚠️ Incomplete`;
-          badge.className = "rr-badge warning";
+          hubBadge.textContent = `${count}/5 Checks ⚠️ Incomplete`;
+          hubBadge.className = "rr-badge warning";
+        }
+      }
+
+      // 2. Modal Badge
+      const modalBadge = document.getElementById("modalGatekeeperScoreBadge");
+      if (modalBadge) {
+        if (count === 5) {
+          modalBadge.textContent = "5/5 READY TO FLY 🚀";
+          modalBadge.className = "rr-badge good";
+        } else {
+          modalBadge.textContent = `${count}/5 Pending ⚠️`;
+          modalBadge.className = "rr-badge warning";
+        }
+      }
+
+      // 3. Navbar Counter & Button Styling
+      const navBadge = document.getElementById("navGatekeeperScoreBadge");
+      const navBtn = document.getElementById("navPreFlightBtn");
+      if (navBadge) {
+        navBadge.textContent = `${count}/5`;
+      }
+      if (navBtn) {
+        if (count === 5) {
+          navBtn.classList.add("ready-all");
+          navBtn.title = "Pre-Flight Rules: 5/5 Ready to Trade! 🚀";
+        } else {
+          navBtn.classList.remove("ready-all");
+          navBtn.title = `Pre-Flight Rules Checklist (${count}/5 checks completed) - Shortcut: P`;
         }
       }
     }
@@ -12743,8 +13028,24 @@
       }
 
       document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && sModal && sModal.style.display === "flex") {
-          closeSectorDrilldown();
+        const isInput = ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName) || e.target.isContentEditable;
+        const pfModal = document.getElementById("preFlightChecklistModal");
+
+        if (e.key === "Escape") {
+          if (pfModal && pfModal.classList.contains("active")) {
+            closePreFlightChecklistModal();
+          }
+          if (sModal && sModal.style.display === "flex") {
+            closeSectorDrilldown();
+          }
+        } else if ((e.key === "p" || e.key === "P") && !isInput && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          if (pfModal) {
+            if (pfModal.classList.contains("active")) {
+              closePreFlightChecklistModal();
+            } else {
+              openPreFlightChecklistModal();
+            }
+          }
         }
       });
 
@@ -13221,6 +13522,7 @@
       fetchScannerStatus();
       fetchRiskProfile();
       fetchPracticePortfolio(true);
+      updateGatekeeperStatus();
 
       state.refreshTimer = setInterval(refreshAllData, state.autoRefreshInterval);
       state.signalsPollTimer = setInterval(() => {
