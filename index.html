@@ -9176,8 +9176,38 @@
 
     function getLocalRiskProfile() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEYS.JOURNAL_PROFILE);
-        return raw ? JSON.parse(raw) : null;
+        const keys = [
+          STORAGE_KEYS.JOURNAL_PROFILE,
+          "STOCK_SCOUT_JOURNAL_PROFILE",
+          "STOCK_SCOUT_RISK_PROFILE",
+          "STOCK_SCOUT_JOURNAL_V1",
+          "riskProfile",
+          "journalProfile"
+        ];
+        let merged = null;
+        for (const k of keys) {
+          const raw = localStorage.getItem(k);
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw);
+              if (parsed) {
+                if (!merged) {
+                  merged = parsed;
+                } else if (Array.isArray(parsed.journal)) {
+                  if (!Array.isArray(merged.journal)) merged.journal = [];
+                  const existingIds = new Set(merged.journal.map(t => t.id));
+                  parsed.journal.forEach(t => {
+                    if (t && t.id && !existingIds.has(t.id)) {
+                      merged.journal.push(t);
+                      existingIds.add(t.id);
+                    }
+                  });
+                }
+              }
+            } catch (e) {}
+          }
+        }
+        return merged;
       } catch (e) {
         return null;
       }
