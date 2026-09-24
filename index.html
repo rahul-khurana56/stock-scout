@@ -1354,17 +1354,45 @@
       outline: none;
     }
 
-    input.input-text {
+    input.input-text, textarea.input-text {
       width: 100%;
-      min-height: 42px;
-      padding: 0 14px;
-      border-radius: 12px;
+      min-height: 38px;
+      padding: 6px 12px;
+      border-radius: 8px;
       border: 1px solid var(--line-strong);
       background: rgba(255, 255, 255, 0.04);
       color: var(--text);
       font: inherit;
-      font-size: 14px;
+      font-size: 13px;
       outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    input.input-text:focus, textarea.input-text:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
+    textarea.input-text {
+      font-family: inherit;
+      resize: vertical;
+      overflow-y: auto;
+    }
+
+    textarea.input-text::-webkit-scrollbar {
+      width: 6px;
+    }
+    textarea.input-text::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+    textarea.input-text::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.35);
+      border-radius: 4px;
+    }
+    textarea.input-text::-webkit-scrollbar-thumb:hover {
+      background: rgba(56, 189, 248, 0.65);
     }
 
     .toast-msg {
@@ -2587,7 +2615,7 @@
       padding: 10px 14px;
       display: flex;
       flex-wrap: wrap;
-      align-items: center;
+      align-items: flex-start;
       gap: 12px;
       transition: all 0.2s ease;
     }
@@ -5681,11 +5709,11 @@
           <!-- Screenshot Attachment Dropzone & Notes Strip -->
           <div class="journal-attach-box" id="journalAttachBox">
             <input type="file" id="journalScreenshotsInput" multiple accept="image/*" style="display: none;" onchange="handleJournalFiles(event)">
-            <button type="button" class="btn" onclick="document.getElementById('journalScreenshotsInput').click()" style="font-size: 11.5px; padding: 5px 12px; background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; display: inline-flex; align-items: center; gap: 6px;">
+            <button type="button" class="btn" onclick="document.getElementById('journalScreenshotsInput').click()" style="font-size: 11.5px; padding: 6px 12px; background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; display: inline-flex; align-items: center; gap: 6px; margin-top: 2px;">
               📷 Attach Charts (or Paste Ctrl+V)
             </button>
-            <div style="flex: 1; min-width: 220px;">
-              <input type="text" id="journalNotes" class="input-text" placeholder="Trade rationale, setup triggers, or execution lessons..." style="font-size: 11.5px; padding: 5px 10px; width: 100%;">
+            <div style="flex: 1; min-width: 260px;">
+              <textarea id="journalNotes" class="input-text" rows="2" placeholder="Trade rationale, setup triggers, or execution lessons (scrollable multi-line notes)..." style="font-size: 12px; line-height: 1.45; padding: 7px 10px; width: 100%; min-height: 50px; max-height: 160px; resize: vertical; overflow-y: auto; box-sizing: border-box; display: block; border-radius: 8px;"></textarea>
             </div>
             <div id="journalScreenshotsPreview" class="journal-preview-grid"></div>
           </div>
