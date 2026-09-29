@@ -1918,6 +1918,88 @@
       box-shadow: 0 0 12px rgba(6, 182, 212, 0.5);
     }
 
+    .btn-quick-rules {
+      background: linear-gradient(135deg, #d97706, #f59e0b);
+      color: #0b1120;
+      border: none;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 11.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+    }
+
+    .btn-quick-rules:hover {
+      transform: scale(1.04);
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.5);
+    }
+
+    /* Morning Rules Top Sticky Strip */
+    .morning-rules-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 7px 16px;
+      background: linear-gradient(90deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.96));
+      border-bottom: 1px solid rgba(245, 158, 11, 0.35);
+      font-size: 11.5px;
+      color: #e2e8f0;
+      overflow-x: auto;
+      white-space: nowrap;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      position: sticky;
+      top: 52px;
+      z-index: 90;
+    }
+
+    .rules-chip-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+
+    .rule-pill-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2.5px 9px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 11px;
+      border: 1px solid transparent;
+    }
+
+    .rule-pill-tag.sl-entry {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.35);
+      color: #7dd3fc;
+    }
+
+    .rule-pill-tag.no-adds {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+    }
+
+    .rule-pill-tag.circuit {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.35);
+      color: #fde047;
+    }
+
+    .rule-pill-tag.tsl {
+      background: rgba(34, 197, 94, 0.15);
+      border-color: rgba(34, 197, 94, 0.35);
+      color: #86efac;
+    }
+
     /* Risk Tab Grid & Layout */
     .risk-hub-header {
       display: grid;
@@ -4192,6 +4274,9 @@
         <button class="btn-quick-sizer" id="navQuickSizerBtn" onclick="openPositionSizer()" title="Launch Position Sizing & R:R Calculator">
           🛡️ Sizer
         </button>
+        <button class="btn-quick-rules" id="navMorningRulesBtn" onclick="openMorningRulesModal()" title="View Morning Trading Checklist & Golden Rules">
+          🌅 Rules
+        </button>
       </div>
 
       <!-- Header Actions -->
@@ -4245,6 +4330,21 @@
       <span>Scanner & Universe</span>
     </button>
   </nav>
+
+  <!-- Top Sticky Morning Rules Bar -->
+  <div class="morning-rules-strip" id="globalMorningRulesStrip">
+    <div class="rules-chip-group">
+      <span style="color: #f59e0b; font-weight: 800; display: flex; align-items: center; gap: 4px;">🌅 MORNING RULES:</span>
+      <span class="rule-pill-tag sl-entry">🛡️ <strong>SL with Entry</strong>: ₹2k ÷ Qty (1k=2pt, 650=3pt, 300=6.5pt)</span>
+      <span class="rule-pill-tag no-adds">🚫 <strong>ZERO Adds to Loss</strong>: No averaging down</span>
+      <span class="rule-pill-tag circuit">🛑 <strong>Circuit Breaker</strong>: 2-3 SL Hits (-₹4k to -₹6k) = Stop</span>
+      <span class="rule-pill-tag tsl">📈 <strong>Winners</strong>: Trail SL to cost & bank profit</span>
+      <span class="rule-pill-tag sl-entry">🎯 <strong>1 Trade at a Time</strong>: No evening MCX revenge</span>
+    </div>
+    <button class="btn" onclick="openMorningRulesModal()" style="font-size: 11px; padding: 2px 10px; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b; background: rgba(245, 158, 11, 0.15); font-weight: 700;">
+      📋 Checklist ➔
+    </button>
+  </div>
 
   <!-- Floating Hover Card for Stocks & Sectors -->
   <div id="stockHoverCard" class="stock-tooltip-card">
@@ -5542,8 +5642,17 @@
               <h2>📖 Trader Psychology Journal & Discipline Scorecard</h2>
               <p>Track execution quality, net profit/loss, and quantify the exact rupee cost of discipline breaches for any date or range.</p>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <button class="btn" onclick="clearJournalHistory()" style="font-size: 11px; color: var(--muted);">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <button class="btn" onclick="exportJournalToCSV()" style="font-size: 11px; background: rgba(34, 197, 94, 0.15); border-color: rgba(34, 197, 94, 0.4); color: #4ade80; display: inline-flex; align-items: center; gap: 4px;" title="Download full journal as CSV / Excel spreadsheet">
+                📊 Download CSV (Excel)
+              </button>
+              <button class="btn" onclick="exportJournalToReport()" style="font-size: 11px; background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; display: inline-flex; align-items: center; gap: 4px;" title="Print or Save as PDF Report">
+                📄 Print / PDF Report
+              </button>
+              <button class="btn" onclick="exportJournalToJSON()" style="font-size: 11px; background: rgba(234, 179, 8, 0.15); border-color: rgba(234, 179, 8, 0.4); color: #facc15; display: inline-flex; align-items: center; gap: 4px;" title="Download complete JSON backup">
+                💾 Backup JSON
+              </button>
+              <button class="btn" onclick="clearJournalHistory()" style="font-size: 11px; color: var(--muted);" title="Clear journal history">
                 🗑️ Clear History
               </button>
             </div>
@@ -6638,6 +6747,62 @@
           </div>
         </div>
 
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- MODAL: MORNING TRADING CHECKLIST & GOLDEN RULES           -->
+    <!-- ========================================================= -->
+    <div id="morningRulesModal" class="lockout-modal-overlay" style="display: none;">
+      <div class="lockout-card" style="max-width: 650px; border-color: rgba(245, 158, 11, 0.5); text-align: left; box-shadow: 0 0 50px rgba(245, 158, 11, 0.25); max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px;">
+          <h3 style="margin: 0; font-size: 18px; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+            🌅 Morning Trading Checklist & Risk Guardrails
+          </h3>
+          <button class="refresh-btn" onclick="closeMorningRulesModal()" style="width: 28px; height: 28px; font-size: 12px;">✕</button>
+        </div>
+
+        <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px;">
+          <div style="font-size: 12px; font-weight: 700; color: #fbbf24; margin-bottom: 2px;">Core Formula: Fixed ₹2,000 Risk per Trade</div>
+          <div style="font-size: 11px; color: #cbd5e1;">SL Points = ₹2,000 ÷ Qty • (1,000 Qty = 2.0 pts | 650 Qty = 3.0 pts | 300 Qty = 6.5 pts)</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;">
+          <div class="modal-check-item" style="border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: rgba(0,0,0,0.25);">
+            <div style="font-weight: 700; color: #38bdf8; font-size: 13px; margin-bottom: 4px;">1️⃣ Before Every Trade</div>
+            <ul style="margin: 0; padding-left: 18px; font-size: 11.5px; color: #e2e8f0; line-height: 1.5;">
+              <li><strong>SL goes IN WITH the entry:</strong> Use "Add stoploss" on the buy order itself. Never enter naked.</li>
+              <li><strong>Check Market Depth:</strong> Ensure tight bid-ask spread and real size before taking 650–1,000 qty.</li>
+            </ul>
+          </div>
+
+          <div class="modal-check-item" style="border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: rgba(0,0,0,0.25);">
+            <div style="font-weight: 700; color: #f87171; font-size: 13px; margin-bottom: 4px;">2️⃣ While Inside the Trade</div>
+            <ul style="margin: 0; padding-left: 18px; font-size: 11.5px; color: #e2e8f0; line-height: 1.5;">
+              <li><strong>NEVER add qty to a red position:</strong> Not "just a little," not "to average down." No exceptions.</li>
+              <li><strong>Stopped out?</strong> If you re-enter, that is a brand new trade with a fresh SL, NOT an add-on.</li>
+              <li><strong>No tick staring:</strong> Stop staring at 1-sec noise once order & SL are placed.</li>
+            </ul>
+          </div>
+
+          <div class="modal-check-item" style="border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: rgba(0,0,0,0.25);">
+            <div style="font-weight: 700; color: #4ade80; font-size: 13px; margin-bottom: 4px;">3️⃣ On Winners & Daily Stop</div>
+            <ul style="margin: 0; padding-left: 18px; font-size: 11.5px; color: #e2e8f0; line-height: 1.5;">
+              <li><strong>Trail SL on profit:</strong> Lock in few points and bank profits calmly.</li>
+              <li><strong>Daily Circuit Breaker:</strong> Max 2-3 SL hits (-₹4,000 to -₹6,000) ➔ <strong>DONE for the day. Close the app.</strong></li>
+              <li><strong>One trade at a time:</strong> No evening MCX / Natural Gas revenge trading.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px;">
+          <button class="btn" onclick="openPositionSizer()" style="font-size: 12px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">
+            🛡️ Open Sizer
+          </button>
+          <button class="btn btn-primary" onclick="closeMorningRulesModal()" style="font-size: 12px; padding: 6px 18px;">
+            ✓ Got It / Ready to Trade
+          </button>
+        </div>
       </div>
     </div>
 
@@ -11477,6 +11642,287 @@
       } catch (err) {
         showToast("Journal cleared locally");
       }
+    }
+
+    // ==========================================
+    // JOURNAL EXPORT & DOWNLOAD SUITE
+    // ==========================================
+    // ==========================================
+    // JOURNAL EXPORT & DOWNLOAD SUITE (DATE-RANGE AWARE)
+    // ==========================================
+    function getScopedJournalForExport() {
+      const allJournal = state.riskProfile?.journal || [];
+      if (!allJournal.length) return { trades: [], label: "empty", filterDesc: "All Time", isFiltered: false };
+
+      let scoped = allJournal;
+      let label = "all_time";
+      let filterDesc = "All Time";
+
+      // Filter by Asset Type if selected
+      if (state.journalAssetFilter && state.journalAssetFilter !== "ALL") {
+        scoped = scoped.filter((t) => (t.assetType || "EQUITY").toUpperCase() === state.journalAssetFilter.toUpperCase());
+        label += `_${state.journalAssetFilter.toLowerCase()}`;
+        filterDesc += ` • ${state.journalAssetFilter}`;
+      }
+
+      // Filter by Date Range
+      if (state.journalDateFrom || state.journalDateTo) {
+        if (state.journalDateFrom && state.journalDateTo) {
+          scoped = scoped.filter((t) => {
+            const tDate = t.tradeDate || (t.createdAt ? t.createdAt.slice(0, 10) : "");
+            return tDate >= state.journalDateFrom && tDate <= state.journalDateTo;
+          });
+          label = `${state.journalDateFrom}_to_${state.journalDateTo}`;
+          filterDesc = `${state.journalDateFrom} to ${state.journalDateTo}`;
+        } else if (state.journalDateFrom) {
+          scoped = scoped.filter((t) => {
+            const tDate = t.tradeDate || (t.createdAt ? t.createdAt.slice(0, 10) : "");
+            return tDate >= state.journalDateFrom;
+          });
+          label = `from_${state.journalDateFrom}`;
+          filterDesc = `From ${state.journalDateFrom}`;
+        } else if (state.journalDateTo) {
+          scoped = scoped.filter((t) => {
+            const tDate = t.tradeDate || (t.createdAt ? t.createdAt.slice(0, 10) : "");
+            return tDate <= state.journalDateTo;
+          });
+          label = `up_to_${state.journalDateTo}`;
+          filterDesc = `Up to ${state.journalDateTo}`;
+        }
+      }
+
+      // Filter by Status Chip if selected (DISCIPLINED, BREACHED, WINS, LOSSES)
+      if (state.journalFilter && state.journalFilter !== "ALL") {
+        if (state.journalFilter === "DISCIPLINED") scoped = scoped.filter((t) => t.disciplineFollowed !== false);
+        if (state.journalFilter === "BREACHED") scoped = scoped.filter((t) => t.disciplineFollowed === false);
+        if (state.journalFilter === "WINS") scoped = scoped.filter((t) => (t.pnl || 0) > 0);
+        if (state.journalFilter === "LOSSES") scoped = scoped.filter((t) => (t.pnl || 0) < 0);
+        label += `_${state.journalFilter.toLowerCase()}`;
+        filterDesc += ` • ${state.journalFilter}`;
+      }
+
+      // Filter by Symbol Search if active
+      if (state.journalSearchSymbol) {
+        const q = state.journalSearchSymbol.toUpperCase();
+        scoped = scoped.filter((t) => (t.symbol || "").toUpperCase().includes(q));
+        label += `_${q}`;
+        filterDesc += ` • Symbol: ${q}`;
+      }
+
+      const isFiltered = scoped.length !== allJournal.length;
+      return { trades: scoped, totalAll: allJournal.length, label, filterDesc, isFiltered };
+    }
+
+    function exportJournalToCSV() {
+      const { trades, label, filterDesc } = getScopedJournalForExport();
+      if (!trades.length) {
+        alert("No journal entries found matching the active date range / filters to export.");
+        return;
+      }
+
+      const headers = [
+        "Date",
+        "Entry Time",
+        "Exit Time",
+        "Symbol",
+        "Side",
+        "Asset Type",
+        "Entry Price",
+        "Exit Price",
+        "Quantity",
+        "Points Captured",
+        "P&L (INR)",
+        "P&L (%)",
+        "Emotion Tag",
+        "Discipline",
+        "Mistake Tags / Breaches",
+        "Notes"
+      ];
+
+      const rows = trades.map(t => {
+        const dateStr = t.tradeDate || (t.createdAt ? t.createdAt.slice(0, 10) : "");
+        const entryPrice = Number(t.entryPrice || 0);
+        const exitPrice = Number(t.exitPrice || 0);
+        const points = exitPrice && entryPrice ? (String(t.side).toUpperCase() === "BUY" ? (exitPrice - entryPrice) : (entryPrice - exitPrice)).toFixed(2) : "0";
+        const isDisc = t.disciplineFollowed !== false ? "100% Rules" : "Rule Breached";
+        const mistakes = Array.isArray(t.mistakeTags) ? t.mistakeTags.join("; ") : "";
+        const cleanNotes = (t.notes || "").replace(/"/g, '""');
+
+        return [
+          `"${dateStr}"`,
+          `"${t.entryTime || ''}"`,
+          `"${t.exitTime || ''}"`,
+          `"${t.symbol || ''}"`,
+          `"${t.side || 'BUY'}"`,
+          `"${t.assetType || 'OPTIONS'}"`,
+          entryPrice.toFixed(2),
+          exitPrice.toFixed(2),
+          t.quantity || 0,
+          points,
+          Number(t.pnl || 0).toFixed(2),
+          Number(t.pnlPercent || 0).toFixed(2) + "%",
+          `"${t.emotionTag || 'CALM'}"`,
+          `"${isDisc}"`,
+          `"${mistakes}"`,
+          `"${cleanNotes}"`
+        ].join(",");
+      });
+
+      const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\r\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `trading_journal_${label}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast(`📊 Downloaded ${trades.length} trades (${filterDesc}) as CSV!`);
+    }
+
+    function exportJournalToJSON() {
+      const { trades, label, filterDesc } = getScopedJournalForExport();
+      if (!trades.length) {
+        alert("No journal entries found to export.");
+        return;
+      }
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(trades, null, 2));
+      const downloadAnchor = document.createElement("a");
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `trading_journal_backup_${label}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast(`💾 JSON backup downloaded (${trades.length} trades - ${filterDesc})!`);
+    }
+
+    function exportJournalToReport() {
+      const { trades, label, filterDesc } = getScopedJournalForExport();
+      if (!trades.length) {
+        alert("No journal entries found matching active filters to generate report.");
+        return;
+      }
+
+      const totalTrades = trades.length;
+      const wins = trades.filter(t => (t.pnl || 0) > 0);
+      const losses = trades.filter(t => (t.pnl || 0) < 0);
+      const totalPnl = trades.reduce((acc, t) => acc + (t.pnl || 0), 0);
+      const winRate = totalTrades ? ((wins.length / totalTrades) * 100).toFixed(1) : 0;
+      const disciplinedTrades = trades.filter(t => t.disciplineFollowed !== false);
+      const breachedTrades = trades.filter(t => t.disciplineFollowed === false);
+      const breachCost = Math.abs(breachedTrades.reduce((acc, t) => acc + ((t.pnl || 0) < 0 ? t.pnl : 0), 0));
+
+      const reportWindow = window.open("", "_blank");
+      if (!reportWindow) {
+        alert("Please allow popups in your browser to view the printable Trade Report.");
+        return;
+      }
+
+      const reportHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Trader Psychology Journal & Performance Report - ${filterDesc}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 24px; color: #1e293b; background: #ffffff; }
+    h1 { margin: 0 0 4px 0; font-size: 24px; color: #0f172a; }
+    .sub { color: #64748b; font-size: 13px; margin-bottom: 20px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .kpi-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }
+    .kpi-title { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+    .kpi-val { font-size: 18px; font-weight: 800; color: #0f172a; }
+    .pos { color: #16a34a !important; }
+    .neg { color: #dc2626 !important; }
+    table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-top: 10px; }
+    th { background: #f1f5f9; text-align: left; padding: 8px 10px; font-weight: 700; border-bottom: 2px solid #cbd5e1; }
+    td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
+    tr:nth-child(even) { background: #f8fafc; }
+    .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 700; }
+    .tag-disc { background: #dcfce7; color: #166534; }
+    .tag-breach { background: #fee2e2; color: #991b1b; }
+    .actions-bar { margin-bottom: 20px; display: flex; gap: 10px; }
+    @media print { .no-print { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="no-print actions-bar">
+    <button onclick="window.print()" style="padding: 8px 16px; background: #0284c7; color: #fff; border: none; border-radius: 6px; font-weight: 700; cursor: pointer;">🖨️ Print / Save as PDF</button>
+    <button onclick="window.close()" style="padding: 8px 14px; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+  </div>
+
+  <h1>📖 Trader Psychology & Performance Audit Report</h1>
+  <div class="sub">Date Range: <strong>${filterDesc}</strong> | Account Capital: ₹2,50,000 | Generated: ${new Date().toLocaleString()}</div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-title">Net Realized P&L</div>
+      <div class="kpi-val ${totalPnl >= 0 ? 'pos' : 'neg'}">${totalPnl >= 0 ? '+₹' : '-₹'}${Math.abs(totalPnl).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Trades / Win Rate</div>
+      <div class="kpi-val">${totalTrades} Trades (${winRate}%)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Discipline Score</div>
+      <div class="kpi-val">${disciplinedTrades.length} / ${totalTrades} (${totalTrades ? ((disciplinedTrades.length / totalTrades) * 100).toFixed(0) : 0}%)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Cost of Rule Breaches</div>
+      <div class="kpi-val neg">-₹${breachCost.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date/Time</th>
+        <th>Symbol & Side</th>
+        <th>Asset</th>
+        <th>Entry ➔ Exit</th>
+        <th>Qty</th>
+        <th>P&L (₹)</th>
+        <th>Emotion</th>
+        <th>Discipline</th>
+        <th>Notes / Review</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${trades.map(t => {
+        const isPos = (t.pnl || 0) >= 0;
+        const pnlFormatted = `${isPos ? '+₹' : '-₹'}${Math.abs(t.pnl || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+        const isDisc = t.disciplineFollowed !== false;
+        return `
+        <tr>
+          <td>${t.tradeDate || (t.createdAt ? t.createdAt.slice(0, 10) : '')} <br><small style="color: #64748b;">${t.entryTime || ''} - ${t.exitTime || ''}</small></td>
+          <td><strong>${t.symbol || ''}</strong> <span style="font-size: 10px; color: ${t.side === 'BUY' ? '#16a34a' : '#dc2626'}; font-weight: bold;">${t.side || 'BUY'}</span></td>
+          <td>${t.assetType || 'OPTIONS'}</td>
+          <td>₹${Number(t.entryPrice || 0).toFixed(2)} ➔ ₹${Number(t.exitPrice || 0).toFixed(2)}</td>
+          <td><strong>${(t.quantity || 0).toLocaleString()}</strong></td>
+          <td class="${isPos ? 'pos' : 'neg'}" style="font-weight: bold;">${pnlFormatted}</td>
+          <td>${t.emotionTag || 'CALM'}</td>
+          <td><span class="tag ${isDisc ? 'tag-disc' : 'tag-breach'}">${isDisc ? '✔️ 100% Rules' : '❌ Breached'}</span></td>
+          <td style="max-width: 250px; font-size: 11px;">${t.notes || '--'}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+</body>
+</html>`;
+
+      reportWindow.document.open();
+      reportWindow.document.write(reportHtml);
+      reportWindow.document.close();
+      showToast("📄 Printable Trade Report opened in new tab!");
+    }
+
+    function openMorningRulesModal() {
+      const modal = document.getElementById("morningRulesModal");
+      if (modal) modal.style.display = "flex";
+    }
+
+    function closeMorningRulesModal() {
+      const modal = document.getElementById("morningRulesModal");
+      if (modal) modal.style.display = "none";
     }
 
     async function resetDailyRiskSession() {
