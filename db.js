@@ -8,6 +8,26 @@ const jsonFile = path.join(dataDir, "risk_profile.json");
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
+function loadEnvFile(filePath) {
+  try {
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, "utf8");
+      content.split("\n").forEach((line) => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) return;
+        const [k, ...v] = trimmed.split("=");
+        if (k && v.length) {
+          const key = k.trim();
+          const val = v.join("=").trim().replace(/^["']|["']$/g, "");
+          if (!process.env[key]) process.env[key] = val;
+        }
+      });
+    }
+  } catch (e) {}
+}
+
+loadEnvFile(path.join(__dirname, ".env"));
+
 let pgPool = null;
 const databaseUrl = process.env.DATABASE_URL || "";
 
@@ -60,6 +80,19 @@ async function initPostgresSchema() {
       );
     `);
     console.log("✅ PostgreSQL schema initialized successfully (risk_journal & risk_settings tables ready).");
+
+    // Auto-seed existing JSON trades if Postgres table is newly created or has fewer trades
+    const local = loadLocalJsonProfile();
+    const countRes = await pgPool.query("SELECT COUNT(*) as count FROM risk_journal");
+    const dbCount = Number(countRes.rows[0]?.count || 0);
+
+    if (dbCount === 0 && Array.isArray(local.journal) && local.journal.length > 0) {
+      console.log(`📦 Auto-migrating ${local.journal.length} local trades into Cloud PostgreSQL...`);
+      for (const trade of local.journal) {
+        await saveTradeToDb(trade);
+      }
+      console.log("🚀 Cloud PostgreSQL migration completed successfully!");
+    }
   } catch (err) {
     console.error("❌ Error initializing PostgreSQL schema:", err.message);
   }
