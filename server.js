@@ -951,8 +951,11 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (url.pathname === "/api/risk/profile" && request.method === "GET") {
-    const profile = loadRiskProfile();
-    writeJson(response, 200, profile);
+    const profile = await getFullRiskProfile();
+    writeJson(response, 200, {
+      ...profile,
+      dbStatus: { isPostgres: isPostgresConnected() }
+    });
     return;
   }
 
@@ -960,7 +963,7 @@ const server = http.createServer(async (request, response) => {
     try {
       const body = await readBody(request);
       const parsed = body ? JSON.parse(body) : {};
-      const current = loadRiskProfile();
+      const current = await getFullRiskProfile();
 
       if (parsed.settings) {
         current.settings = {
@@ -976,19 +979,13 @@ const server = http.createServer(async (request, response) => {
       }
 
       saveRiskProfile(current);
-      writeJson(response, 200, current);
+      writeJson(response, 200, {
+        ...current,
+        dbStatus: { isPostgres: isPostgresConnected() }
+      });
     } catch (error) {
       writeJson(response, 400, { error: error.message || "Failed to update risk profile" });
     }
-    return;
-  }
-
-  if (url.pathname === "/api/risk/profile" && request.method === "GET") {
-    const profile = await getFullRiskProfile();
-    writeJson(response, 200, {
-      ...profile,
-      dbStatus: { isPostgres: isPostgresConnected() }
-    });
     return;
   }
 
