@@ -4,6 +4,7 @@
   "description": "Profit GeNIE Stock & Options Scout Terminal",
   "main": "server.js",
   "scripts": {
+    "build": "npm install",
     "start": "node server.js",
     "dev": "node server.js"
   },

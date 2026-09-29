@@ -2,8 +2,7 @@ services:
   - type: web
     name: stock-scout
     env: node
-    plan: free
-    buildCommand: ""
+    buildCommand: "npm install"
     startCommand: "npm start"
     envVars:
       - key: PORT
