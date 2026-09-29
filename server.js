@@ -1482,4 +1482,21 @@ server.listen(port, host, () => {
   console.log(`Profit GeNIE server running at http://${host === "0.0.0.0" ? "localhost" : host}:${port}`);
   console.log(`Scanner interval ${SCAN_INTERVAL_MS / 1000}s watching Nifty 50 + Nifty Next 50 on ${timeframe}`);
   console.log(`Primary market-data provider: ${providerConfig.primary}`);
+
+  // Automatic Keepalive Self-Ping for Render / Cloud hosting
+  const externalUrl = process.env.RENDER_EXTERNAL_URL || process.env.APP_URL;
+  if (externalUrl) {
+    const pingUrl = `${externalUrl.replace(/\/$/, "")}/api/health`;
+    console.log(`[Keepalive] Initializing self-ping monitor for ${pingUrl} (every 10m)`);
+    setInterval(async () => {
+      try {
+        const res = await fetch(pingUrl);
+        if (res.ok) {
+          console.log(`[Keepalive] Self-ping healthy at ${new Date().toISOString()}`);
+        }
+      } catch (e) {
+        console.warn(`[Keepalive] Self-ping notice: ${e.message}`);
+      }
+    }, 10 * 60 * 1000);
+  }
 });

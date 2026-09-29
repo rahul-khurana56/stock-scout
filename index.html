@@ -11226,12 +11226,40 @@
       const journal = state.riskProfile?.journal || [];
       const filter = state.journalFilter || "ALL";
 
-      // Update Counts on the main status chips
-      const countAll = journal.length;
-      const countDisc = journal.filter((t) => t.disciplineFollowed !== false).length;
-      const countBreach = journal.filter((t) => t.disciplineFollowed === false).length;
-      const countWins = journal.filter((t) => (t.pnl || 0) > 0).length;
-      const countLosses = journal.filter((t) => (t.pnl || 0) < 0).length;
+      // 1. First Scope trades by Date Range, Asset Filter, and Search Query
+      let scoped = journal;
+
+      // Filter by Asset Type (Equity, Commodities, Options, Futures, Crypto, Forex)
+      if (state.journalAssetFilter && state.journalAssetFilter !== "ALL") {
+        scoped = scoped.filter((t) => (t.assetType || "EQUITY").toUpperCase() === state.journalAssetFilter.toUpperCase());
+      }
+
+      // Filter by Date / Date Range
+      if (state.journalDateFrom) {
+        scoped = scoped.filter((t) => {
+          const tDate = t.tradeDate || (t.createdAt ? t.createdAt.slice(0, 10) : "");
+          return tDate >= state.journalDateFrom;
+        });
+      }
+      if (state.journalDateTo) {
+        scoped = scoped.filter((t) => {
+          const tDate = t.tradeDate || (t.createdAt ? t.createdAt.slice(0, 10) : "");
+          return tDate <= state.journalDateTo;
+        });
+      }
+
+      // Filter by Symbol Search
+      if (state.journalSearchSymbol) {
+        const q = state.journalSearchSymbol.toUpperCase();
+        scoped = scoped.filter((t) => (t.symbol || "").toUpperCase().includes(q));
+      }
+
+      // Update Counts on the main status chips based on the active scoped selection (e.g. Today, Yesterday, Date Range)
+      const countAll = scoped.length;
+      const countDisc = scoped.filter((t) => t.disciplineFollowed !== false).length;
+      const countBreach = scoped.filter((t) => t.disciplineFollowed === false).length;
+      const countWins = scoped.filter((t) => (t.pnl || 0) > 0).length;
+      const countLosses = scoped.filter((t) => (t.pnl || 0) < 0).length;
 
       if (document.getElementById("journalCountAll")) document.getElementById("journalCountAll").textContent = countAll;
       if (document.getElementById("journalCountDisciplined")) document.getElementById("journalCountDisciplined").textContent = countDisc;
@@ -11239,37 +11267,12 @@
       if (document.getElementById("journalCountWins")) document.getElementById("journalCountWins").textContent = countWins;
       if (document.getElementById("journalCountLosses")) document.getElementById("journalCountLosses").textContent = countLosses;
 
-      // 1. Filter by Status
-      let filtered = journal;
-      if (filter === "DISCIPLINED") filtered = journal.filter((t) => t.disciplineFollowed !== false);
-      if (filter === "BREACHED") filtered = journal.filter((t) => t.disciplineFollowed === false);
-      if (filter === "WINS") filtered = journal.filter((t) => (t.pnl || 0) > 0);
-      if (filter === "LOSSES") filtered = journal.filter((t) => (t.pnl || 0) < 0);
-
-      // 1b. Filter by Asset Type (Equity, Commodities, Options, Futures, Crypto, Forex)
-      if (state.journalAssetFilter && state.journalAssetFilter !== "ALL") {
-        filtered = filtered.filter((t) => (t.assetType || "EQUITY").toUpperCase() === state.journalAssetFilter.toUpperCase());
-      }
-
-      // 2. Filter by Date / Date Range
-      if (state.journalDateFrom) {
-        filtered = filtered.filter((t) => {
-          const tDate = t.tradeDate || (t.createdAt ? t.createdAt.slice(0, 10) : "");
-          return tDate >= state.journalDateFrom;
-        });
-      }
-      if (state.journalDateTo) {
-        filtered = filtered.filter((t) => {
-          const tDate = t.tradeDate || (t.createdAt ? t.createdAt.slice(0, 10) : "");
-          return tDate <= state.journalDateTo;
-        });
-      }
-
-      // 3. Filter by Symbol Search
-      if (state.journalSearchSymbol) {
-        const q = state.journalSearchSymbol.toUpperCase();
-        filtered = filtered.filter((t) => (t.symbol || "").toUpperCase().includes(q));
-      }
+      // 2. Filter by Status chip (ALL, DISCIPLINED, BREACHED, WINS, LOSSES)
+      let filtered = scoped;
+      if (filter === "DISCIPLINED") filtered = scoped.filter((t) => t.disciplineFollowed !== false);
+      if (filter === "BREACHED") filtered = scoped.filter((t) => t.disciplineFollowed === false);
+      if (filter === "WINS") filtered = scoped.filter((t) => (t.pnl || 0) > 0);
+      if (filter === "LOSSES") filtered = scoped.filter((t) => (t.pnl || 0) < 0);
 
       // Live Total PnL for filtered trades
       const totalPnl = filtered.reduce((acc, t) => acc + (t.pnl || 0), 0);

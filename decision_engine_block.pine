@@ -86,12 +86,7 @@ f_calcDeltaZones(lookback, devLevel) =>
 int   _dzLookback = 20
 float _dzDevLevel = 3.5
 
-[htfSE_raw, htfBE_raw, htfSELow_raw, htfSEHigh_raw, htfBEHigh_raw, htfBELow_raw] = request.security(
-     syminfo.tickerid,
-     deDeltaTf,
-     f_calcDeltaZones(_dzLookback, _dzDevLevel),
-     lookahead=barmerge.lookahead_off
-)
+[htfSE_raw, htfBE_raw, htfSELow_raw, htfSEHigh_raw, htfBEHigh_raw, htfBELow_raw] = request.security(syminfo.tickerid,deDeltaTf,f_calcDeltaZones(_dzLookback, _dzDevLevel),lookahead=barmerge.lookahead_off)
 
 // ---------- Chart Delta Zones Memory ----------
 seNowChart = showDeltaZones and nz(huntingup, false)
