@@ -8,6 +8,7 @@ loadEnvFile(path.join(__dirname, ".env"));
 
 const { StockScoutScanner, timeframe, SCAN_INTERVAL_MS, providerConfig } = require("./scanner");
 const { getNifty50Data, getBankNiftyData, getSectorsData, getSectorConstituentsData, getMarketPulse, enrichSignalsList, getOptionsScoutData, clearOptionsScoutData, getStockQuote, getOptionChain, searchInstruments } = require("./market");
+const { getFullRiskProfile, saveTradeToDb, deleteTradeFromDb, saveScreenshotFile, uploadsDir, isPostgresConnected } = require("./db");
 
 const port = Number(process.env.PORT || 8787);
 const host = process.env.HOST || "0.0.0.0";
@@ -676,10 +677,16 @@ function readBody(request) {
 }
 
 function serveStatic(requestPath, response) {
-  const safePath = requestPath === "/" ? "/index.html" : requestPath;
-  const filePath = path.join(publicDir, safePath);
+  let filePath;
+  if (requestPath.startsWith("/uploads/")) {
+    const filename = path.basename(requestPath);
+    filePath = path.join(uploadsDir, filename);
+  } else {
+    const safePath = requestPath === "/" ? "/index.html" : requestPath;
+    filePath = path.join(publicDir, safePath);
+  }
 
-  if (!filePath.startsWith(publicDir)) {
+  if (!filePath.startsWith(publicDir) && !filePath.startsWith(uploadsDir)) {
     writeJson(response, 403, { error: "Forbidden" });
     return;
   }
@@ -695,12 +702,16 @@ function serveStatic(requestPath, response) {
       ".html": "text/html; charset=utf-8",
       ".js": "text/javascript; charset=utf-8",
       ".css": "text/css; charset=utf-8",
-      ".json": "application/json; charset=utf-8"
+      ".json": "application/json; charset=utf-8",
+      ".png": "image/png",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".webp": "image/webp"
     }[ext] || "application/octet-stream";
 
     response.writeHead(200, {
       "Content-Type": contentType,
-      "Cache-Control": "no-store, no-cache, must-revalidate"
+      "Cache-Control": requestPath.startsWith("/uploads/") ? "public, max-age=86400" : "no-store, no-cache, must-revalidate"
     });
     response.end(data);
   });
@@ -972,12 +983,22 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (url.pathname === "/api/risk/profile" && request.method === "GET") {
+    const profile = await getFullRiskProfile();
+    writeJson(response, 200, {
+      ...profile,
+      dbStatus: { isPostgres: isPostgresConnected() }
+    });
+    return;
+  }
+
   if (url.pathname === "/api/risk/journal" && request.method === "GET") {
-    const profile = loadRiskProfile();
+    const profile = await getFullRiskProfile();
     writeJson(response, 200, {
       journal: profile.journal,
       dailyState: profile.dailyState,
-      settings: profile.settings
+      settings: profile.settings,
+      dbStatus: { isPostgres: isPostgresConnected() }
     });
     return;
   }
@@ -986,10 +1007,19 @@ const server = http.createServer(async (request, response) => {
     try {
       const body = await readBody(request);
       const parsed = body ? JSON.parse(body) : {};
-      const profile = loadRiskProfile();
+      const tradeId = parsed.id || `trade_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+      // Save raw base64 screenshots as optimized image files on disk/DB
+      const rawScreenshots = Array.isArray(parsed.screenshots) ? parsed.screenshots : [];
+      const processedScreenshots = rawScreenshots.map((img, idx) => {
+        if (typeof img === "string" && img.startsWith("data:image/")) {
+          return saveScreenshotFile(img, `${tradeId}_${idx}`);
+        }
+        return img;
+      });
 
       const trade = {
-        id: parsed.id || `trade_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        id: tradeId,
         symbol: String(parsed.symbol || "").toUpperCase().trim(),
         side: String(parsed.side || "BUY").toUpperCase(),
         assetType: parsed.assetType || "EQUITY",
@@ -1007,17 +1037,17 @@ const server = http.createServer(async (request, response) => {
         mistakeTags: Array.isArray(parsed.mistakeTags) ? parsed.mistakeTags : [],
         disciplineFollowed: parsed.disciplineFollowed !== undefined ? Boolean(parsed.disciplineFollowed) : true,
         notes: String(parsed.notes || "").trim(),
-        screenshots: Array.isArray(parsed.screenshots) ? parsed.screenshots : [],
+        screenshots: processedScreenshots,
         source: parsed.source || "Profit GeNIE",
         createdAt: parsed.createdAt || new Date().toISOString()
       };
 
-      profile.journal = [trade, ...profile.journal.filter((t) => t.id !== trade.id)];
+      await saveTradeToDb(trade);
 
-      // Recompute exact daily metrics from all today trades
+      const profile = loadRiskProfile();
+      profile.journal = [trade, ...profile.journal.filter((t) => t.id !== trade.id)];
       recomputeDailyState(profile);
 
-      // If newly logged trade is a loss, trigger cooldown period
       if (trade.pnl < 0) {
         const cooldownMs = (profile.settings.cooldownMinutes || 15) * 60 * 1000;
         profile.dailyState.cooldownUntil = new Date(Date.now() + cooldownMs).toISOString();
@@ -1035,8 +1065,10 @@ const server = http.createServer(async (request, response) => {
     try {
       const parsedUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
       const tradeId = parsedUrl.searchParams.get("id");
-      const profile = loadRiskProfile();
 
+      await deleteTradeFromDb(tradeId);
+
+      const profile = loadRiskProfile();
       if (tradeId) {
         profile.journal = profile.journal.filter((t) => t.id !== tradeId);
       } else {
