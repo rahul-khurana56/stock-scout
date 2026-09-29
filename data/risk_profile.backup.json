@@ -16,10 +16,35 @@
     "tradesCount": 4,
     "consecutiveLosses": 0,
     "cooldownUntil": null,
-    "isLockedOut": false,
-    "lockoutReason": null
+    "isLockedOut": true,
+    "lockoutReason": "Max daily trade quota of 4 trades reached."
   },
   "journal": [
+    {
+      "id": "trade_20260929_0936_22700pe",
+      "symbol": "NIFTY 29 SEP 22700 PUT",
+      "side": "BUY",
+      "assetType": "OPTIONS",
+      "entryPrice": 122.3,
+      "exitPrice": 129.58,
+      "quantity": 250,
+      "entryTime": "09:36",
+      "exitTime": "09:42",
+      "tradeDate": "2026-09-29",
+      "slPrice": 0,
+      "targetPrice": 0,
+      "pnl": 1820,
+      "pnlPct": 0,
+      "emotionTag": "CALM",
+      "mistakeTags": [],
+      "disciplineFollowed": true,
+      "notes": "Followed Profit GeNIE breakout rule on 5m chart. Clean quick scalp exit.",
+      "screenshots": [
+        "/uploads/media_1790705453727.png"
+      ],
+      "source": "Profit GeNIE",
+      "createdAt": "2026-09-29T19:26:59.843Z"
+    },
     {
       "id": "trade_20260929_1002_22650pe",
       "symbol": "NIFTY 29 SEP 22650 PUT",
@@ -75,29 +100,6 @@
       ],
       "source": "Profit GeNIE",
       "createdAt": "2026-09-29T12:33:00.000Z"
-    },
-    {
-      "id": "trade_20260929_0936_22700pe",
-      "symbol": "NIFTY 29 SEP 22700 PUT",
-      "side": "BUY",
-      "assetType": "OPTIONS",
-      "entryPrice": 172,
-      "exitPrice": 174,
-      "quantity": 910,
-      "entryTime": "09:36",
-      "exitTime": "09:37",
-      "tradeDate": "2026-09-29",
-      "slPrice": 0,
-      "targetPrice": 0,
-      "pnl": 1820,
-      "pnlPct": 1.16,
-      "emotionTag": "CALM",
-      "mistakeTags": [],
-      "disciplineFollowed": true,
-      "notes": "Morning Scalp Trade: Took 910 qty at 172.00 following continuous downward momentum on Nifty. Captured a quick 2.0-point scalp to exit at 174.00 for +₹1,820.00 profit. Clean and fast execution.",
-      "screenshots": [],
-      "source": "Profit GeNIE",
-      "createdAt": "2026-09-29T09:36:00.000Z"
     },
     {
       "id": "trade_20260929_0927_22700pe",
@@ -376,7 +378,7 @@
       "quantity": 0,
       "entryTime": "",
       "exitTime": "",
-      "tradeDate": "",
+      "tradeDate": "2026-09-15",
       "slPrice": 0,
       "targetPrice": 0,
       "pnl": 60000,
@@ -584,7 +586,8 @@
       "notes": "-DI crossed + DI and ADX rising, trend score 3.5, exited at TP2",
       "screenshots": [],
       "source": "Profit GeNIE",
-      "createdAt": "2026-09-15T11:18:25.000Z"
+      "createdAt": "2026-09-15T11:18:25.000Z",
+      "tradeDate": "2026-09-15"
     },
     {
       "id": "trade_1788105093822_jnkpl",
@@ -607,7 +610,8 @@
         "/uploads/trade_1788105093822_jnkpl_1_1790709936286.jpg"
       ],
       "source": "Profit GeNIE",
-      "createdAt": "2026-08-30T15:51:33.814Z"
+      "createdAt": "2026-08-30T15:51:33.814Z",
+      "tradeDate": "2026-08-30"
     }
   ]
 }
