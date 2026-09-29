@@ -4334,15 +4334,17 @@
   <!-- Top Sticky Morning Rules Bar -->
   <div class="morning-rules-strip" id="globalMorningRulesStrip">
     <div class="rules-chip-group">
-      <span style="color: #f59e0b; font-weight: 800; display: flex; align-items: center; gap: 4px;">🌅 MORNING RULES:</span>
-      <span class="rule-pill-tag sl-entry">🛡️ <strong>SL with Entry</strong>: ₹2k ÷ Qty (1k=2pt, 650=3pt, 300=6.5pt)</span>
-      <span class="rule-pill-tag no-adds">🚫 <strong>ZERO Adds to Loss</strong>: No averaging down</span>
-      <span class="rule-pill-tag circuit">🛑 <strong>Circuit Breaker</strong>: 2-3 SL Hits (-₹4k to -₹6k) = Stop</span>
-      <span class="rule-pill-tag tsl">📈 <strong>Winners</strong>: Trail SL to cost & bank profit</span>
-      <span class="rule-pill-tag sl-entry">🎯 <strong>1 Trade at a Time</strong>: No evening MCX revenge</span>
+      <span style="color: #f59e0b; font-weight: 800; display: flex; align-items: center; gap: 4px;">⚡ 10 PRO RULES:</span>
+      <span class="rule-pill-tag sl-entry">1. <strong>Setup First</strong> (No Setup = No Trade)</span>
+      <span class="rule-pill-tag circuit">2. <strong>Entry+SL+Qty+Risk</strong> Decided Before</span>
+      <span class="rule-pill-tag sl-entry">3. <strong>Scalp: ₹3-4k</strong> | <strong>Normal: ₹5-6k</strong></span>
+      <span class="rule-pill-tag no-adds">4 & 5. <strong>Qty Locked</strong> • <strong>NO Red Adds</strong></span>
+      <span class="rule-pill-tag circuit">6 & 7. <strong>SL Hit = Over</strong> • <strong>NO Revenge</strong></span>
+      <span class="rule-pill-tag sl-entry">8. <strong>1 Position at a Time</strong></span>
+      <span class="rule-pill-tag no-adds">9. <strong>-₹6k Loss or 2 Losses = DONE</strong></span>
     </div>
-    <button class="btn" onclick="openMorningRulesModal()" style="font-size: 11px; padding: 2px 10px; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b; background: rgba(245, 158, 11, 0.15); font-weight: 700;">
-      📋 Checklist ➔
+    <button class="btn" onclick="openMorningRulesModal()" style="font-size: 11px; padding: 2px 10px; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b; background: rgba(245, 158, 11, 0.15); font-weight: 700; white-space: nowrap;">
+      📋 10 Rules & Checklist ➔
     </button>
   </div>
 
@@ -6751,56 +6753,92 @@
     </div>
 
     <!-- ========================================================= -->
-    <!-- MODAL: MORNING TRADING CHECKLIST & GOLDEN RULES           -->
+    <!-- MODAL: MY PROFESSIONAL TRADING RULES & PRE-FLIGHT CHECKLIST-->
     <!-- ========================================================= -->
     <div id="morningRulesModal" class="lockout-modal-overlay" style="display: none;">
-      <div class="lockout-card" style="max-width: 650px; border-color: rgba(245, 158, 11, 0.5); text-align: left; box-shadow: 0 0 50px rgba(245, 158, 11, 0.25); max-height: 90vh; overflow-y: auto;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px;">
+      <div class="lockout-card" style="max-width: 720px; border-color: rgba(245, 158, 11, 0.5); text-align: left; box-shadow: 0 0 50px rgba(245, 158, 11, 0.25); max-height: 92vh; overflow-y: auto;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; border-bottom: 1px solid var(--line); padding-bottom: 10px;">
           <h3 style="margin: 0; font-size: 18px; color: #ffffff; display: flex; align-items: center; gap: 8px;">
-            🌅 Morning Trading Checklist & Risk Guardrails
+            🏛️ My 10 Professional Trading Rules & Checklist
           </h3>
           <button class="refresh-btn" onclick="closeMorningRulesModal()" style="width: 28px; height: 28px; font-size: 12px;">✕</button>
         </div>
 
-        <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px;">
-          <div style="font-size: 12px; font-weight: 700; color: #fbbf24; margin-bottom: 2px;">Core Formula: Fixed ₹2,000 Risk per Trade</div>
-          <div style="font-size: 11px; color: #cbd5e1;">SL Points = ₹2,000 ÷ Qty • (1,000 Qty = 2.0 pts | 650 Qty = 3.0 pts | 300 Qty = 6.5 pts)</div>
+        <!-- 10 Rules Quick Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px; margin-bottom: 16px;">
+          <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 8px 10px; font-size: 11.5px;">
+            <strong style="color: #38bdf8;">1. SETUP FIRST:</strong> No setup = No trade.
+          </div>
+          <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 8px 10px; font-size: 11.5px;">
+            <strong style="color: #38bdf8;">2. DECIDED BEFORE:</strong> Entry + SL + Qty + Max Loss fixed.
+          </div>
+          <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: 6px; padding: 8px 10px; font-size: 11.5px;">
+            <strong style="color: #fbbf24;">3. DEFINED RISK:</strong> Scalp: max ₹3–4k | Normal: max ₹5–6k.
+          </div>
+          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; padding: 8px 10px; font-size: 11.5px;">
+            <strong style="color: #f87171;">4. LOCKED QTY:</strong> Quantity is locked after entry.
+          </div>
+          <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 6px; padding: 8px 10px; font-size: 11.5px;">
+            <strong style="color: #ef4444;">5. ZERO RED ADDS:</strong> Never add to a losing position.
+          </div>
+          <div style="background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 6px; padding: 8px 10px; font-size: 11.5px;">
+            <strong style="color: #c084fc;">6. SL HIT = OVER:</strong> Re-entry = completely new trade.
+          </div>
+          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; padding: 8px 10px; font-size: 11.5px;">
+            <strong style="color: #f87171;">7. NO REVENGE:</strong> No recovery trades in MCX/NatGas.
+          </div>
+          <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 6px; padding: 8px 10px; font-size: 11.5px;">
+            <strong style="color: #4ade80;">8. ONE POSITION:</strong> One trade at a time.
+          </div>
+          <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 6px; padding: 8px 10px; font-size: 11.5px;">
+            <strong style="color: #ef4444;">9. CIRCUIT BREAKER:</strong> -₹6k loss or 2 losses = DONE.
+          </div>
+          <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 6px; padding: 8px 10px; font-size: 11.5px;">
+            <strong style="color: #4ade80;">10. CAPITAL FIRST:</strong> Follow system. Let tomorrow handle tomorrow.
+          </div>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;">
-          <div class="modal-check-item" style="border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: rgba(0,0,0,0.25);">
-            <div style="font-weight: 700; color: #38bdf8; font-size: 13px; margin-bottom: 4px;">1️⃣ Before Every Trade</div>
-            <ul style="margin: 0; padding-left: 18px; font-size: 11.5px; color: #e2e8f0; line-height: 1.5;">
-              <li><strong>SL goes IN WITH the entry:</strong> Use "Add stoploss" on the buy order itself. Never enter naked.</li>
-              <li><strong>Check Market Depth:</strong> Ensure tight bid-ask spread and real size before taking 650–1,000 qty.</li>
-            </ul>
+        <!-- Detailed Pre-Flight Checklist -->
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+          <div style="font-size: 12px; font-weight: 800; color: #e2e8f0; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px;">
+            📋 Pre-Flight Execution Checklist:
           </div>
 
-          <div class="modal-check-item" style="border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: rgba(0,0,0,0.25);">
-            <div style="font-weight: 700; color: #f87171; font-size: 13px; margin-bottom: 4px;">2️⃣ While Inside the Trade</div>
-            <ul style="margin: 0; padding-left: 18px; font-size: 11.5px; color: #e2e8f0; line-height: 1.5;">
-              <li><strong>NEVER add qty to a red position:</strong> Not "just a little," not "to average down." No exceptions.</li>
-              <li><strong>Stopped out?</strong> If you re-enter, that is a brand new trade with a fresh SL, NOT an add-on.</li>
-              <li><strong>No tick staring:</strong> Stop staring at 1-sec noise once order & SL are placed.</li>
-            </ul>
-          </div>
+          <label class="modal-check-item" style="display: flex; align-items: flex-start; gap: 10px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: rgba(0,0,0,0.25); cursor: pointer;">
+            <input type="checkbox" style="margin-top: 3px; accent-color: #38bdf8;">
+            <div style="font-size: 11.5px; color: #e2e8f0;">
+              <strong>1. Confirmed Setup (Rule 1):</strong> I am entering on a verified chart setup/signal, NOT boredom or impulse.
+            </div>
+          </label>
 
-          <div class="modal-check-item" style="border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: rgba(0,0,0,0.25);">
-            <div style="font-weight: 700; color: #4ade80; font-size: 13px; margin-bottom: 4px;">3️⃣ On Winners & Daily Stop</div>
-            <ul style="margin: 0; padding-left: 18px; font-size: 11.5px; color: #e2e8f0; line-height: 1.5;">
-              <li><strong>Trail SL on profit:</strong> Lock in few points and bank profits calmly.</li>
-              <li><strong>Daily Circuit Breaker:</strong> Max 2-3 SL hits (-₹4,000 to -₹6,000) ➔ <strong>DONE for the day. Close the app.</strong></li>
-              <li><strong>One trade at a time:</strong> No evening MCX / Natural Gas revenge trading.</li>
-            </ul>
-          </div>
+          <label class="modal-check-item" style="display: flex; align-items: flex-start; gap: 10px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: rgba(0,0,0,0.25); cursor: pointer;">
+            <input type="checkbox" style="margin-top: 3px; accent-color: #38bdf8;">
+            <div style="font-size: 11.5px; color: #e2e8f0;">
+              <strong>2. Risk & Size Calculated (Rules 2 & 3):</strong> Max risk is ₹3–4k (Scalp) or ₹5–6k (Normal). System SL placed with buy order.
+            </div>
+          </label>
+
+          <label class="modal-check-item" style="display: flex; align-items: flex-start; gap: 10px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: rgba(0,0,0,0.25); cursor: pointer;">
+            <input type="checkbox" style="margin-top: 3px; accent-color: #38bdf8;">
+            <div style="font-size: 11.5px; color: #e2e8f0;">
+              <strong>3. Quantity Locked & Zero Adds (Rules 4 & 5):</strong> I will NEVER add quantity once entered, especially into a red trade.
+            </div>
+          </label>
+
+          <label class="modal-check-item" style="display: flex; align-items: flex-start; gap: 10px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: rgba(0,0,0,0.25); cursor: pointer;">
+            <input type="checkbox" style="margin-top: 3px; accent-color: #38bdf8;">
+            <div style="font-size: 11.5px; color: #e2e8f0;">
+              <strong>4. Single Focus & Circuit Breaker (Rules 8 & 9):</strong> 1 position only. If I hit -₹6k or 2 losses, I am DONE for the day.
+            </div>
+          </label>
         </div>
 
-        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px;">
-          <button class="btn" onclick="openPositionSizer()" style="font-size: 12px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">
-            🛡️ Open Sizer
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px;">
+          <button class="btn" onclick="openPositionSizer()" style="font-size: 11.5px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">
+            🛡️ Position Sizer
           </button>
-          <button class="btn btn-primary" onclick="closeMorningRulesModal()" style="font-size: 12px; padding: 6px 18px;">
-            ✓ Got It / Ready to Trade
+          <button class="btn btn-primary" onclick="closeMorningRulesModal()" style="font-size: 11.5px; padding: 6px 20px;">
+            ✓ I Agree & Follow System
           </button>
         </div>
       </div>
