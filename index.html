@@ -10511,7 +10511,7 @@
       reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
-          const maxDim = 1920;
+          const maxDim = 1280;
           let width = img.width;
           let height = img.height;
           if (width > maxDim || height > maxDim) {
@@ -10530,11 +10530,12 @@
           const ctx = canvas.getContext("2d");
           ctx.drawImage(img, 0, 0, width, height);
 
-          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          // Compress to lightweight high-clarity 1280px JPEG (~100kb vs 3MB) to prevent quota issues
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.78);
           if (!Array.isArray(state.editJournalScreenshots)) state.editJournalScreenshots = [];
           state.editJournalScreenshots.push(compressedDataUrl);
           renderEditJournalScreenshots();
-          showToast(`📷 Attached chart to edited trade (${state.editJournalScreenshots.length} total)`);
+          showToast(`📷 Attached chart (${state.editJournalScreenshots.length} total)`);
         };
         img.src = e.target.result;
       };
