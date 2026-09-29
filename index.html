@@ -3050,6 +3050,107 @@
       color: #38bdf8 !important;
     }
 
+    /* Groww Option Chain Modal Backdrop & Card */
+    .groww-oc-modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(3, 7, 18, 0.88);
+      backdrop-filter: blur(14px);
+      z-index: 99995;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      animation: modalFadeIn 0.2s ease-out forwards;
+    }
+
+    .groww-oc-modal-card {
+      max-width: 1100px;
+      width: 100%;
+      max-height: 90vh;
+      background: #0b101b;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.85);
+    }
+
+    .groww-oc-header {
+      padding: 14px 20px;
+      background: #111827;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .groww-oc-table-wrap {
+      flex: 1;
+      overflow-y: auto;
+      max-height: calc(90vh - 140px);
+    }
+
+    .groww-oc-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .groww-oc-table th, .groww-oc-table td {
+      padding: 8px 10px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .groww-oc-table thead th {
+      position: sticky;
+      top: 0;
+      background: #0f172a;
+      z-index: 10;
+      font-weight: 700;
+      color: #94a3b8;
+    }
+
+    .groww-oc-strike-col {
+      background: #0b101b;
+      font-weight: 800;
+      border-left: 1px solid rgba(255, 255, 255, 0.08);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .groww-oc-trade-btn {
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease;
+    }
+
+    .groww-oc-trade-btn.call-btn {
+      background: rgba(0, 208, 156, 0.15);
+      color: #00d09c;
+      border: 1px solid rgba(0, 208, 156, 0.35);
+    }
+
+    .groww-oc-trade-btn.put-btn {
+      background: rgba(235, 91, 60, 0.15);
+      color: #eb5b3c;
+      border: 1px solid rgba(235, 91, 60, 0.35);
+    }
+
+    .groww-oc-trade-btn:hover {
+      transform: scale(1.05);
+    }
+
     /* ========================================================= */
     /* RESPONSIVE DESIGN FOR TABLETS, MOBILES & ALL SCREEN SIZES */
     /* ========================================================= */
@@ -5061,6 +5162,9 @@
         </div>
 
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <button class="btn" onclick="openGrowwOptionChain('NIFTY', null)" style="font-size: 11.5px; padding: 5px 12px; background: rgba(0, 208, 156, 0.15); border-color: rgba(0, 208, 156, 0.4); color: #00d09c; display: inline-flex; align-items: center; gap: 5px;" title="Open Interactive Option Chain Explorer (CE / PE)">
+            📊 Live Option Chain
+          </button>
           <button class="btn" id="clearOptionsBoardBtn" onclick="clearOptionsBoard()" style="font-size: 11.5px; padding: 5px 12px; background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35); color: #f87171; display: inline-flex; align-items: center; gap: 4px;" title="Clear all option opportunities from board">
             🗑️ Clear Board
           </button>
@@ -6592,7 +6696,7 @@
     <!-- ========================================================= -->
     <!-- MODAL: GROWW OPTION CHAIN (CE / PE) EXPLORER              -->
     <!-- ========================================================= -->
-    <div id="growwOptionChainModal" class="groww-oc-modal-backdrop">
+    <div id="growwOptionChainModal" class="groww-oc-modal-backdrop" style="display: none;" onclick="if(event.target === this) closeGrowwOptionChainModal()">
       <div class="groww-oc-modal-card">
         <div class="groww-oc-header">
           <div style="display: flex; align-items: center; gap: 12px;">
