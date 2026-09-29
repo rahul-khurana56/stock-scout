@@ -9468,26 +9468,46 @@
         if (res.ok) {
           const serverData = await res.json();
           
-          // Bidirectional merge by trade.id: keep all trades from both server & local storage
           const localJournal = Array.isArray(localProfile?.journal) ? localProfile.journal : [];
           const serverJournal = Array.isArray(serverData?.journal) ? serverData.journal : [];
           
-          const journalMap = new Map();
-          // Seed with server journal
-          serverJournal.forEach(t => { if (t && t.id) journalMap.set(t.id, t); });
-          
-          // Merge local journal (if server was reset due to fresh deploy, re-sync)
+          const serverMap = new Map();
+          serverJournal.forEach(t => { if (t && t.id) serverMap.set(t.id, t); });
+
+          // Smart merge: prioritize full un-truncated notes and any attached screenshots
+          const mergedJournal = serverJournal.map(sTrade => {
+            const lTrade = localJournal.find(l => l && l.id === sTrade.id);
+            if (!lTrade) return sTrade;
+
+            const sNote = String(sTrade.notes || "").trim();
+            const lNote = String(lTrade.notes || "").trim();
+            let bestNote = sNote;
+            // If local note is longer and not truncated with trailing dots, use it; otherwise use server note
+            if (lNote && !lNote.endsWith("...") && lNote.length > sNote.length) {
+              bestNote = lNote;
+            }
+
+            const sScreenshots = Array.isArray(sTrade.screenshots) ? sTrade.screenshots : [];
+            const lScreenshots = Array.isArray(lTrade.screenshots) ? lTrade.screenshots : [];
+            const bestScreenshots = lScreenshots.length > 0 ? lScreenshots : sScreenshots;
+
+            return {
+              ...lTrade,
+              ...sTrade,
+              notes: bestNote,
+              screenshots: bestScreenshots
+            };
+          });
+
+          // Add any local-only trades that are not yet present on server
           const tradesToSync = [];
-          localJournal.forEach(t => {
-            if (t && t.id) {
-              if (!journalMap.has(t.id)) {
-                tradesToSync.push(t);
-              }
-              journalMap.set(t.id, { ...(journalMap.get(t.id) || {}), ...t });
+          localJournal.forEach(lTrade => {
+            if (lTrade && lTrade.id && !serverMap.has(lTrade.id)) {
+              mergedJournal.push(lTrade);
+              tradesToSync.push(lTrade);
             }
           });
 
-          const mergedJournal = Array.from(journalMap.values());
           serverData.journal = mergedJournal;
           state.riskProfile = serverData;
           saveLocalRiskProfile(serverData);
