@@ -12109,6 +12109,9 @@
       const modal = document.getElementById("riskLockoutModal");
       if (modal) modal.style.display = "none";
       state.lockoutDismissedForSession = true;
+      try {
+        sessionStorage.setItem("STOCK_SCOUT_LOCKOUT_DISMISSED", "true");
+      } catch (e) {}
     }
 
     // Terminal Lockout Handling
@@ -12118,8 +12121,10 @@
       const modal = document.getElementById("riskLockoutModal");
       if (!modal) return;
 
-      // DO NOT block the user when they are reviewing/editing their Journal or on the Risk tab
-      if (state.activeTab === "tab-risk" || state.lockoutDismissedForSession) {
+      const isDismissedInSession = state.lockoutDismissedForSession || sessionStorage.getItem("STOCK_SCOUT_LOCKOUT_DISMISSED") === "true";
+
+      // DO NOT block the user when they are reviewing/editing their Journal, on the Risk tab, or if dismissed in this session
+      if (state.activeTab === "tab-risk" || isDismissedInSession) {
         modal.style.display = "none";
         return;
       }
