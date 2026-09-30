@@ -1058,6 +1058,64 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (url.pathname === "/api/risk/journal/batch" && request.method === "POST") {
+    try {
+      const body = await readBody(request);
+      const parsed = body ? JSON.parse(body) : {};
+      const trades = Array.isArray(parsed.trades) ? parsed.trades : [];
+      
+      const savedTrades = [];
+      const profile = loadRiskProfile();
+
+      for (const t of trades) {
+        const tradeId = t.id || `trade_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        const rawScreenshots = Array.isArray(t.screenshots) ? t.screenshots : [];
+        const processedScreenshots = rawScreenshots.map((img, idx) => {
+          if (typeof img === "string" && img.startsWith("data:image/")) {
+            return saveScreenshotFile(img, `${tradeId}_${idx}`);
+          }
+          return img;
+        });
+
+        const trade = {
+          id: tradeId,
+          symbol: String(t.symbol || "").toUpperCase().trim(),
+          side: String(t.side || "BUY").toUpperCase(),
+          assetType: t.assetType || "OPTIONS",
+          entryPrice: Number(t.entryPrice) || 0,
+          exitPrice: Number(t.exitPrice) || 0,
+          quantity: Number(t.quantity) || 0,
+          entryTime: t.entryTime ? String(t.entryTime).trim() : "",
+          exitTime: t.exitTime ? String(t.exitTime).trim() : "",
+          tradeDate: t.tradeDate ? String(t.tradeDate).trim() : new Date().toISOString().slice(0, 10),
+          slPrice: Number(t.slPrice) || 0,
+          targetPrice: Number(t.targetPrice) || 0,
+          pnl: Number(t.pnl) || 0,
+          pnlPct: Number(t.pnlPct) || 0,
+          emotionTag: t.emotionTag || "CALM",
+          mistakeTags: Array.isArray(t.mistakeTags) ? t.mistakeTags : [],
+          disciplineFollowed: t.disciplineFollowed !== undefined ? Boolean(t.disciplineFollowed) : true,
+          notes: String(t.notes || "").trim(),
+          screenshots: processedScreenshots,
+          source: t.source || "Contract Note Import",
+          createdAt: t.createdAt || new Date().toISOString()
+        };
+
+        await saveTradeToDb(trade);
+        savedTrades.push(trade);
+        profile.journal = [trade, ...profile.journal.filter((item) => item.id !== trade.id)];
+      }
+
+      recomputeDailyState(profile);
+      saveRiskProfile(profile);
+
+      writeJson(response, 200, { ok: true, count: savedTrades.length, trades: savedTrades, dailyState: profile.dailyState });
+    } catch (error) {
+      writeJson(response, 400, { error: error.message || "Failed to batch import trades" });
+    }
+    return;
+  }
+
   if (url.pathname === "/api/risk/journal" && request.method === "DELETE") {
     try {
       const parsedUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
