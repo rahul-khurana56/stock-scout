@@ -248,21 +248,25 @@ async function deleteTradeFromDb(tradeId) {
   saveLocalJsonProfile(local);
 }
 
-// Dedicated Screenshot Storage Handler (Saves image to disk & returns URL)
+// Dedicated Screenshot Storage Handler (Preserves base64 data in PostgreSQL JSONB for 100% cloud persistence)
 function saveScreenshotFile(base64Data, tradeId = "trade") {
   try {
     const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
     if (!matches || matches.length !== 3) {
-      return base64Data; // already a URL
+      return base64Data;
     }
 
-    const ext = matches[1].split("/")[1] || "jpg";
-    const buffer = Buffer.from(matches[2], "base64");
-    const filename = `${tradeId}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.${ext}`;
-    const filePath = path.join(uploadsDir, filename);
+    // Mirror to disk as optional local file backup
+    try {
+      const ext = matches[1].split("/")[1] || "jpg";
+      const buffer = Buffer.from(matches[2], "base64");
+      const filename = `${tradeId}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.${ext}`;
+      const filePath = path.join(uploadsDir, filename);
+      fs.writeFileSync(filePath, buffer);
+    } catch (e) {}
 
-    fs.writeFileSync(filePath, buffer);
-    return `/uploads/${filename}`;
+    // Store the base64 Data URL directly inside PostgreSQL JSONB so it never gets lost
+    return base64Data;
   } catch (err) {
     console.error("Error saving screenshot file:", err.message);
     return base64Data;

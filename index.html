@@ -11704,6 +11704,71 @@
       }
     }
 
+    async function quickAttachTradeScreenshot(tradeId, event) {
+      const files = event.target.files;
+      if (!files || !files.length) return;
+      const file = files[0];
+      if (!file.type.startsWith("image/")) {
+        showToast("Please select an image file", true);
+        return;
+      }
+
+      const journal = state.riskProfile?.journal || [];
+      const existingTrade = journal.find(t => t.id === tradeId);
+      if (!existingTrade) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = async () => {
+          const maxDim = 1280;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.78);
+
+          const currentScreenshots = Array.isArray(existingTrade.screenshots) ? [...existingTrade.screenshots] : [];
+          currentScreenshots.push(compressedDataUrl);
+
+          const updatedTrade = {
+            ...existingTrade,
+            screenshots: currentScreenshots
+          };
+
+          state.riskProfile.journal = state.riskProfile.journal.map(t => t.id === tradeId ? updatedTrade : t);
+          saveLocalRiskProfile(state.riskProfile);
+          renderJournalTable();
+          showToast(`📷 Chart saved permanently to ${existingTrade.symbol}!`);
+
+          try {
+            await fetch("/api/risk/journal", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(updatedTrade)
+            });
+          } catch (err) {
+            console.warn("Sync pending:", err);
+          }
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+      event.target.value = "";
+    }
+
     function renderJournalTable() {
       const tbody = document.getElementById("journalTableBody");
       if (!tbody) return;
@@ -11831,18 +11896,21 @@
         }).join("");
 
         const screenshots = Array.isArray(t.screenshots) ? t.screenshots : [];
-        let screenshotsHtml = `<span style="color: var(--muted); font-size: 11px;">--</span>`;
-        if (screenshots.length > 0) {
-          screenshotsHtml = `
-            <div class="table-thumb-group">
+        let screenshotsHtml = `
+          <div class="table-thumb-group" style="display:inline-flex; align-items:center; gap:5px; flex-wrap:nowrap;">
+            ${screenshots.length > 0 ? `
               ${screenshots.slice(0, 3).map((imgUrl, idx) => {
                 const safeSrc = String(imgUrl || '').replace(/"/g, '&quot;');
-                return `<img src="${safeSrc}" class="table-thumb-preview" title="Click to zoom screenshot (${idx + 1}/${screenshots.length})" onclick="openTradeScreenshotZoom('${t.id}', ${idx})">`;
+                return `<img src="${safeSrc}" class="table-thumb-preview" onerror="this.onerror=null; this.style.opacity='0.4'; this.title='Image expired from ephemeral disk. Click +📷 to re-attach';" title="Click to zoom screenshot (${idx + 1}/${screenshots.length})" onclick="openTradeScreenshotZoom('${t.id}', ${idx})">`;
               }).join("")}
               ${screenshots.length > 3 ? `<span class="tag-badge" style="font-size: 9px; padding: 1px 4px; cursor: pointer;" onclick="openTradeScreenshotZoom('${t.id}', 0)">+${screenshots.length - 3}</span>` : ''}
-            </div>
-          `;
-        }
+            ` : `<span style="color: var(--muted); font-size: 11px;">--</span>`}
+            <label class="tag-badge" style="font-size: 10px; padding: 2px 6px; cursor: pointer; background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.25); display: inline-flex; align-items: center; gap: 2px;" title="1-Click: Attach or replace chart screenshot directly without opening edit modal">
+              +📷
+              <input type="file" accept="image/*" style="display: none;" onchange="quickAttachTradeScreenshot('${t.id}', event)">
+            </label>
+          </div>
+        `;
 
         const rawAsset = (t.assetType || 'EQUITY').toUpperCase();
         let assetBadge = `<span class="tag-badge" style="font-size: 10px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">EQUITY</span>`;

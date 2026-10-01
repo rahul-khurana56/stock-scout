@@ -1,187 +1,147 @@
 const fs = require("fs");
 const path = require("path");
-const { saveTradeToDb, getFullRiskProfile, initDb } = require("./db");
+const { saveTradeToDb, getFullRiskProfile } = require("./db");
 
 const contractNoteTrades = [
   {
-    id: "trade_20260930_0923_sensex_72700pe",
-    symbol: "SENSEX 01 OCT 72700 PUT",
+    id: "trade_20261001_0921_nifty_22600pe",
+    symbol: "NIFTY 06 OCT 22600 PUT",
     side: "BUY",
     assetType: "OPTIONS",
-    quantity: 1000,
-    tradeDate: "2026-09-30",
-    entryTime: "09:23",
-    exitTime: "09:31",
-    entryPrice: 307.60,
-    exitPrice: 315.20,
-    pnl: 7605.00,
-    pnlPct: 2.47,
+    quantity: 1950,
+    tradeDate: "2026-10-01",
+    entryTime: "09:21",
+    exitTime: "09:22",
+    entryPrice: 144.42,
+    exitPrice: 148.80,
+    pnl: 8537.75,
+    pnlPct: 3.03,
     emotionTag: "CALM",
     mistakeTags: [],
     disciplineFollowed: true,
-    notes: "SENSEX 72700 PE scalp at market open. Bought 1000 @ 307.60, booked profit @ 315.20. Smooth execution.",
+    notes: "Morning opening scalp on 22600 PE. Bought 1950 @ 144.42, booked quick profit @ 148.80 (+3.03%).",
     screenshots: [],
-    source: "Groww Contract Note (CN/27/0119219177)"
+    source: "Groww Contract Note (CN/27/0120572315)"
   },
   {
-    id: "trade_20260930_1030_nifty_22800pe",
-    symbol: "NIFTY 06 OCT 22800 PUT",
+    id: "trade_20261001_0935_nifty_22500pe",
+    symbol: "NIFTY 06 OCT 22500 PUT",
     side: "BUY",
     assetType: "OPTIONS",
-    quantity: 14235,
-    tradeDate: "2026-09-30",
-    entryTime: "10:30",
-    exitTime: "13:41",
-    entryPrice: 159.98,
-    exitPrice: 154.28,
-    pnl: -81207.75,
-    pnlPct: -3.56,
+    quantity: 2990,
+    tradeDate: "2026-10-01",
+    entryTime: "09:35",
+    exitTime: "09:36",
+    entryPrice: 98.29,
+    exitPrice: 99.57,
+    pnl: 3818.75,
+    pnlPct: 1.30,
+    emotionTag: "CALM",
+    mistakeTags: [],
+    disciplineFollowed: true,
+    notes: "Fast scalp on 22500 PE. Bought 2990 @ 98.29, squared off @ 99.57 (+1.30%).",
+    screenshots: [],
+    source: "Groww Contract Note (CN/27/0120572315)"
+  },
+  {
+    id: "trade_20261001_1115_banknifty_55000pe",
+    symbol: "BANKNIFTY 27 OCT 55000 PUT",
+    side: "BUY",
+    assetType: "OPTIONS",
+    quantity: 390,
+    tradeDate: "2026-10-01",
+    entryTime: "11:15",
+    exitTime: "11:21",
+    entryPrice: 784.15,
+    exitPrice: 798.79,
+    pnl: 5709.00,
+    pnlPct: 1.87,
+    emotionTag: "CALM",
+    mistakeTags: [],
+    disciplineFollowed: true,
+    notes: "BankNifty monthly PE scalp. Bought 390 @ 784.15 during pullback, exited @ 798.79 (+1.87%).",
+    screenshots: [],
+    source: "Groww Contract Note (CN/27/0120572315)"
+  },
+  {
+    id: "trade_20261001_1213_nifty_22550ce",
+    symbol: "NIFTY 06 OCT 22550 CALL",
+    side: "BUY",
+    assetType: "OPTIONS",
+    quantity: 3900,
+    tradeDate: "2026-10-01",
+    entryTime: "12:13",
+    exitTime: "12:18",
+    entryPrice: 124.81,
+    exitPrice: 119.59,
+    pnl: -20348.25,
+    pnlPct: -4.18,
     emotionTag: "ANXIOUS",
-    mistakeTags: ["AVERAGING_LOSERS", "OVERTRADING", "REVENGE_TRADING"],
+    mistakeTags: ["CHASING", "OVERTRADING"],
     disciplineFollowed: false,
-    notes: "Heavy averaging on 22800 PE across 7 re-entries (10:30, 10:56, 11:17, 11:29, 11:37, 12:33, 13:37) as premium decayed. Slipped from early gains into heavy drawdown.",
+    notes: "Attempted breakout buy on 22550 CE across 2 attempts. Market reversed; stopped out @ 119.59 (-4.18%).",
     screenshots: [],
-    source: "Groww Contract Note (CN/27/0119219177)"
+    source: "Groww Contract Note (CN/27/0120572315)"
   },
   {
-    id: "trade_20260930_1235_nifty_22750pe",
-    symbol: "NIFTY 06 OCT 22750 PUT",
+    id: "trade_20261001_0945_nifty_22550pe",
+    symbol: "NIFTY 06 OCT 22550 PUT",
     side: "BUY",
     assetType: "OPTIONS",
-    quantity: 8320,
-    tradeDate: "2026-09-30",
-    entryTime: "12:35",
-    exitTime: "14:16",
-    entryPrice: 124.71,
-    exitPrice: 124.15,
-    pnl: -4680.00,
-    pnlPct: -0.45,
-    emotionTag: "IMPULSIVE",
-    mistakeTags: ["OVERTRADING"],
-    disciplineFollowed: false,
-    notes: "Multiple scalp attempts on 22750 PE during mid-day chop. Bought 8320 total qty, exited with minor loss.",
-    screenshots: [],
-    source: "Groww Contract Note (CN/27/0119219177)"
-  },
-  {
-    id: "trade_20260930_1235_nifty_22750ce",
-    symbol: "NIFTY 06 OCT 22750 CALL",
-    side: "BUY",
-    assetType: "OPTIONS",
-    quantity: 9815,
-    tradeDate: "2026-09-30",
-    entryTime: "12:35",
-    exitTime: "15:03",
-    entryPrice: 128.00,
-    exitPrice: 113.98,
-    pnl: -137582.25,
-    pnlPct: -10.95,
-    emotionTag: "FRUSTRATED",
-    mistakeTags: ["HOLDING_LOSERS", "AVERAGING_LOSERS", "OVERSIZED_POSITION"],
-    disciplineFollowed: false,
-    notes: "Major losing trade of the day. Bought 22750 CE at 12:35 (174 avg) and averaged heavily down to 92-109 levels. Trapped in afternoon breakdown, exited before close.",
-    screenshots: [],
-    source: "Groww Contract Note (CN/27/0119219177)"
-  },
-  {
-    id: "trade_20260930_1237_nifty_22800ce",
-    symbol: "NIFTY 06 OCT 22800 CALL",
-    side: "BUY",
-    assetType: "OPTIONS",
-    quantity: 1755,
-    tradeDate: "2026-09-30",
-    entryTime: "12:37",
-    exitTime: "12:49",
-    entryPrice: 145.71,
-    exitPrice: 166.21,
-    pnl: 35980.75,
-    pnlPct: 14.07,
+    quantity: 14950,
+    tradeDate: "2026-10-01",
+    entryTime: "09:45",
+    exitTime: "12:43",
+    entryPrice: 129.61,
+    exitPrice: 132.77,
+    pnl: 47222.50,
+    pnlPct: 2.44,
     emotionTag: "CONFIDENT",
     mistakeTags: [],
     disciplineFollowed: true,
-    notes: "Well-timed bounce scalp on 22800 CE. Bought 1755 @ 145.71 and exited at 166.21 target (+20.5 pts).",
+    notes: "Star performer of the day. Multiple swing and scalp waves on 22550 PE capturing intraday breakdowns up to 165. Total profit: +₹47,222.50 (+2.44%).",
     screenshots: [],
-    source: "Groww Contract Note (CN/27/0119219177)"
+    source: "Groww Contract Note (CN/27/0120572315)"
   },
   {
-    id: "trade_20260930_1344_nifty_22650pe",
-    symbol: "NIFTY 06 OCT 22650 PUT",
+    id: "trade_20261001_1253_nifty_22300ce",
+    symbol: "NIFTY 06 OCT 22300 CALL",
     side: "BUY",
     assetType: "OPTIONS",
-    quantity: 7020,
-    tradeDate: "2026-09-30",
-    entryTime: "13:44",
-    exitTime: "15:17",
-    entryPrice: 125.69,
-    exitPrice: 123.37,
-    pnl: -16256.50,
-    pnlPct: -1.85,
-    emotionTag: "ANXIOUS",
-    mistakeTags: ["OVERTRADING", "CHASING"],
-    disciplineFollowed: false,
-    notes: "Afternoon put positions on 22650 strike. 4 rounds of entry/exit between 13:44 and 15:17.",
+    quantity: 1950,
+    tradeDate: "2026-10-01",
+    entryTime: "12:53",
+    exitTime: "13:02",
+    entryPrice: 186.90,
+    exitPrice: 195.64,
+    pnl: 17043.00,
+    pnlPct: 4.68,
+    emotionTag: "CONFIDENT",
+    mistakeTags: [],
+    disciplineFollowed: true,
+    notes: "Sharp bounce scalp on deep ITM 22300 CE. Bought 1950 @ 186.90 during bottom consolidation, exited cleanly @ 195.64 (+4.68%).",
     screenshots: [],
-    source: "Groww Contract Note (CN/27/0119219177)"
+    source: "Groww Contract Note (CN/27/0120572315)"
   },
   {
-    id: "trade_20260930_1346_nifty_22700ce",
-    symbol: "NIFTY 06 OCT 22700 CALL",
+    id: "trade_20261001_1333_nifty_22250ce",
+    symbol: "NIFTY 06 OCT 22250 CALL",
     side: "BUY",
     assetType: "OPTIONS",
-    quantity: 2665,
-    tradeDate: "2026-09-30",
-    entryTime: "13:46",
-    exitTime: "14:11",
-    entryPrice: 172.51,
-    exitPrice: 171.35,
-    pnl: -3068.00,
-    pnlPct: -0.67,
+    quantity: 2600,
+    tradeDate: "2026-10-01",
+    entryTime: "13:33",
+    exitTime: "14:51",
+    entryPrice: 224.14,
+    exitPrice: 228.54,
+    pnl: 11427.00,
+    pnlPct: 1.96,
     emotionTag: "CALM",
     mistakeTags: [],
     disciplineFollowed: true,
-    notes: "Quick scratch scalp on 22700 CE. Exited with minimal loss when momentum stalled.",
+    notes: "Two controlled ITM scalping waves on 22250 CE (13:33 scalp and 14:50 afternoon push). Total profit: +₹11,427.00 (+1.96%).",
     screenshots: [],
-    source: "Groww Contract Note (CN/27/0119219177)"
-  },
-  {
-    id: "trade_20260930_1505_nifty_22700pe",
-    symbol: "NIFTY 06 OCT 22700 PUT",
-    side: "BUY",
-    assetType: "OPTIONS",
-    quantity: 3510,
-    tradeDate: "2026-09-30",
-    entryTime: "15:05",
-    exitTime: "15:19",
-    entryPrice: 163.66,
-    exitPrice: 162.95,
-    pnl: -2518.75,
-    pnlPct: -0.43,
-    emotionTag: "CALM",
-    mistakeTags: [],
-    disciplineFollowed: true,
-    notes: "Late session scalp on 22700 PE. Fast exit before market close.",
-    screenshots: [],
-    source: "Groww Contract Note (CN/27/0119219177)"
-  },
-  {
-    id: "trade_20260930_1507_nifty_22600ce",
-    symbol: "NIFTY 06 OCT 22600 CALL",
-    side: "BUY",
-    assetType: "OPTIONS",
-    quantity: 3510,
-    tradeDate: "2026-09-30",
-    entryTime: "15:07",
-    exitTime: "15:18",
-    entryPrice: 169.52,
-    exitPrice: 165.49,
-    pnl: -14150.50,
-    pnlPct: -2.38,
-    emotionTag: "IMPULSIVE",
-    mistakeTags: ["LATE_ENTRY", "OVERTRADING"],
-    disciplineFollowed: false,
-    notes: "Last hour bounce attempt on deep OTM 22600 CE. Caught on sudden selloff.",
-    screenshots: [],
-    source: "Groww Contract Note (CN/27/0119219177)"
+    source: "Groww Contract Note (CN/27/0120572315)"
   }
 ];
 
@@ -189,20 +149,40 @@ async function run() {
   console.log("🚀 Waiting 1.5s for DB connection...");
   await new Promise(r => setTimeout(r, 1500));
 
-  console.log(`📦 Logging ${contractNoteTrades.length} trades from Groww Contract Note (30-Sep-2026)...`);
+  console.log(`📦 Logging ${contractNoteTrades.length} trades from Groww Contract Note (01-Oct-2026)...`);
   
   let totalGrossPnl = 0;
   for (const trade of contractNoteTrades) {
-    trade.createdAt = new Date("2026-09-30T" + trade.exitTime + ":00.000Z").toISOString();
+    trade.createdAt = new Date("2026-10-01T" + trade.exitTime + ":00.000Z").toISOString();
     await saveTradeToDb(trade);
     totalGrossPnl += trade.pnl;
-    console.log(`✅ [${trade.tradeDate} ${trade.entryTime}-${trade.exitTime}] ${trade.symbol.padEnd(25)} Qty: ${String(trade.quantity).padStart(5)} | PnL: ₹${trade.pnl.toFixed(2)}`);
+    console.log(`✅ [${trade.tradeDate} ${trade.entryTime}-${trade.exitTime}] ${trade.symbol.padEnd(28)} Qty: ${String(trade.quantity).padStart(5)} | PnL: ₹${trade.pnl.toFixed(2)}`);
+  }
+
+  // Update daily state in local profile if needed
+  try {
+    const jsonFile = path.join(__dirname, "data", "risk_profile.json");
+    if (fs.existsSync(jsonFile)) {
+      const profile = JSON.parse(fs.readFileSync(jsonFile, "utf8"));
+      profile.dailyState = {
+        date: "2026-10-01",
+        realizedPnl: Math.round(totalGrossPnl * 100) / 100,
+        tradesCount: contractNoteTrades.length,
+        consecutiveLosses: 0,
+        cooldownUntil: null,
+        isLockedOut: false,
+        lockoutReason: null
+      };
+      fs.writeFileSync(jsonFile, JSON.stringify(profile, null, 2), "utf8");
+    }
+  } catch (e) {
+    console.error("Error updating daily state in risk_profile.json:", e.message);
   }
 
   console.log("\n--------------------------------------------------");
   console.log(`📊 Total Gross PnL from logged trades: ₹${totalGrossPnl.toFixed(2)}`);
-  console.log(`🧾 Levies & Charges from Note: -₹19,885.07 (STT ₹11,145 + Exch ₹5,337.68 + Brok ₹1,860 + GST ₹1,298.30 + Stamp ₹229 + SEBI ₹15.08)`);
-  console.log(`💰 Net Obligation: -₹235,763.07`);
+  console.log(`🧾 Levies & Charges from Note: -₹11,759.06 (STT ₹6,490 + Exch ₹3,048.24 + Brok ₹1,300 + GST ₹784.23 + Stamp ₹128 + SEBI ₹8.58 + IPFT ₹0.01)`);
+  console.log(`💰 Net Obligation Receivable: +₹61,650.69`);
   console.log("--------------------------------------------------\n");
 
   const full = await getFullRiskProfile();
