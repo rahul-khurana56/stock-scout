@@ -8,6 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Profit GeNIE | Institutional Market Heatmaps & Signals</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script>
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -2542,15 +2543,30 @@
 
     /* Journal Section & Analytics */
     .journal-log-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .journal-inputs-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
       gap: 10px;
       align-items: flex-end;
-      background: rgba(0, 0, 0, 0.25);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      padding: 14px;
-      margin-bottom: 16px;
+    }
+
+    .journal-actions-bar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding-top: 2px;
     }
 
     .emotion-badge {
@@ -5854,89 +5870,93 @@
 
         <!-- Quick Log Form -->
         <div class="journal-log-bar">
-          <div>
-            <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Symbol:</label>
-            <input type="text" id="journalSymbol" class="input-text" placeholder="e.g. TATASTEEL" style="font-size: 12px; padding: 6px 10px; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
+          <div class="journal-inputs-grid">
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Symbol:</label>
+              <input type="text" id="journalSymbol" class="input-text" placeholder="e.g. TATASTEEL" style="font-size: 12px; padding: 6px 10px; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Side:</label>
+              <select id="journalSide" class="select" style="font-size: 12px; padding: 6px 8px;" onchange="autoCalculateJournalPnl()">
+                <option value="BUY">BUY ↗</option>
+                <option value="SELL">SELL ↘</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Asset:</label>
+              <select id="journalAsset" class="select" style="font-size: 12px; padding: 6px 8px;" onchange="autoCalculateJournalPnl()">
+                <option value="EQUITY">Equity (Stock)</option>
+                <option value="COMMODITIES">Commodities (MCX)</option>
+                <option value="OPTIONS">Options (F&O)</option>
+                <option value="FUTURES">Futures</option>
+                <option value="CRYPTO">Crypto</option>
+                <option value="FOREX">Forex</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Quantity / Lots:</label>
+              <input type="number" id="journalQty" class="input-text" placeholder="100" min="1" step="1" style="font-size: 12px; padding: 6px 10px;" oninput="autoCalculateJournalPnl()">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Entry ₹:</label>
+              <input type="number" id="journalEntry" class="input-text" placeholder="150.00" step="0.05" style="font-size: 12px; padding: 6px 10px;" oninput="autoCalculateJournalPnl()">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Exit ₹:</label>
+              <input type="number" id="journalExit" class="input-text" placeholder="154.50" step="0.05" style="font-size: 12px; padding: 6px 10px;" oninput="autoCalculateJournalPnl()">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Entry Time:</label>
+              <input type="time" id="journalEntryTime" class="input-text" style="font-size: 12px; padding: 6px 6px;">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Exit Time:</label>
+              <input type="time" id="journalExitTime" class="input-text" style="font-size: 12px; padding: 6px 6px;">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Net P&L (₹):</label>
+              <input type="number" id="journalPnl" class="input-text" placeholder="+1200 or -800" step="10" style="font-size: 12px; padding: 6px 10px; font-weight: 800;">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 4px;">Setup (Trigger):</label>
+              <select id="journalSetup" class="select" style="font-size: 12px; padding: 6px 8px;">
+                <option value="EMA_REJECTION">🎯 EMA Rejection</option>
+                <option value="DELTA_BLOCK">🟦 Delta Block</option>
+                <option value="EXHAUSTION_SE">⚡ Exhaustion (SE) Signal</option>
+                <option value="TREND_PULLBACK">📈 Trend Pullback / Breakout</option>
+                <option value="COUNTER_TREND">🔄 Counter-trend Reversal</option>
+                <option value="NO_SETUP">🚫 No Setup</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Emotion at Entry:</label>
+              <select id="journalEmotion" class="select" style="font-size: 12px; padding: 6px 8px;">
+                <option value="CALM">🟢 Calm & In The Zone</option>
+                <option value="FOMO">🟡 FOMO / Chased Move</option>
+                <option value="REVENGE">🔴 Revenge / Frustrated</option>
+                <option value="HESITANT">🟣 Hesitant / Fearful</option>
+                <option value="GREEDY">🟠 Greedy / Oversized</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Discipline / Mistake:</label>
+              <select id="journalMistake" class="select" style="font-size: 12px; padding: 6px 8px;">
+                <option value="NONE">✅ Followed Rules 100%</option>
+                <option value="MOVED_SL">❌ Moved Stop Loss Away</option>
+                <option value="OVERSIZED">❌ Oversized (Broke 1% Risk)</option>
+                <option value="EARLY_EXIT">❌ Cut Winner Prematurely</option>
+                <option value="REVENGE_TRADE">❌ Revenge Trade Post-Loss</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Side:</label>
-            <select id="journalSide" class="select" style="font-size: 12px; padding: 6px 8px;" onchange="autoCalculateJournalPnl()">
-              <option value="BUY">BUY ↗</option>
-              <option value="SELL">SELL ↘</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Asset:</label>
-            <select id="journalAsset" class="select" style="font-size: 12px; padding: 6px 8px;" onchange="autoCalculateJournalPnl()">
-              <option value="EQUITY">Equity (Stock)</option>
-              <option value="COMMODITIES">Commodities (MCX)</option>
-              <option value="OPTIONS">Options (F&O)</option>
-              <option value="FUTURES">Futures</option>
-              <option value="CRYPTO">Crypto</option>
-              <option value="FOREX">Forex</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Quantity / Lots:</label>
-            <input type="number" id="journalQty" class="input-text" placeholder="100" min="1" step="1" style="font-size: 12px; padding: 6px 10px;" oninput="autoCalculateJournalPnl()">
-          </div>
-          <div>
-            <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Entry ₹:</label>
-            <input type="number" id="journalEntry" class="input-text" placeholder="150.00" step="0.05" style="font-size: 12px; padding: 6px 10px;" oninput="autoCalculateJournalPnl()">
-          </div>
-          <div>
-            <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Exit ₹:</label>
-            <input type="number" id="journalExit" class="input-text" placeholder="154.50" step="0.05" style="font-size: 12px; padding: 6px 10px;" oninput="autoCalculateJournalPnl()">
-          </div>
-          <div>
-            <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Entry Time:</label>
-            <input type="time" id="journalEntryTime" class="input-text" style="font-size: 12px; padding: 6px 6px;">
-          </div>
-          <div>
-            <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Exit Time:</label>
-            <input type="time" id="journalExitTime" class="input-text" style="font-size: 12px; padding: 6px 6px;">
-          </div>
-          <div>
-            <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Net P&L (₹):</label>
-            <input type="number" id="journalPnl" class="input-text" placeholder="+1200 or -800" step="10" style="font-size: 12px; padding: 6px 10px; font-weight: 800;">
-          </div>
-          <div>
-            <label style="font-size: 11px; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 4px;">Setup (Trigger):</label>
-            <select id="journalSetup" class="select" style="font-size: 12px; padding: 6px 8px;">
-              <option value="EMA_REJECTION">🎯 EMA Rejection</option>
-              <option value="DELTA_BLOCK">🟦 Delta Block</option>
-              <option value="EXHAUSTION_SE">⚡ Exhaustion (SE) Signal</option>
-              <option value="TREND_PULLBACK">📈 Trend Pullback / Breakout</option>
-              <option value="COUNTER_TREND">🔄 Counter-trend Reversal</option>
-              <option value="NO_SETUP">🚫 No Setup</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Emotion at Entry:</label>
-            <select id="journalEmotion" class="select" style="font-size: 12px; padding: 6px 8px;">
-              <option value="CALM">🟢 Calm & In The Zone</option>
-              <option value="FOMO">🟡 FOMO / Chased Move</option>
-              <option value="REVENGE">🔴 Revenge / Frustrated</option>
-              <option value="HESITANT">🟣 Hesitant / Fearful</option>
-              <option value="GREEDY">🟠 Greedy / Oversized</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Discipline / Mistake:</label>
-            <select id="journalMistake" class="select" style="font-size: 12px; padding: 6px 8px;">
-              <option value="NONE">✅ Followed Rules 100%</option>
-              <option value="MOVED_SL">❌ Moved Stop Loss Away</option>
-              <option value="OVERSIZED">❌ Oversized (Broke 1% Risk)</option>
-              <option value="EARLY_EXIT">❌ Cut Winner Prematurely</option>
-              <option value="REVENGE_TRADE">❌ Revenge Trade Post-Loss</option>
-            </select>
-          </div>
-          <div>
-            <button class="btn btn-primary" onclick="submitJournalTrade()" style="width: 100%; font-size: 12px; padding: 7px 12px;">
+
+          <!-- Actions Bar (Dedicated Row - No Overlapping) -->
+          <div class="journal-actions-bar">
+            <button class="btn btn-primary" onclick="submitJournalTrade()" style="font-size: 12.5px; font-weight: 800; padding: 8px 22px; box-shadow: 0 4px 14px rgba(56, 189, 248, 0.25);">
               + Log Trade
             </button>
-            <button type="button" class="btn" onclick="openContractNoteModal()" style="width: 100%; font-size: 11.5px; padding: 6px 10px; margin-top: 4px; background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #4ade80; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 6px;">
-              📥 Import Contract Note (PDF / Text)
+            <button type="button" class="btn" onclick="openContractNoteModal()" style="font-size: 12px; font-weight: 700; padding: 8px 16px; background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #4ade80; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; cursor: pointer;">
+              📥 Import Contract Note / Screenshot (PDF • Image • Text)
             </button>
           </div>
 
@@ -7123,7 +7143,7 @@
     <!-- MODAL: CONTRACT NOTE IMPORTER MODAL (PDF / TEXT)          -->
     <!-- ========================================================= -->
     <div id="contractNoteModal" class="journal-detail-modal-overlay" style="display: none;" onclick="if(event.target === this) closeContractNoteModal()">
-      <div class="journal-detail-modal-container" style="max-width: 900px; max-height: 90vh;">
+      <div class="journal-detail-modal-container" style="max-width: 920px; max-height: 90vh;">
         <!-- Modal Header -->
         <div class="journal-detail-modal-header" style="background: rgba(15, 23, 42, 0.95);">
           <div style="display: flex; align-items: center; gap: 12px;">
@@ -7132,10 +7152,10 @@
             </div>
             <div>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <strong style="font-size: 15px; color: #fff;">Import Broker Contract Note</strong>
-                <span class="tag-badge" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); font-size: 10px;">Groww • Zerodha • Angel One</span>
+                <strong style="font-size: 15px; color: #fff;">Import Broker Contract Note & Trade Screenshots</strong>
+                <span class="tag-badge" style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); font-size: 10px;">Groww • Zerodha • Angel One • MCX • Upstox</span>
               </div>
-              <div style="font-size: 11.5px; color: var(--muted); margin-top: 2px;">Extracts executed trades, execution timestamps, average prices, taxes & P&L automatically</div>
+              <div style="font-size: 11.5px; color: var(--muted); margin-top: 2px;">Extracts executed trades, combines multi-order fills of the same instrument, calculates average prices & P&L automatically</div>
             </div>
           </div>
           <button class="btn" onclick="closeContractNoteModal()" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171; font-weight: 800; font-size: 13px; padding: 6px 12px;">✕ Close</button>
@@ -7143,13 +7163,16 @@
 
         <!-- Modal Body Content -->
         <div style="padding: 16px; overflow-y: auto; max-height: calc(90vh - 140px); display: flex; flex-direction: column; gap: 16px;">
-          <!-- Mode Tabs (Upload PDF vs Paste Text) -->
-          <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 8px;">
+          <!-- Mode Tabs (Upload PDF vs Screenshot OCR vs Paste Text) -->
+          <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 8px; flex-wrap: wrap;">
             <button id="tabBtnPdf" class="risk-chip active" onclick="switchContractNoteTab('pdf')" style="font-size: 12px; padding: 6px 14px;">
               📄 Upload Contract Note PDF
             </button>
+            <button id="tabBtnImage" class="risk-chip" onclick="switchContractNoteTab('image')" style="font-size: 12px; padding: 6px 14px;">
+              📷 Upload / Paste Screenshot (OCR)
+            </button>
             <button id="tabBtnText" class="risk-chip" onclick="switchContractNoteTab('text')" style="font-size: 12px; padding: 6px 14px;">
-              📝 Paste Contract Note Text
+              📝 Paste Text / Tradebook
             </button>
           </div>
 
@@ -7159,7 +7182,7 @@
               <input type="file" id="contractNotePdfInput" accept=".pdf" style="display: none;" onchange="onContractNotePdfSelected(event)">
               <div style="font-size: 32px; margin-bottom: 8px;">📄</div>
               <div style="font-size: 13px; font-weight: 700; color: #38bdf8;" id="pdfUploadPrompt">Click or Drag & Drop Contract Note PDF here</div>
-              <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">Works with Groww, Zerodha, and other Indian broker PDF notes</div>
+              <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">Works with Groww, Zerodha, Angel One, and other Indian broker PDF notes</div>
             </div>
 
             <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: rgba(15, 23, 42, 0.5); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--line);">
@@ -7171,24 +7194,55 @@
             </div>
           </div>
 
-          <!-- TAB 2: Text Paste Panel -->
+          <!-- TAB 2: Image Screenshot Upload & Paste (OCR) Panel -->
+          <div id="contractNoteImagePanel" style="display: none; flex-direction: column; gap: 12px;">
+            <div id="contractNoteImageDropzone" style="border: 2px dashed rgba(56, 189, 248, 0.35); background: rgba(56, 189, 248, 0.04); border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s ease;" onclick="document.getElementById('contractNoteImageInput').click()">
+              <input type="file" id="contractNoteImageInput" accept="image/*" style="display: none;" onchange="onContractNoteImageSelected(event)">
+              <div style="font-size: 32px; margin-bottom: 8px;">📷</div>
+              <div style="font-size: 13px; font-weight: 700; color: #38bdf8;" id="imageUploadPrompt">Click, Drag & Drop Screenshot, or press <kbd style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2);">Ctrl+V</kbd> / <kbd style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2);">Cmd+V</kbd> to Paste</div>
+              <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">Supports MCX Commodity trades, Zerodha Kite orderbook, Groww, Angel One, and trading terminal screenshots</div>
+            </div>
+
+            <!-- Image Preview Box -->
+            <div id="cnImagePreviewContainer" style="display: none; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <img id="cnImagePreviewThumb" src="" alt="Screenshot Preview" style="width: 54px; height: 54px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15);">
+                <div>
+                  <div id="cnImagePreviewInfo" style="font-size: 12px; font-weight: 700; color: #fff;">screenshot.png</div>
+                  <div id="cnImagePreviewSize" style="font-size: 11px; color: var(--muted);">Ready for OCR extraction</div>
+                </div>
+              </div>
+              <button class="btn" type="button" onclick="clearCnSelectedImage()" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171; font-size: 11.5px; padding: 4px 10px;">✕ Remove</button>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
+              <button class="btn btn-primary" onclick="parseUploadedImageContractNote()" id="btnParseImage" style="font-size: 12px; padding: 8px 20px; box-shadow: 0 4px 14px rgba(56, 189, 248, 0.25);">
+                ⚡ Extract & Combine Trades from Screenshot (OCR)
+              </button>
+            </div>
+          </div>
+
+          <!-- TAB 3: Text Paste Panel -->
           <div id="contractNoteTextPanel" style="display: none; flex-direction: column; gap: 12px;">
             <div>
               <label style="font-size: 12px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 6px;">
-                Paste Raw Contract Note Text:
+                Paste Raw Contract Note / Trade Table Text:
               </label>
-              <textarea id="contractNoteRawText" class="input-text" rows="8" placeholder="Paste the text from your contract note email or PDF here (e.g. Unique Client Code, Trade Date, FUTURE & OPTIONS table, Annexure A)..." style="width: 100%; font-size: 12px; font-family: monospace; line-height: 1.4; resize: vertical;"></textarea>
+              <textarea id="contractNoteRawText" class="input-text" rows="8" placeholder="Paste your MCX trades, F&O orderbook lines, or contract note text here (e.g. OPTFUT 57420 CRUDEOILM 15-10-2026 9200.00 PE Buy 1 568.20...)" style="width: 100%; font-size: 12px; font-family: monospace; line-height: 1.4; resize: vertical;"></textarea>
             </div>
             <div style="display: flex; justify-content: flex-end;">
               <button class="btn btn-primary" onclick="parsePastedContractNoteText()" style="font-size: 12px; padding: 6px 18px;">
-                ⚡ Parse Trades from Text
+                ⚡ Parse & Combine Trades from Text
               </button>
             </div>
           </div>
 
           <!-- Parsing Status / Spinner -->
-          <div id="contractNoteParseLoading" style="display: none; text-align: center; padding: 20px; color: #38bdf8; font-size: 13px;">
-            ⏳ Parsing contract note data...
+          <div id="contractNoteParseLoading" style="display: none; text-align: center; padding: 18px; color: #38bdf8; font-size: 13px; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px;">
+            <div id="contractNoteLoadingText" style="font-weight: 700; margin-bottom: 6px;">⏳ Parsing contract note data...</div>
+            <div id="contractNoteProgressBarOuter" style="display: none; width: 100%; max-width: 320px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 999px; margin: 0 auto; overflow: hidden;">
+              <div id="contractNoteProgressBarInner" style="width: 0%; height: 100%; background: #38bdf8; transition: width 0.15s ease;"></div>
+            </div>
           </div>
 
           <!-- PREVIEW SECTION (Hidden until parsed) -->
@@ -12372,12 +12426,14 @@
     }
 
     /* ========================================================= */
-    /* CONTRACT NOTE IMPORTER LOGIC (PDF / TEXT PARSER)          */
+    /* CONTRACT NOTE & SCREENSHOT IMPORTER LOGIC (PDF/IMAGE/OCR) */
     /* ========================================================= */
     let parsedContractNoteState = {
       trades: [],
       summary: null,
-      selectedPdfFile: null
+      selectedPdfFile: null,
+      selectedImageFile: null,
+      selectedImageDataUrl: null
     };
 
     function openContractNoteModal() {
@@ -12395,21 +12451,19 @@
 
     function switchContractNoteTab(tab) {
       const pdfPanel = document.getElementById("contractNotePdfPanel");
+      const imagePanel = document.getElementById("contractNoteImagePanel");
       const textPanel = document.getElementById("contractNoteTextPanel");
       const tabBtnPdf = document.getElementById("tabBtnPdf");
+      const tabBtnImage = document.getElementById("tabBtnImage");
       const tabBtnText = document.getElementById("tabBtnText");
 
-      if (tab === 'pdf') {
-        if (pdfPanel) pdfPanel.style.display = "flex";
-        if (textPanel) textPanel.style.display = "none";
-        if (tabBtnPdf) tabBtnPdf.classList.add("active");
-        if (tabBtnText) tabBtnText.classList.remove("active");
-      } else {
-        if (pdfPanel) pdfPanel.style.display = "none";
-        if (textPanel) textPanel.style.display = "flex";
-        if (tabBtnPdf) tabBtnPdf.classList.remove("active");
-        if (tabBtnText) tabBtnText.classList.add("active");
-      }
+      if (pdfPanel) pdfPanel.style.display = (tab === 'pdf') ? 'flex' : 'none';
+      if (imagePanel) imagePanel.style.display = (tab === 'image') ? 'flex' : 'none';
+      if (textPanel) textPanel.style.display = (tab === 'text') ? 'flex' : 'none';
+
+      if (tabBtnPdf) tabBtnPdf.classList.toggle("active", tab === 'pdf');
+      if (tabBtnImage) tabBtnImage.classList.toggle("active", tab === 'image');
+      if (tabBtnText) tabBtnText.classList.toggle("active", tab === 'text');
     }
 
     function onContractNotePdfSelected(event) {
@@ -12419,6 +12473,117 @@
       const promptEl = document.getElementById("pdfUploadPrompt");
       if (promptEl) {
         promptEl.innerHTML = `✅ Selected: <strong>${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)`;
+      }
+    }
+
+    function onContractNoteImageSelected(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      handleCnImageFile(file);
+    }
+
+    function handleCnImageFile(file) {
+      if (!file) return;
+      parsedContractNoteState.selectedImageFile = file;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        parsedContractNoteState.selectedImageDataUrl = e.target.result;
+        const container = document.getElementById("cnImagePreviewContainer");
+        const thumb = document.getElementById("cnImagePreviewThumb");
+        const info = document.getElementById("cnImagePreviewInfo");
+        const size = document.getElementById("cnImagePreviewSize");
+        if (thumb) thumb.src = e.target.result;
+        if (info) info.textContent = file.name || "Pasted_Screenshot.png";
+        if (size) size.textContent = `${(file.size / 1024).toFixed(1)} KB • Ready for OCR extraction`;
+        if (container) container.style.display = "flex";
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearCnSelectedImage() {
+      parsedContractNoteState.selectedImageFile = null;
+      parsedContractNoteState.selectedImageDataUrl = null;
+      const container = document.getElementById("cnImagePreviewContainer");
+      if (container) container.style.display = "none";
+      const input = document.getElementById("contractNoteImageInput");
+      if (input) input.value = "";
+    }
+
+    // Global Paste Listener for Screenshot Upload inside modal
+    window.addEventListener("paste", function(e) {
+      const modal = document.getElementById("contractNoteModal");
+      if (!modal || modal.style.display === "none") return;
+      
+      const items = (e.clipboardData || window.clipboardData)?.items;
+      if (!items) return;
+      
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+          const blob = items[i].getAsFile();
+          handleCnImageFile(blob);
+          switchContractNoteTab('image');
+          showToast("📷 Trade screenshot pasted from clipboard! Click 'Extract & Combine Trades' to run OCR.");
+          e.preventDefault();
+          break;
+        }
+      }
+    });
+
+    async function parseUploadedImageContractNote() {
+      const file = parsedContractNoteState.selectedImageFile || parsedContractNoteState.selectedImageDataUrl;
+      if (!file) {
+        alert("Please select, drop, or paste (Ctrl+V) a screenshot or image first.");
+        return;
+      }
+
+      if (typeof Tesseract === "undefined") {
+        alert("OCR library (Tesseract.js) is loading. Please check your internet connection and try again.");
+        return;
+      }
+
+      const loadingEl = document.getElementById("contractNoteParseLoading");
+      const loadingText = document.getElementById("contractNoteLoadingText");
+      const barOuter = document.getElementById("contractNoteProgressBarOuter");
+      const barInner = document.getElementById("contractNoteProgressBarInner");
+      const btn = document.getElementById("btnParseImage");
+
+      if (loadingEl) loadingEl.style.display = "block";
+      if (barOuter) barOuter.style.display = "block";
+      if (barInner) barInner.style.width = "5%";
+      if (btn) btn.disabled = true;
+
+      try {
+        if (loadingText) loadingText.textContent = "⏳ Initializing OCR recognition engine...";
+        
+        const worker = await Tesseract.createWorker('eng', 1, {
+          logger: m => {
+            if (m.status === 'recognizing text' && m.progress) {
+              const pct = Math.round(m.progress * 100);
+              if (loadingText) loadingText.textContent = `⚡ Reading trade table screenshot... (${pct}%)`;
+              if (barInner) barInner.style.width = `${pct}%`;
+            } else if (m.status) {
+              if (loadingText) loadingText.textContent = `⏳ ${m.status}...`;
+            }
+          }
+        });
+
+        const imageSource = parsedContractNoteState.selectedImageDataUrl || file;
+        const res = await worker.recognize(imageSource);
+        await worker.terminate();
+
+        const extractedText = res.data.text || "";
+        if (!extractedText.trim()) {
+          throw new Error("No readable text could be recognized in this image. Please upload a clearer trade table screenshot.");
+        }
+
+        if (loadingEl) loadingEl.style.display = "none";
+        processAndPreviewContractNoteText(extractedText);
+      } catch (err) {
+        if (loadingEl) loadingEl.style.display = "none";
+        console.error("Image OCR Parsing Error:", err);
+        alert("OCR Error: " + (err.message || "Failed to process screenshot"));
+      } finally {
+        if (btn) btn.disabled = false;
       }
     }
 
@@ -12436,10 +12601,12 @@
 
       const password = (document.getElementById("contractNotePdfPassword")?.value || "").trim();
       const loadingEl = document.getElementById("contractNoteParseLoading");
-      if (loadingEl) {
-        loadingEl.style.display = "block";
-        loadingEl.textContent = "⏳ Reading & decrypting PDF pages...";
-      }
+      const loadingText = document.getElementById("contractNoteLoadingText");
+      const barOuter = document.getElementById("contractNoteProgressBarOuter");
+
+      if (loadingEl) loadingEl.style.display = "block";
+      if (barOuter) barOuter.style.display = "none";
+      if (loadingText) loadingText.textContent = "⏳ Reading & decrypting PDF pages...";
 
       try {
         const arrayBuffer = await file.arrayBuffer();
@@ -12474,7 +12641,7 @@
     function parsePastedContractNoteText() {
       const raw = document.getElementById("contractNoteRawText")?.value || "";
       if (!raw.trim()) {
-        alert("Please paste your contract note text in the box.");
+        alert("Please paste your contract note or trade table text in the box.");
         return;
       }
       processAndPreviewContractNoteText(raw);
@@ -12483,7 +12650,7 @@
     function processAndPreviewContractNoteText(text) {
       const parsedData = parseContractNoteRawText(text);
       if (!parsedData.trades || parsedData.trades.length === 0) {
-        alert("Could not detect trade records in the provided text. Please ensure it contains the trade date and contract rows.");
+        alert("Could not detect trade records in the provided text. Please ensure it contains instrument names, quantities, and prices (e.g., MCX OPTFUT, NIFTY options, or equity fills).");
         return;
       }
 
@@ -12496,11 +12663,12 @@
       // 1. Extract Trade Date
       let tradeDate = new Date().toISOString().slice(0, 10);
       const dateMatch = text.match(/Trade\s*Date\s*[:\s]*(\d{1,2})[-/](\d{1,2})[-/](\d{4})/i) ||
-                        text.match(/Trade\s*Date\s*[:\s]*(\d{4})[-/](\d{1,2})[-/](\d{1,2})/i);
+                        text.match(/Trade\s*Date\s*[:\s]*(\d{4})[-/](\d{1,2})[-/](\d{1,2})/i) ||
+                        text.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
       if (dateMatch) {
-        if (dateMatch[3].length === 4) {
+        if (dateMatch[3] && dateMatch[3].length === 4) {
           tradeDate = `${dateMatch[3]}-${String(dateMatch[2]).padStart(2, '0')}-${String(dateMatch[1]).padStart(2, '0')}`;
-        } else {
+        } else if (dateMatch[1] && dateMatch[1].length === 4) {
           tradeDate = `${dateMatch[1]}-${String(dateMatch[2]).padStart(2, '0')}-${String(dateMatch[3]).padStart(2, '0')}`;
         }
       }
@@ -12521,84 +12689,126 @@
       const sebiTurnover = extractNum(/SEBI\s*Turnover\s*Fees\s*[-:]?\s*([0-9,]+\.?[0-9]*)/i);
       const totalTaxes = brokerage + exchangeCharges + igst + cgst + sgst + stt + stampDuty + sebiTurnover;
 
-      // 3. Extract Trades from Summary Section or Annexure A
+      // 3. Multi-Engine Trade Extraction with Intelligent Combination
       const tradesMap = new Map();
 
-      // Pattern A: Groww / Standard F&O Summary Table
-      // Matches: (NSE/BSE) (NIFTY/BANKNIFTY/SENSEX...) (Buy/Sell) (Qty) (WAP Price) ... (Net Total)
-      const summaryRegex = /(?:NSE|BSE)\s+([A-Z0-9\s]+?(?:CE|PE|FUT)[A-Z0-9\s]*?)\s+(Buy|Sell|B|S)\s+([\-0-9]+)\s+([0-9,]+\.?[0-9]*)\s+[0-9\.]+\s+[0-9\.]+\s+([0-9\.\-]*)/gi;
-      let match;
+      function addFill(canonicalKey, action, qty, price, tradedVal, timeStr, assetTypeHint) {
+        if (!canonicalKey || !qty || isNaN(qty) || qty <= 0) return;
+        const cleanKey = canonicalKey.trim().toUpperCase().replace(/\s+/g, ' ');
 
-      while ((match = summaryRegex.exec(text)) !== null) {
-        const rawSymbol = match[1].trim().replace(/\s+/g, ' ');
-        const action = match[2].toUpperCase().startsWith('B') ? 'BUY' : 'SELL';
-        const qty = Math.abs(parseInt(match[3].replace(/,/g, ''), 10));
-        const price = parseFloat(match[4].replace(/,/g, ''));
-
-        if (!tradesMap.has(rawSymbol)) {
-          tradesMap.set(rawSymbol, {
-            symbol: rawSymbol,
+        if (!tradesMap.has(cleanKey)) {
+          tradesMap.set(cleanKey, {
+            symbol: cleanKey,
+            assetType: assetTypeHint || "OPTIONS",
             buyQty: 0,
             buyTotalVal: 0,
             sellQty: 0,
             sellTotalVal: 0,
-            firstTime: '',
-            lastTime: '',
-            tradesCount: 0
+            firstTime: timeStr ? timeStr.slice(0, 5) : '',
+            lastTime: timeStr ? timeStr.slice(0, 5) : '',
+            fillsCount: 0,
+            rawFills: []
           });
         }
 
-        const entry = tradesMap.get(rawSymbol);
+        const entry = tradesMap.get(cleanKey);
+        entry.fillsCount += 1;
+        if (timeStr) {
+          if (!entry.firstTime) entry.firstTime = timeStr.slice(0, 5);
+          entry.lastTime = timeStr.slice(0, 5);
+        }
+
+        const effectiveVal = (tradedVal && tradedVal > 0) ? tradedVal : (qty * price);
+
         if (action === 'BUY') {
           entry.buyQty += qty;
-          entry.buyTotalVal += (qty * price);
+          entry.buyTotalVal += effectiveVal;
         } else {
           entry.sellQty += qty;
-          entry.sellTotalVal += (qty * price);
+          entry.sellTotalVal += effectiveVal;
+        }
+
+        entry.rawFills.push({ action, qty, price, effectiveVal, timeStr });
+      }
+
+      // Pattern 1: MCX Commodity Order Lines (e.g. OPTFUT 57420 8091000599 CRUDEOILM 15-10-2026 9200.00 PE Buy 1 568.20 5682.00 ...)
+      const mcxRegex = /(?:OPTFUT|FUTCOM|FUTIDX|FUTSTK|OPTIDX|OPTSTK)\s+(?:[0-9]+\s+)+([A-Z0-9]+)\s+([0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{2,4})\s+([0-9\.]+)\s+(CE|PE|CALL|PUT)\s+(Buy|Sell|B|S)\s+([0-9]+)\s+([0-9,]+\.?[0-9]*)\s+([0-9,]+\.?[0-9]*)/gi;
+      let match;
+      let matchedCount = 0;
+
+      while ((match = mcxRegex.exec(text)) !== null) {
+        matchedCount++;
+        const symName = match[1];
+        const expiry = match[2];
+        const strike = parseFloat(match[3]);
+        const optType = match[4].toUpperCase().startsWith('C') ? 'CE' : 'PE';
+        const action = match[5].toUpperCase().startsWith('B') ? 'BUY' : 'SELL';
+        const qty = Math.abs(parseInt(match[6].replace(/,/g, ''), 10));
+        const price = parseFloat(match[7].replace(/,/g, ''));
+        const tradedVal = parseFloat(match[8].replace(/,/g, ''));
+
+        const canonicalSymbol = `${symName} ${expiry} ${strike} ${optType}`;
+        addFill(canonicalSymbol, action, qty, price, tradedVal, '18:30', 'COMMODITIES');
+      }
+
+      // Pattern 2: Groww / Standard F&O Summary Table
+      if (matchedCount === 0) {
+        const summaryRegex = /(?:NSE|BSE)\s+([A-Z0-9\s]+?(?:CE|PE|FUT)[A-Z0-9\s]*?)\s+(Buy|Sell|B|S)\s+([\-0-9]+)\s+([0-9,]+\.?[0-9]*)\s+[0-9\.]+\s+[0-9\.]+\s+([0-9\.\-]*)/gi;
+        while ((match = summaryRegex.exec(text)) !== null) {
+          matchedCount++;
+          const rawSymbol = match[1].trim();
+          const action = match[2].toUpperCase().startsWith('B') ? 'BUY' : 'SELL';
+          const qty = Math.abs(parseInt(match[3].replace(/,/g, ''), 10));
+          const price = parseFloat(match[4].replace(/,/g, ''));
+          addFill(rawSymbol, action, qty, price, qty * price, '', 'OPTIONS');
         }
       }
 
-      // Pattern B: Annexure A Trade Executions (with exact timestamps)
-      // Matches: (Order no) (Order time) (Trade no) (Trade time) (Security) (Exchange) (B/S) (Qty) (Price)
+      // Pattern 3: Annexure A Trade Executions (with exact timestamps)
       const annexureRegex = /(?:[0-9]{10,20}\s+)?(\d{2}:\d{2}:\d{2})\s+[0-9]{5,15}\s+(\d{2}:\d{2}:\d{2})\s+([A-Z0-9\s]+?(?:CE|PE|FUT)[A-Z0-9\s]*?)\s+(?:NSE|BSE)\s+(B|S)\s+([\-0-9]+)\s+([0-9,]+\.?[0-9]*)/gi;
-      
       while ((match = annexureRegex.exec(text)) !== null) {
+        matchedCount++;
         const tradeTime = match[2];
-        const rawSymbol = match[3].trim().replace(/\s+/g, ' ');
+        const rawSymbol = match[3].trim();
         const action = match[4].toUpperCase() === 'B' ? 'BUY' : 'SELL';
         const qty = Math.abs(parseInt(match[5].replace(/,/g, ''), 10));
         const price = parseFloat(match[6].replace(/,/g, ''));
+        addFill(rawSymbol, action, qty, price, qty * price, tradeTime, 'OPTIONS');
+      }
 
-        if (!tradesMap.has(rawSymbol)) {
-          tradesMap.set(rawSymbol, {
-            symbol: rawSymbol,
-            buyQty: 0,
-            buyTotalVal: 0,
-            sellQty: 0,
-            sellTotalVal: 0,
-            firstTime: tradeTime.slice(0, 5),
-            lastTime: tradeTime.slice(0, 5),
-            tradesCount: 0
-          });
-        }
+      // Pattern 4: Fallback line-by-line parser for OCR screenshots & Tradebooks
+      if (tradesMap.size === 0) {
+        const lines = text.split(/\r?\n/);
+        for (const line of lines) {
+          const l = line.trim();
+          if (!l || l.length < 10) continue;
 
-        const entry = tradesMap.get(rawSymbol);
-        if (!entry.firstTime) entry.firstTime = tradeTime.slice(0, 5);
-        entry.lastTime = tradeTime.slice(0, 5);
-        entry.tradesCount += 1;
+          // Check if line contains a recognizable contract / instrument
+          const optMatch = l.match(/([A-Z0-9]{2,12})\s*([0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{2,4})?\s*([0-9]{3,6}(?:\.[0-9]+)?)\s*(CE|PE|CALL|PUT)\b/i);
+          const actionMatch = l.match(/\b(BUY|SELL|B|S)\b/i);
+          const numbers = l.match(/\b\d+(?:,\d+)*(?:\.\d+)?\b/g);
 
-        if (entry.buyQty === 0 && entry.sellQty === 0) {
-          if (action === 'BUY') {
-            entry.buyQty += qty;
-            entry.buyTotalVal += (qty * price);
-          } else {
-            entry.sellQty += qty;
-            entry.sellTotalVal += (qty * price);
+          if (optMatch && actionMatch && numbers && numbers.length >= 2) {
+            const symName = optMatch[1].toUpperCase();
+            const exp = optMatch[2] || "";
+            const strike = optMatch[3];
+            const type = optMatch[4].toUpperCase().startsWith('C') ? 'CE' : 'PE';
+            const canonicalSymbol = `${symName} ${exp} ${strike} ${type}`.replace(/\s+/g, ' ').trim();
+            const action = actionMatch[1].toUpperCase().startsWith('B') ? 'BUY' : 'SELL';
+
+            // Extract qty and price from numbers array
+            const numVals = numbers.map(n => parseFloat(n.replace(/,/g, ''))).filter(n => !isNaN(n) && n > 0);
+            if (numVals.length >= 2) {
+              const qty = Math.round(numVals[numVals.length - 2]);
+              const price = numVals[numVals.length - 1];
+              const isCommodity = /CRUDE|NATURAL|GOLD|SILVER|COPPER|ZINC|MCX/i.test(canonicalSymbol);
+              addFill(canonicalSymbol, action, qty, price, qty * price, '', isCommodity ? 'COMMODITIES' : 'OPTIONS');
+            }
           }
         }
       }
 
-      // Convert map to final clean trades array
+      // Convert combined map into final consolidated trades array
       const trades = [];
       let totalGrossPnl = 0;
 
@@ -12608,36 +12818,45 @@
 
         const avgBuy = d.buyQty ? (d.buyTotalVal / d.buyQty) : 0;
         const avgSell = d.sellQty ? (d.sellTotalVal / d.sellQty) : 0;
-        const grossPnl = (d.sellTotalVal - d.buyTotalVal);
-        const pnlPct = avgBuy ? ((avgSell - avgBuy) / avgBuy) * 100 : 0;
+        
+        // Accurate Gross P&L
+        let grossPnl = 0;
+        if (d.buyQty > 0 && d.sellQty > 0) {
+          grossPnl = (d.sellTotalVal - d.buyTotalVal);
+        } else if (d.buyQty > 0) {
+          grossPnl = 0; // Open position
+        } else {
+          grossPnl = 0;
+        }
 
-        // Auto-tagging based on execution patterns
+        const pnlPct = (avgBuy > 0 && avgSell > 0) ? ((avgSell - avgBuy) / avgBuy) * 100 : 0;
+
+        // Auto-tagging & Psychology
         const mistakeTags = [];
         let emotionTag = "CALM";
         let disciplineFollowed = true;
 
-        if (d.tradesCount > 6 || totalQty > 5000) {
-          mistakeTags.push("OVERTRADING");
+        if (d.fillsCount > 5) {
+          mistakeTags.push("MULTI_FILL_SCALP");
         }
-        if (grossPnl < -20000) {
-          mistakeTags.push("AVERAGING_LOSERS");
+        if (grossPnl < -10000) {
           emotionTag = "FRUSTRATED";
           disciplineFollowed = false;
-        } else if (grossPnl < 0) {
-          disciplineFollowed = false;
-          emotionTag = "ANXIOUS";
-        } else if (grossPnl > 10000) {
+        } else if (grossPnl > 5000) {
           emotionTag = "CONFIDENT";
         }
 
-        const cleanSymbol = sym.toUpperCase().replace(/\s+/g, ' ');
-        const id = `trade_${tradeDate.replace(/-/g, '')}_${(d.firstTime || '0915').replace(':', '')}_${cleanSymbol.replace(/[^A-Z0-9]/g, '').slice(0, 14).toLowerCase()}`;
+        const isCommodity = /CRUDE|NATURAL|GOLD|SILVER|COPPER|ZINC|MCX/i.test(sym);
+        const isOpt = /CE|PE|CALL|PUT/i.test(sym);
+        const assetType = isCommodity ? "COMMODITIES" : (isOpt ? "OPTIONS" : "EQUITY");
+
+        const id = `trade_${tradeDate.replace(/-/g, '')}_${(d.firstTime || '0915').replace(':', '')}_${sym.replace(/[^A-Z0-9]/g, '').slice(0, 14).toLowerCase()}`;
 
         trades.push({
           id,
-          symbol: cleanSymbol,
-          side: "BUY",
-          assetType: "OPTIONS",
+          symbol: sym,
+          side: d.buyQty >= d.sellQty ? "BUY" : "SELL",
+          assetType,
           quantity: totalQty,
           tradeDate: tradeDate,
           entryTime: d.firstTime || "09:20",
@@ -12646,12 +12865,14 @@
           exitPrice: Number(avgSell.toFixed(2)),
           pnl: Number(grossPnl.toFixed(2)),
           pnlPct: Number(pnlPct.toFixed(2)),
+          setupType: "TREND_PULLBACK",
           emotionTag,
           mistakeTags,
           disciplineFollowed,
-          notes: `Imported from Contract Note (${tradeDate}). ${totalQty} units traded @ ₹${avgBuy.toFixed(2)} -> ₹${avgSell.toFixed(2)}.`,
+          fillsCount: d.fillsCount,
+          notes: `Combined ${d.fillsCount} execution fills (${tradeDate}). Total: ${totalQty} units/lots. Bought @ ₹${avgBuy.toFixed(2)}, Sold @ ₹${avgSell.toFixed(2)}.`,
           screenshots: [],
-          source: "Groww Contract Note"
+          source: "Imported & Combined from Broker Note / Screenshot"
         });
 
         totalGrossPnl += grossPnl;
@@ -12705,10 +12926,14 @@
               ⏰ ${t.entryTime} → ${t.exitTime}
             </td>
             <td>
-              <strong style="color: #fff;">${t.symbol}</strong>
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <strong style="color: #fff;">${t.symbol}</strong>
+                <span class="tag-badge" style="font-size: 9.5px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">${t.assetType}</span>
+                ${t.fillsCount > 1 ? `<span class="tag-badge" style="font-size: 9.5px; background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">⚡ ${t.fillsCount} fills combined</span>` : ''}
+              </div>
             </td>
             <td>
-              <span class="tag-badge buy" style="font-size: 10px;">${t.side}</span>
+              <span class="tag-badge ${t.side === 'BUY' ? 'buy' : 'sell'}" style="font-size: 10px;">${t.side}</span>
             </td>
             <td>
               <strong>${t.quantity.toLocaleString('en-IN')}</strong>
@@ -12740,13 +12965,14 @@
     }
 
     function clearCnPreview() {
-      parsedContractNoteState = { trades: [], summary: null, selectedPdfFile: null };
+      parsedContractNoteState = { trades: [], summary: null, selectedPdfFile: null, selectedImageFile: null, selectedImageDataUrl: null };
       const section = document.getElementById("contractNotePreviewSection");
       if (section) section.style.display = "none";
       const promptEl = document.getElementById("pdfUploadPrompt");
       if (promptEl) promptEl.textContent = "Click or Drag & Drop Contract Note PDF here";
       const txt = document.getElementById("contractNoteRawText");
       if (txt) txt.value = "";
+      clearCnSelectedImage();
     }
 
     async function submitBatchCnTradesToDb() {
