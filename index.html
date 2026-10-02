@@ -1813,6 +1813,88 @@
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
+    /* Multi-Select Index Universe Components */
+    .universe-multiselect-wrap {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+    .universe-category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .universe-cat-box {
+      background: rgba(10, 16, 30, 0.6);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+    }
+    .universe-cat-title {
+      font-size: 11.5px;
+      font-weight: 800;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .universe-chips-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .universe-chip-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--line);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+    .universe-chip-label:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .universe-chip-label.selected {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(99, 102, 241, 0.22));
+      border-color: #38bdf8;
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+    }
+    .universe-chip-label input[type="checkbox"] {
+      accent-color: #38bdf8;
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+    .universe-chip-count {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--muted);
+    }
+    .universe-chip-label.selected .universe-chip-count {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: rgba(56, 189, 248, 0.4);
+      color: #7dd3fc;
+    }
+
     /* Potential Score Progress Pill */
     .score-meter-wrap {
       display: flex;
@@ -5430,75 +5512,234 @@
         </div>
       </div>
 
-      <!-- Universe Editor & Broad Market Indices Suite -->
+      <!-- Universe Editor & Multi-Select Broad Market Indices Suite -->
       <div class="panel">
         <div class="panel-header">
           <div class="panel-title-group">
             <h2>Scanner Universe & Broad Market Indices</h2>
-            <p>Scan any NSE Broad Market Index universe or paste custom symbols on 5-minute candles. New breakout hits automatically appear first.</p>
+            <p>Select multiple NSE Broad Market Indices at once to combine them, or paste custom tickers on 5-minute candles.</p>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <button class="btn btn-primary" id="saveUniverseBtn">💾 Save Universe</button>
           </div>
         </div>
 
-        <!-- Broad Market Index Dropdown Selector Bar -->
-        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; padding: 12px 16px; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--line); border-radius: var(--radius-sm);">
-          <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 260px;">
-            <label for="broadMarketIndexSelect" style="font-size: 11.5px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.04em;">
-              📊 Select NSE Broad Market Index Universe:
-            </label>
-            <select id="broadMarketIndexSelect" class="input-text" style="background: #0f172a; border-color: rgba(56, 189, 248, 0.3); color: #fff; font-weight: 600; cursor: pointer; padding: 8px 12px;">
-              <optgroup label="🔥 Benchmark & Large Cap Indices">
-                <option value="nifty50" selected>Nifty 50 (50 Top Large Caps)</option>
-                <option value="niftyNext50">Nifty Next 50 (50 Large Caps)</option>
-                <option value="nifty100">Nifty 100 (100 Top Large Caps)</option>
+        <!-- Multi-Select Index Selection Suite -->
+        <div class="universe-multiselect-wrap">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line);">
+            <div>
+              <div style="font-size: 13.5px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
+                <span>🎯 Select Multiple Indices to Combine:</span>
+                <span id="multiSelectedSummary" style="color: #38bdf8; font-size: 12px; font-weight: 700; background: rgba(56, 189, 248, 0.12); padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(56, 189, 248, 0.3);">
+                  0 Indices Selected • 0 Unique Symbols
+                </span>
+              </div>
+              <div style="font-size: 11px; color: var(--muted); margin-top: 3px;">Check any number of indices below to merge them into one unified scanning universe.</div>
+            </div>
+
+            <!-- Multi-Select Action Buttons -->
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+              <button class="btn" id="btnSelectAllIndices" style="font-size: 11px; padding: 3px 8px;">Select All</button>
+              <button class="btn" id="btnSelectLargeIndices" style="font-size: 11px; padding: 3px 8px;">Large (100)</button>
+              <button class="btn" id="btnSelectMidIndices" style="font-size: 11px; padding: 3px 8px;">Midcap (150)</button>
+              <button class="btn" id="btnSelectSmallIndices" style="font-size: 11px; padding: 3px 8px;">Smallcap (250)</button>
+              <button class="btn" id="btnSelectFnoIndices" style="font-size: 11px; padding: 3px 8px; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;">Full F&O (131+)</button>
+              <button class="btn" id="btnClearSelectedIndices" style="font-size: 11px; padding: 3px 8px; color: #fca5a5;">Clear</button>
+            </div>
+          </div>
+
+          <!-- Category-Wise Index Checkboxes Grid -->
+          <div class="universe-category-grid">
+            
+            <!-- Group 1: Benchmark & Large Cap -->
+            <div class="universe-cat-box">
+              <div class="universe-cat-title">
+                <span>🏛️ Large Cap & Benchmarks</span>
+              </div>
+              <div class="universe-chips-list">
+                <label class="universe-chip-label" data-idx="nifty50">
+                  <input type="checkbox" value="nifty50" class="universe-checkbox">
+                  <span>Nifty 50</span>
+                  <span class="universe-chip-count">50</span>
+                </label>
+                <label class="universe-chip-label" data-idx="niftyNext50">
+                  <input type="checkbox" value="niftyNext50" class="universe-checkbox">
+                  <span>Nifty Next 50</span>
+                  <span class="universe-chip-count">50</span>
+                </label>
+                <label class="universe-chip-label" data-idx="nifty100">
+                  <input type="checkbox" value="nifty100" class="universe-checkbox">
+                  <span>Nifty 100</span>
+                  <span class="universe-chip-count">100</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Group 2: Midcaps -->
+            <div class="universe-cat-box">
+              <div class="universe-cat-title">
+                <span>🚀 Midcap Indices</span>
+              </div>
+              <div class="universe-chips-list">
+                <label class="universe-chip-label" data-idx="niftyMidcap50">
+                  <input type="checkbox" value="niftyMidcap50" class="universe-checkbox">
+                  <span>Midcap 50</span>
+                  <span class="universe-chip-count">50</span>
+                </label>
+                <label class="universe-chip-label" data-idx="niftyMidcapSelect">
+                  <input type="checkbox" value="niftyMidcapSelect" class="universe-checkbox">
+                  <span>Midcap Select</span>
+                  <span class="universe-chip-count">25</span>
+                </label>
+                <label class="universe-chip-label" data-idx="niftyMidcap100">
+                  <input type="checkbox" value="niftyMidcap100" class="universe-checkbox">
+                  <span>Midcap 100</span>
+                  <span class="universe-chip-count">100</span>
+                </label>
+                <label class="universe-chip-label" data-idx="niftyMidcap150">
+                  <input type="checkbox" value="niftyMidcap150" class="universe-checkbox">
+                  <span>Midcap 150</span>
+                  <span class="universe-chip-count">150</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Group 3: Smallcaps & Microcaps -->
+            <div class="universe-cat-box">
+              <div class="universe-cat-title">
+                <span>⚡ Smallcap & Microcaps</span>
+              </div>
+              <div class="universe-chips-list">
+                <label class="universe-chip-label" data-idx="niftySmallcap50">
+                  <input type="checkbox" value="niftySmallcap50" class="universe-checkbox">
+                  <span>Smallcap 50</span>
+                  <span class="universe-chip-count">50</span>
+                </label>
+                <label class="universe-chip-label" data-idx="niftySmallcap100">
+                  <input type="checkbox" value="niftySmallcap100" class="universe-checkbox">
+                  <span>Smallcap 100</span>
+                  <span class="universe-chip-count">100</span>
+                </label>
+                <label class="universe-chip-label" data-idx="niftySmallcap250">
+                  <input type="checkbox" value="niftySmallcap250" class="universe-checkbox">
+                  <span>Smallcap 250</span>
+                  <span class="universe-chip-count">250</span>
+                </label>
+                <label class="universe-chip-label" data-idx="niftyMicrocap250">
+                  <input type="checkbox" value="niftyMicrocap250" class="universe-checkbox">
+                  <span>Microcap 250</span>
+                  <span class="universe-chip-count">250</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Group 4: Broad Multi-Cap & F&O -->
+            <div class="universe-cat-box">
+              <div class="universe-cat-title">
+                <span>🌐 Broad Multi-Cap & F&O</span>
+              </div>
+              <div class="universe-chips-list">
+                <label class="universe-chip-label" data-idx="fnoUniverse">
+                  <input type="checkbox" value="fnoUniverse" class="universe-checkbox">
+                  <span>Complete F&O</span>
+                  <span class="universe-chip-count">131+</span>
+                </label>
+                <label class="universe-chip-label" data-idx="nifty200">
+                  <input type="checkbox" value="nifty200" class="universe-checkbox">
+                  <span>Nifty 200</span>
+                  <span class="universe-chip-count">200</span>
+                </label>
+                <label class="universe-chip-label" data-idx="niftyLargeMidcap250">
+                  <input type="checkbox" value="niftyLargeMidcap250" class="universe-checkbox">
+                  <span>LargeMidcap 250</span>
+                  <span class="universe-chip-count">250</span>
+                </label>
+                <label class="universe-chip-label" data-idx="niftyMidSmallcap400">
+                  <input type="checkbox" value="niftyMidSmallcap400" class="universe-checkbox">
+                  <span>MidSmall 400</span>
+                  <span class="universe-chip-count">400</span>
+                </label>
+                <label class="universe-chip-label" data-idx="nifty500">
+                  <input type="checkbox" value="nifty500" class="universe-checkbox">
+                  <span>Nifty 500</span>
+                  <span class="universe-chip-count">500</span>
+                </label>
+                <label class="universe-chip-label" data-idx="niftyTotalMarket">
+                  <input type="checkbox" value="niftyTotalMarket" class="universe-checkbox">
+                  <span>Total Market</span>
+                  <span class="universe-chip-count">750</span>
+                </label>
+                <label class="universe-chip-label" data-idx="niftyIndiaFPI150">
+                  <input type="checkbox" value="niftyIndiaFPI150" class="universe-checkbox">
+                  <span>FPI 150</span>
+                  <span class="universe-chip-count">150</span>
+                </label>
+                <label class="universe-chip-label" data-idx="bankNifty">
+                  <input type="checkbox" value="bankNifty" class="universe-checkbox">
+                  <span>Bank Nifty</span>
+                  <span class="universe-chip-count">12</span>
+                </label>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Bottom Execution Strip -->
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; color: var(--text);">
+                <input type="radio" name="universeMergeMode" value="replace" checked style="accent-color: #38bdf8;">
+                <span>Replace Universe</span>
+              </label>
+              <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; color: #38bdf8;">
+                <input type="radio" name="universeMergeMode" value="append" style="accent-color: #38bdf8;">
+                <span>➕ Append / Merge to Existing</span>
+              </label>
+            </div>
+
+            <button class="btn btn-primary" id="btnCombineLoadSelected" style="padding: 9px 20px; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; gap: 8px;">
+              ✨ Combine & Load Selected Indices into Scanner
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Single Select Dropdown Bar (Alternative) -->
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; padding: 10px 14px; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--line); border-radius: var(--radius-sm);">
+          <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 260px;">
+            <span style="font-size: 11.5px; font-weight: 700; color: var(--muted); white-space: nowrap;">Or 1-Click Dropdown:</span>
+            <select id="broadMarketIndexSelect" class="input-text" style="background: #0f172a; border-color: rgba(56, 189, 248, 0.3); color: #fff; font-weight: 600; cursor: pointer; padding: 6px 10px; flex: 1;">
+              <optgroup label="🔥 Benchmark & Large Cap">
+                <option value="nifty50" selected>Nifty 50 (50)</option>
+                <option value="niftyNext50">Nifty Next 50 (50)</option>
+                <option value="nifty100">Nifty 100 (100)</option>
               </optgroup>
-              <optgroup label="🚀 Midcap Indices">
-                <option value="niftyMidcap50">Nifty Midcap 50 (50 Liquid Midcaps)</option>
-                <option value="niftyMidcapSelect">Nifty Midcap Select (25 F&O Midcaps)</option>
-                <option value="niftyMidcap100">Nifty Midcap 100 (100 Midcaps)</option>
-                <option value="niftyMidcap150">Nifty Midcap 150 (Full 150 Midcaps)</option>
+              <optgroup label="🚀 Midcaps">
+                <option value="niftyMidcap50">Nifty Midcap 50 (50)</option>
+                <option value="niftyMidcapSelect">Nifty Midcap Select (25)</option>
+                <option value="niftyMidcap100">Nifty Midcap 100 (100)</option>
+                <option value="niftyMidcap150">Nifty Midcap 150 (150)</option>
               </optgroup>
-              <optgroup label="⚡ Smallcap & Microcap Indices">
-                <option value="niftySmallcap50">Nifty Smallcap 50 (50 Liquid Smallcaps)</option>
-                <option value="niftySmallcap100">Nifty Smallcap 100 (100 Smallcaps)</option>
-                <option value="niftySmallcap250">Nifty Smallcap 250 (Full 250 Smallcaps)</option>
-                <option value="niftyMicrocap250">Nifty Microcap 250 (250 Microcap Leaders)</option>
+              <optgroup label="⚡ Smallcaps & Microcaps">
+                <option value="niftySmallcap50">Nifty Smallcap 50 (50)</option>
+                <option value="niftySmallcap100">Nifty Smallcap 100 (100)</option>
+                <option value="niftySmallcap250">Nifty Smallcap 250 (250)</option>
+                <option value="niftyMicrocap250">Nifty Microcap 250 (250)</option>
               </optgroup>
-              <optgroup label="🌐 Broad Market Multi-Cap Indices">
-                <option value="nifty200">Nifty 200 (100 Large + 100 Mid)</option>
-                <option value="niftyLargeMidcap250">Nifty LargeMidcap 250 (100 Large + 150 Mid)</option>
-                <option value="niftyMidSmallcap400">Nifty MidSmallcap 400 (150 Mid + 250 Small)</option>
-                <option value="niftyMidSmallcap400_5050">Nifty MidSmallcap400 50:50</option>
-                <option value="nifty500">Nifty 500 (100 Large + 150 Mid + 250 Small)</option>
-                <option value="nifty500Multicap502525">Nifty500 Multicap 50:25:25</option>
-                <option value="nifty500EqualCap">Nifty500 LargeMidSmall Equal-Cap</option>
-                <option value="niftyTotalMarket">Nifty Total Market (Top 750 NSE Stocks)</option>
-              </optgroup>
-              <optgroup label="🎯 Thematic & Derivatives">
-                <option value="fnoUniverse">Complete F&O Universe (131+ Derivative Stocks)</option>
-                <option value="niftyIndiaFPI150">Nifty India FPI 150 (Top Foreign Portfolio Stocks)</option>
-                <option value="bankNifty">Bank Nifty (12 Leading Banks)</option>
+              <optgroup label="🌐 Broad Market Multi-Cap">
+                <option value="nifty200">Nifty 200 (200)</option>
+                <option value="niftyLargeMidcap250">Nifty LargeMidcap 250 (250)</option>
+                <option value="niftyMidSmallcap400">Nifty MidSmallcap 400 (400)</option>
+                <option value="nifty500">Nifty 500 (500)</option>
+                <option value="niftyTotalMarket">Nifty Total Market (Top 750)</option>
+                <option value="fnoUniverse">Complete F&O Universe (131+)</option>
+                <option value="niftyIndiaFPI150">Nifty India FPI 150 (150)</option>
+                <option value="bankNifty">Bank Nifty (12)</option>
               </optgroup>
             </select>
           </div>
-          <button class="btn btn-primary" id="loadSelectedUniverseBtn" style="align-self: flex-end; padding: 9px 18px; font-weight: 700;">
-            📥 Load Index into Scanner
+          <button class="btn" id="loadSelectedUniverseBtn" style="padding: 6px 14px; font-weight: 700; font-size: 11.5px;">
+            📥 Load Dropdown Index
           </button>
-        </div>
-
-        <!-- Quick 1-Click Preset Buttons -->
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
-          <span style="font-size: 11.5px; color: var(--muted); align-self: center; font-weight: 700; margin-right: 4px;">Quick Presets:</span>
-          <button class="btn" id="loadNifty50Preset" style="font-size: 11.5px; padding: 4px 10px;">Nifty 50</button>
-          <button class="btn" id="loadNiftyNext50Preset" style="font-size: 11.5px; padding: 4px 10px;">Nifty Next 50</button>
-          <button class="btn" id="loadNifty100Preset" style="font-size: 11.5px; padding: 4px 10px;">Nifty 100</button>
-          <button class="btn" id="loadMidcapPreset" style="font-size: 11.5px; padding: 4px 10px;">Midcap 150</button>
-          <button class="btn" id="loadSmallcap250Preset" style="font-size: 11.5px; padding: 4px 10px;">Smallcap 250</button>
-          <button class="btn" id="loadNifty500Preset" style="font-size: 11.5px; padding: 4px 10px;">Nifty 500</button>
-          <button class="btn" id="loadFnoPreset" style="font-size: 11.5px; padding: 4px 10px; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;">Full F&O (131+)</button>
-          <button class="btn" id="loadBankPreset" style="font-size: 11.5px; padding: 4px 10px;">Bank Nifty</button>
         </div>
 
         <textarea id="universeTextarea" class="input-area" placeholder="Enter NSE symbols separated by commas, spaces, or new lines..."></textarea>
@@ -15398,6 +15639,133 @@
         }
       };
 
+      function updateMultiSelectedSummary() {
+        const checkedBoxes = Array.from(document.querySelectorAll(".universe-checkbox:checked"));
+        const selectedSymbols = new Set();
+        const selectedNames = [];
+
+        checkedBoxes.forEach((cb) => {
+          const key = cb.value;
+          const labelEl = cb.closest(".universe-chip-label");
+          if (labelEl) labelEl.classList.add("selected");
+
+          const item = broadMarketPresetMap[key];
+          if (item && Array.isArray(item.symbols)) {
+            selectedNames.push(item.name);
+            item.symbols.forEach((sym) => selectedSymbols.add(sym));
+          }
+        });
+
+        document.querySelectorAll(".universe-checkbox:not(:checked)").forEach((cb) => {
+          const labelEl = cb.closest(".universe-chip-label");
+          if (labelEl) labelEl.classList.remove("selected");
+        });
+
+        const summaryEl = document.getElementById("multiSelectedSummary");
+        if (summaryEl) {
+          summaryEl.textContent = `${checkedBoxes.length} Indices Selected • ${selectedSymbols.size} Unique Symbols`;
+        }
+
+        return {
+          count: checkedBoxes.length,
+          symbols: Array.from(selectedSymbols),
+          names: selectedNames
+        };
+      }
+
+      // Checkbox Change Listener
+      document.querySelectorAll(".universe-checkbox").forEach((cb) => {
+        cb.addEventListener("change", updateMultiSelectedSummary);
+      });
+
+      // Quick Selector Buttons
+      function setCheckedIndices(keys) {
+        const keySet = new Set(keys);
+        document.querySelectorAll(".universe-checkbox").forEach((cb) => {
+          cb.checked = keySet.has(cb.value);
+        });
+        updateMultiSelectedSummary();
+      }
+
+      const btnSelectAllIndices = document.getElementById("btnSelectAllIndices");
+      if (btnSelectAllIndices) {
+        btnSelectAllIndices.addEventListener("click", () => {
+          document.querySelectorAll(".universe-checkbox").forEach((cb) => { cb.checked = true; });
+          updateMultiSelectedSummary();
+          showToast("Selected all 22+ Broad Market Indices");
+        });
+      }
+
+      const btnSelectLargeIndices = document.getElementById("btnSelectLargeIndices");
+      if (btnSelectLargeIndices) {
+        btnSelectLargeIndices.addEventListener("click", () => {
+          setCheckedIndices(["nifty50", "niftyNext50", "nifty100"]);
+          showToast("Selected Large Cap indices (100 symbols)");
+        });
+      }
+
+      const btnSelectMidIndices = document.getElementById("btnSelectMidIndices");
+      if (btnSelectMidIndices) {
+        btnSelectMidIndices.addEventListener("click", () => {
+          setCheckedIndices(["niftyMidcap50", "niftyMidcapSelect", "niftyMidcap100", "niftyMidcap150"]);
+          showToast("Selected Midcap indices (150 symbols)");
+        });
+      }
+
+      const btnSelectSmallIndices = document.getElementById("btnSelectSmallIndices");
+      if (btnSelectSmallIndices) {
+        btnSelectSmallIndices.addEventListener("click", () => {
+          setCheckedIndices(["niftySmallcap50", "niftySmallcap100", "niftySmallcap250", "niftyMicrocap250"]);
+          showToast("Selected Smallcap & Microcap indices (250+ symbols)");
+        });
+      }
+
+      const btnSelectFnoIndices = document.getElementById("btnSelectFnoIndices");
+      if (btnSelectFnoIndices) {
+        btnSelectFnoIndices.addEventListener("click", () => {
+          setCheckedIndices(["fnoUniverse", "bankNifty"]);
+          showToast("Selected Full F&O & Bank Nifty indices (131+ symbols)");
+        });
+      }
+
+      const btnClearSelectedIndices = document.getElementById("btnClearSelectedIndices");
+      if (btnClearSelectedIndices) {
+        btnClearSelectedIndices.addEventListener("click", () => {
+          document.querySelectorAll(".universe-checkbox").forEach((cb) => { cb.checked = false; });
+          updateMultiSelectedSummary();
+          showToast("Cleared index selections");
+        });
+      }
+
+      // Combine & Load Selected Indices into Scanner
+      const btnCombineLoadSelected = document.getElementById("btnCombineLoadSelected");
+      if (btnCombineLoadSelected) {
+        btnCombineLoadSelected.addEventListener("click", () => {
+          const { count, symbols } = updateMultiSelectedSummary();
+          if (count === 0 || symbols.length === 0) {
+            showToast("Please check at least 1 index to combine", true);
+            return;
+          }
+
+          const mode = document.querySelector("input[name='universeMergeMode']:checked")?.value || "replace";
+          const textarea = document.getElementById("universeTextarea");
+          if (!textarea) return;
+
+          let finalSymbols = [];
+          if (mode === "append" && textarea.value.trim().length > 0) {
+            const existing = textarea.value.split(/[\s,]+/).map((s) => s.trim().toUpperCase()).filter(Boolean);
+            const merged = new Set([...existing, ...symbols]);
+            finalSymbols = Array.from(merged);
+            textarea.value = finalSymbols.join(", ");
+            showToast(`Merged ${symbols.length} new symbols with existing (Total: ${finalSymbols.length})`);
+          } else {
+            finalSymbols = symbols;
+            textarea.value = finalSymbols.join(", ");
+            showToast(`✨ Loaded ${finalSymbols.length} unique symbols from ${count} selected indices!`);
+          }
+        });
+      }
+
       function loadUniversePreset(presetKey) {
         const item = broadMarketPresetMap[presetKey];
         if (!item || !Array.isArray(item.symbols)) return;
@@ -15408,7 +15776,7 @@
         showToast(`Loaded ${item.name} (${item.symbols.length} symbols)`);
       }
 
-      // Dropdown & Button Handlers
+      // Dropdown Handlers
       const loadSelectedUniverseBtn = document.getElementById("loadSelectedUniverseBtn");
       if (loadSelectedUniverseBtn) {
         loadSelectedUniverseBtn.addEventListener("click", () => {
@@ -15417,24 +15785,6 @@
           loadUniversePreset(val);
         });
       }
-
-      const presetBtnMap = {
-        loadNifty50Preset: "nifty50",
-        loadNiftyNext50Preset: "niftyNext50",
-        loadNifty100Preset: "nifty100",
-        loadMidcapPreset: "niftyMidcap150",
-        loadSmallcap250Preset: "niftySmallcap250",
-        loadNifty500Preset: "nifty500",
-        loadFnoPreset: "fnoUniverse",
-        loadBankPreset: "bankNifty"
-      };
-
-      Object.entries(presetBtnMap).forEach(([btnId, key]) => {
-        const btn = document.getElementById(btnId);
-        if (btn) {
-          btn.addEventListener("click", () => loadUniversePreset(key));
-        }
-      });
 
       document.getElementById("saveUniverseBtn").addEventListener("click", async () => {
         const raw = document.getElementById("universeTextarea").value;
