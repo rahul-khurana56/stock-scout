@@ -451,27 +451,15 @@ if newSessionD
             for i = 0 to numBars - 1
                 float bH = array.get(curDayHighs, i)
                 float bL = array.get(curDayLows, i)
-                float bC = array.get(curDayCloses, i)
                 float rawVol = i < array.size(curDayVols) ? nz(array.get(curDayVols, i), 0.0) : 0.0
+                // For cash indices with 0/na volume, fallback to 1.0 (Time-at-Price / TPO)
                 float bV = rawVol > 0 ? rawVol : 1.0
-                
                 int idxL = math.max(0, math.min(vpBins - 1, int(math.floor((bL - dMin) / binHeight))))
                 int idxH = math.max(0, math.min(vpBins - 1, int(math.floor((bH - dMin) / binHeight))))
-                float midPrice = (bH + bL + 2.0 * bC) / 4.0
-                int idxM = math.max(idxL, math.min(idxH, int(math.floor((midPrice - dMin) / binHeight))))
-                
-                // Triangular weight centered around the candle body / typical price
-                float sumWeights = 0.0
+                int span = idxH - idxL + 1
+                float vPerBin = bV / span
                 for k = idxL to idxH
-                    float dist = math.abs(k - idxM)
-                    float w = math.max(0.1, 1.0 - (dist / (idxH - idxL + 1.0)))
-                    sumWeights += w
-                
-                for k = idxL to idxH
-                    float dist = math.abs(k - idxM)
-                    float w = math.max(0.1, 1.0 - (dist / (idxH - idxL + 1.0)))
-                    float vBin = bV * (w / sumWeights)
-                    array.set(volBins, k, array.get(volBins, k) + vBin)
+                    array.set(volBins, k, array.get(volBins, k) + vPerBin)
             
             // Find POC: price bin with the highest traded volume / TPO
             float maxVol = -1.0
@@ -1409,13 +1397,13 @@ if showDeltaZones and huntingup
     label.delete(seLabel)
     seLabel := label.new(x=bar_index, y=low, text="❄ SE",
          yloc=yloc.belowbar, color=color.new(color.teal, 20),
-         textcolor=color.white, style=label.style_label_up, size=size.small)
+         textcolor=color.white, style=label.style_label_right, size=size.small)
 
 if showDeltaZones and huntingdn
     label.delete(beLabel)
     beLabel := label.new(x=bar_index, y=high, text="❄ BE",
          yloc=yloc.abovebar, color=color.new(color.teal, 20),
-         textcolor=color.white, style=label.style_label_down, size=size.small)
+         textcolor=color.white, style=label.style_label_right, size=size.small)
 
 alertcondition(showDeltaZones and huntingup, title="Sell Exhaustion Alert", message="❄ SE - Sell Exhaustion on {{ticker}} at {{close}}")
 alertcondition(showDeltaZones and huntingdn, title="Buy Exhaustion Alert",  message="❄ BE - Buy Exhaustion on {{ticker}} at {{close}}")
@@ -1475,20 +1463,19 @@ if showKeyLevels and newSessionH
     hourlyResLine := line.new(bar_index - 1, prevHourHigh, bar_index, prevHourHigh, extend=extend.right, color=hourlyLevelColor, width=2, style=line.style_dotted)
     hourlySupLine := line.new(bar_index - 1, prevHourLow,  bar_index, prevHourLow,  extend=extend.right, color=hourlyLevelColor, width=2, style=line.style_dotted)
 
-// --- Sticky tags that hug the current bar, offset by 2 bars to the right so they don't overlap candles ---
+// --- Sticky tags that hug the current bar, same visual language as TP1-5 ---
 var label dailyResTag  = na
 var label dailySupTag  = na
 var label hourlyResTag = na
 var label hourlySupTag = na
-int keyLevelTagOffset  = 2
 
 if showKeyLevels and not na(prevDayHigh)
     if na(dailyResTag)
-        dailyResTag := label.new(bar_index + keyLevelTagOffset, prevDayHigh, "D-Res", style=label.style_label_left, color=dailyLevelColor, textcolor=color.white, size=size.small)
-        dailySupTag := label.new(bar_index + keyLevelTagOffset, prevDayLow,  "D-Sup", style=label.style_label_left, color=dailyLevelColor, textcolor=color.white, size=size.small)
+        dailyResTag := label.new(bar_index, prevDayHigh, "D-Res", style=label.style_label_left, color=dailyLevelColor, textcolor=color.white, size=size.small)
+        dailySupTag := label.new(bar_index, prevDayLow,  "D-Sup", style=label.style_label_left, color=dailyLevelColor, textcolor=color.white, size=size.small)
     else
-        label.set_xy(dailyResTag, bar_index + keyLevelTagOffset, prevDayHigh)
-        label.set_xy(dailySupTag, bar_index + keyLevelTagOffset, prevDayLow)
+        label.set_xy(dailyResTag, bar_index, prevDayHigh)
+        label.set_xy(dailySupTag, bar_index, prevDayLow)
 else if not na(dailyResTag)
     label.delete(dailyResTag)
     label.delete(dailySupTag)
@@ -1497,11 +1484,11 @@ else if not na(dailyResTag)
 
 if showKeyLevels and not na(prevHourHigh)
     if na(hourlyResTag)
-        hourlyResTag := label.new(bar_index + keyLevelTagOffset, prevHourHigh, "H-Res", style=label.style_label_left, color=hourlyLevelColor, textcolor=color.white, size=size.small)
-        hourlySupTag := label.new(bar_index + keyLevelTagOffset, prevHourLow,  "H-Sup", style=label.style_label_left, color=hourlyLevelColor, textcolor=color.white, size=size.small)
+        hourlyResTag := label.new(bar_index, prevHourHigh, "H-Res", style=label.style_label_left, color=hourlyLevelColor, textcolor=color.white, size=size.small)
+        hourlySupTag := label.new(bar_index, prevHourLow,  "H-Sup", style=label.style_label_left, color=hourlyLevelColor, textcolor=color.white, size=size.small)
     else
-        label.set_xy(hourlyResTag, bar_index + keyLevelTagOffset, prevHourHigh)
-        label.set_xy(hourlySupTag, bar_index + keyLevelTagOffset, prevHourLow)
+        label.set_xy(hourlyResTag, bar_index, prevHourHigh)
+        label.set_xy(hourlySupTag, bar_index, prevHourLow)
 else if not na(hourlyResTag)
     label.delete(hourlyResTag)
     label.delete(hourlySupTag)

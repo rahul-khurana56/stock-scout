@@ -1716,6 +1716,103 @@
       color: #d8b4fe;
     }
 
+    /* Profit GeNIE GO Grade Badges */
+    .go-grade-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      box-shadow: 0 0 12px rgba(0,0,0,0.3);
+    }
+    .go-grade-badge.go-a {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(16, 185, 129, 0.35));
+      border: 1px solid #22c55e;
+      color: #86efac;
+      box-shadow: 0 0 14px rgba(34, 197, 94, 0.35);
+    }
+    .go-grade-badge.go-b {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(14, 165, 233, 0.35));
+      border: 1px solid #38bdf8;
+      color: #bae6fd;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+    }
+    .go-grade-badge.scalp {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(217, 70, 239, 0.35));
+      border: 1px solid #c084fc;
+      color: #f5d0fe;
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
+    }
+
+    /* Signal Filters Toolbar */
+    .signal-filter-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .signal-filter-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 13px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--line);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .signal-filter-btn:hover {
+      background: rgba(255, 255, 255, 0.09);
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .signal-filter-btn.active {
+      color: #ffffff;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(99, 102, 241, 0.25));
+      border-color: #38bdf8;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
+    }
+    .signal-filter-btn.active.filter-go-a {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(16, 185, 129, 0.4));
+      border-color: #22c55e;
+      color: #86efac;
+      box-shadow: 0 0 16px rgba(34, 197, 94, 0.35);
+    }
+    .signal-filter-btn.active.filter-go-b {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(14, 165, 233, 0.4));
+      border-color: #38bdf8;
+      color: #bae6fd;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
+    }
+    .signal-filter-btn.active.filter-scalp {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(217, 70, 239, 0.4));
+      border-color: #c084fc;
+      color: #f5d0fe;
+      box-shadow: 0 0 16px rgba(168, 85, 247, 0.35);
+    }
+    .signal-filter-count {
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-size: 10.5px;
+      font-weight: 800;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
     /* Potential Score Progress Pill */
     .score-meter-wrap {
       display: flex;
@@ -5077,13 +5174,36 @@
         </div>
       </div>
 
+      <!-- Profit GeNIE Strategy & Quality Filter Toolbar -->
+      <div class="signal-filter-toolbar">
+        <span style="font-size: 12px; font-weight: 800; color: var(--muted); margin-right: 4px; text-transform: uppercase; letter-spacing: 0.04em;">Filter:</span>
+        <button class="signal-filter-btn active" data-filter="ALL" onclick="setSignalFilter('ALL')">
+          ⚡ All Signals <span class="signal-filter-count" id="filterCountAll">0</span>
+        </button>
+        <button class="signal-filter-btn filter-go-a" data-filter="GO (A)" onclick="setSignalFilter('GO (A)')">
+          🔥 GO (A) Trend <span class="signal-filter-count" id="filterCountGoA">0</span>
+        </button>
+        <button class="signal-filter-btn filter-go-b" data-filter="GO (B)" onclick="setSignalFilter('GO (B)')">
+          ⚡ GO (B) Standard <span class="signal-filter-count" id="filterCountGoB">0</span>
+        </button>
+        <button class="signal-filter-btn filter-scalp" data-filter="SCALP" onclick="setSignalFilter('SCALP')">
+          🎯 Scalp Signals <span class="signal-filter-count" id="filterCountScalp">0</span>
+        </button>
+        <button class="signal-filter-btn" data-filter="BUY" onclick="setSignalFilter('BUY')">
+          🟢 Buy Only <span class="signal-filter-count" id="filterCountBuy">0</span>
+        </button>
+        <button class="signal-filter-btn" data-filter="SELL" onclick="setSignalFilter('SELL')">
+          🔴 Sell Only <span class="signal-filter-count" id="filterCountSell">0</span>
+        </button>
+      </div>
+
       <!-- Dual Column Signal Board -->
       <div class="signals-board">
         <div class="signals-column buy">
           <div class="column-head">
             <div>
               <h3 style="margin: 0; font-size: 18px; color: #22c55e;">Bullish Signals (BUY)</h3>
-              <small style="color: var(--muted);">Confirmed indicator buy signals</small>
+              <small style="color: var(--muted);" id="buyColumnSubtext">Confirmed indicator buy signals</small>
             </div>
             <span class="tag-badge buy" id="buyCountBadge">0 Buy</span>
           </div>
@@ -5094,7 +5214,7 @@
           <div class="column-head">
             <div>
               <h3 style="margin: 0; font-size: 18px; color: #ef4444;">Bearish Signals (SELL)</h3>
-              <small style="color: var(--muted);">Confirmed indicator sell signals</small>
+              <small style="color: var(--muted);" id="sellColumnSubtext">Confirmed indicator sell signals</small>
             </div>
             <span class="tag-badge sell" id="sellCountBadge">0 Sell</span>
           </div>
@@ -5310,23 +5430,78 @@
         </div>
       </div>
 
-      <!-- Universe Editor -->
+      <!-- Universe Editor & Broad Market Indices Suite -->
       <div class="panel">
         <div class="panel-header">
           <div class="panel-title-group">
-            <h2>Scanner Universe Editor</h2>
-            <p>Paste any NSE tickers (separated by commas, spaces, or new lines) to watch on 5-minute candles. New breakout hits automatically appear first.</p>
+            <h2>Scanner Universe & Broad Market Indices</h2>
+            <p>Scan any NSE Broad Market Index universe or paste custom symbols on 5-minute candles. New breakout hits automatically appear first.</p>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button class="btn" id="loadNifty50Preset">Nifty 50 (50)</button>
-            <button class="btn" id="loadNiftyNext50Preset">Nifty Next 50 (50)</button>
-            <button class="btn" id="loadBankPreset">Bank Nifty (12)</button>
-            <button class="btn" id="loadMidcapPreset">Midcap 100</button>
-            <button class="btn btn-primary" id="saveUniverseBtn">Save Universe</button>
+            <button class="btn btn-primary" id="saveUniverseBtn">💾 Save Universe</button>
           </div>
         </div>
 
-        <textarea id="universeTextarea" class="input-area" placeholder="Enter NSE symbols separated by commas or lines..."></textarea>
+        <!-- Broad Market Index Dropdown Selector Bar -->
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; padding: 12px 16px; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--line); border-radius: var(--radius-sm);">
+          <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 260px;">
+            <label for="broadMarketIndexSelect" style="font-size: 11.5px; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.04em;">
+              📊 Select NSE Broad Market Index Universe:
+            </label>
+            <select id="broadMarketIndexSelect" class="input-text" style="background: #0f172a; border-color: rgba(56, 189, 248, 0.3); color: #fff; font-weight: 600; cursor: pointer; padding: 8px 12px;">
+              <optgroup label="🔥 Benchmark & Large Cap Indices">
+                <option value="nifty50" selected>Nifty 50 (50 Top Large Caps)</option>
+                <option value="niftyNext50">Nifty Next 50 (50 Large Caps)</option>
+                <option value="nifty100">Nifty 100 (100 Top Large Caps)</option>
+              </optgroup>
+              <optgroup label="🚀 Midcap Indices">
+                <option value="niftyMidcap50">Nifty Midcap 50 (50 Liquid Midcaps)</option>
+                <option value="niftyMidcapSelect">Nifty Midcap Select (25 F&O Midcaps)</option>
+                <option value="niftyMidcap100">Nifty Midcap 100 (100 Midcaps)</option>
+                <option value="niftyMidcap150">Nifty Midcap 150 (Full 150 Midcaps)</option>
+              </optgroup>
+              <optgroup label="⚡ Smallcap & Microcap Indices">
+                <option value="niftySmallcap50">Nifty Smallcap 50 (50 Liquid Smallcaps)</option>
+                <option value="niftySmallcap100">Nifty Smallcap 100 (100 Smallcaps)</option>
+                <option value="niftySmallcap250">Nifty Smallcap 250 (Full 250 Smallcaps)</option>
+                <option value="niftyMicrocap250">Nifty Microcap 250 (250 Microcap Leaders)</option>
+              </optgroup>
+              <optgroup label="🌐 Broad Market Multi-Cap Indices">
+                <option value="nifty200">Nifty 200 (100 Large + 100 Mid)</option>
+                <option value="niftyLargeMidcap250">Nifty LargeMidcap 250 (100 Large + 150 Mid)</option>
+                <option value="niftyMidSmallcap400">Nifty MidSmallcap 400 (150 Mid + 250 Small)</option>
+                <option value="niftyMidSmallcap400_5050">Nifty MidSmallcap400 50:50</option>
+                <option value="nifty500">Nifty 500 (100 Large + 150 Mid + 250 Small)</option>
+                <option value="nifty500Multicap502525">Nifty500 Multicap 50:25:25</option>
+                <option value="nifty500EqualCap">Nifty500 LargeMidSmall Equal-Cap</option>
+                <option value="niftyTotalMarket">Nifty Total Market (Top 750 NSE Stocks)</option>
+              </optgroup>
+              <optgroup label="🎯 Thematic & Derivatives">
+                <option value="fnoUniverse">Complete F&O Universe (131+ Derivative Stocks)</option>
+                <option value="niftyIndiaFPI150">Nifty India FPI 150 (Top Foreign Portfolio Stocks)</option>
+                <option value="bankNifty">Bank Nifty (12 Leading Banks)</option>
+              </optgroup>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="loadSelectedUniverseBtn" style="align-self: flex-end; padding: 9px 18px; font-weight: 700;">
+            📥 Load Index into Scanner
+          </button>
+        </div>
+
+        <!-- Quick 1-Click Preset Buttons -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+          <span style="font-size: 11.5px; color: var(--muted); align-self: center; font-weight: 700; margin-right: 4px;">Quick Presets:</span>
+          <button class="btn" id="loadNifty50Preset" style="font-size: 11.5px; padding: 4px 10px;">Nifty 50</button>
+          <button class="btn" id="loadNiftyNext50Preset" style="font-size: 11.5px; padding: 4px 10px;">Nifty Next 50</button>
+          <button class="btn" id="loadNifty100Preset" style="font-size: 11.5px; padding: 4px 10px;">Nifty 100</button>
+          <button class="btn" id="loadMidcapPreset" style="font-size: 11.5px; padding: 4px 10px;">Midcap 150</button>
+          <button class="btn" id="loadSmallcap250Preset" style="font-size: 11.5px; padding: 4px 10px;">Smallcap 250</button>
+          <button class="btn" id="loadNifty500Preset" style="font-size: 11.5px; padding: 4px 10px;">Nifty 500</button>
+          <button class="btn" id="loadFnoPreset" style="font-size: 11.5px; padding: 4px 10px; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;">Full F&O (131+)</button>
+          <button class="btn" id="loadBankPreset" style="font-size: 11.5px; padding: 4px 10px;">Bank Nifty</button>
+        </div>
+
+        <textarea id="universeTextarea" class="input-area" placeholder="Enter NSE symbols separated by commas, spaces, or new lines..."></textarea>
       </div>
 
       <!-- FYERS Broker Connection -->
@@ -7586,6 +7761,7 @@
       sectorsData: null,
       pulseData: null,
       signals: [],
+      signalFilter: "ALL",
       optionsData: null,
       optionsUniverse: "ALL",
       optionsFilter: "ALL",
@@ -8357,14 +8533,72 @@
       container.innerHTML = html;
     }
 
+    window.setSignalFilter = function(filter) {
+      state.signalFilter = filter;
+      renderSignals();
+    };
+
     function renderSignals() {
       const buyList = document.getElementById("buySignalsList");
       const sellList = document.getElementById("sellSignalsList");
       if (!buyList || !sellList) return;
 
-      const sortedSignals = [...(state.signals || [])].sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
-      const buySignals = sortedSignals.filter((s) => s.side === "buy");
-      const sellSignals = sortedSignals.filter((s) => s.side === "sell");
+      const rawSignals = [...(state.signals || [])].sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
+      
+      // Calculate grade for each signal
+      const allSignals = rawSignals.map((s) => {
+        const potentialScore = s.potentialScore !== undefined ? s.potentialScore : (s.side === "buy" ? 88 : 82);
+        let goGrade = s.goGrade;
+        if (!goGrade) {
+          if (potentialScore >= 80) goGrade = "GO (A)";
+          else if (potentialScore >= 60) goGrade = "GO (B)";
+          else goGrade = "SCALP";
+        }
+        return { ...s, goGrade, potentialScore };
+      });
+
+      // Compute counts across all signals
+      const countAll = allSignals.length;
+      const countGoA = allSignals.filter((s) => s.goGrade === "GO (A)").length;
+      const countGoB = allSignals.filter((s) => s.goGrade === "GO (B)").length;
+      const countScalp = allSignals.filter((s) => s.goGrade === "SCALP").length;
+      const countBuy = allSignals.filter((s) => s.side === "buy").length;
+      const countSell = allSignals.filter((s) => s.side === "sell").length;
+
+      // Update Filter Toolbar Counts
+      if (document.getElementById("filterCountAll")) document.getElementById("filterCountAll").textContent = countAll;
+      if (document.getElementById("filterCountGoA")) document.getElementById("filterCountGoA").textContent = countGoA;
+      if (document.getElementById("filterCountGoB")) document.getElementById("filterCountGoB").textContent = countGoB;
+      if (document.getElementById("filterCountScalp")) document.getElementById("filterCountScalp").textContent = countScalp;
+      if (document.getElementById("filterCountBuy")) document.getElementById("filterCountBuy").textContent = countBuy;
+      if (document.getElementById("filterCountSell")) document.getElementById("filterCountSell").textContent = countSell;
+
+      // Update Filter Toolbar Active State
+      document.querySelectorAll(".signal-filter-btn").forEach((btn) => {
+        const filterType = btn.getAttribute("data-filter");
+        if (filterType === state.signalFilter) {
+          btn.classList.add("active");
+        } else {
+          btn.classList.remove("active");
+        }
+      });
+
+      // Filter signals based on active filter
+      let filteredSignals = allSignals;
+      if (state.signalFilter === "GO (A)") {
+        filteredSignals = allSignals.filter((s) => s.goGrade === "GO (A)");
+      } else if (state.signalFilter === "GO (B)") {
+        filteredSignals = allSignals.filter((s) => s.goGrade === "GO (B)");
+      } else if (state.signalFilter === "SCALP") {
+        filteredSignals = allSignals.filter((s) => s.goGrade === "SCALP");
+      } else if (state.signalFilter === "BUY") {
+        filteredSignals = allSignals.filter((s) => s.side === "buy");
+      } else if (state.signalFilter === "SELL") {
+        filteredSignals = allSignals.filter((s) => s.side === "sell");
+      }
+
+      const buySignals = filteredSignals.filter((s) => s.side === "buy");
+      const sellSignals = filteredSignals.filter((s) => s.side === "sell");
 
       document.getElementById("buyCountBadge").textContent = `${buySignals.length} Buy`;
       document.getElementById("sellCountBadge").textContent = `${sellSignals.length} Sell`;
@@ -8372,10 +8606,10 @@
         document.getElementById("totalSignalsCounter").textContent = state.signals.length;
       }
       if (document.getElementById("totalBuyCounter")) {
-        document.getElementById("totalBuyCounter").textContent = `${buySignals.length} Buy`;
+        document.getElementById("totalBuyCounter").textContent = `${countBuy} Buy`;
       }
       if (document.getElementById("totalSellCounter")) {
-        document.getElementById("totalSellCounter").textContent = `${sellSignals.length} Sell`;
+        document.getElementById("totalSellCounter").textContent = `${countSell} Sell`;
       }
 
       // Update Last Signal Hero Tile
@@ -8414,6 +8648,20 @@
         if (potentialScore < 50) scoreColor = "#ef4444";
         else if (potentialScore < 75) scoreColor = "#38bdf8";
 
+        const goGrade = s.goGrade || (potentialScore >= 80 ? "GO (A)" : potentialScore >= 60 ? "GO (B)" : "SCALP");
+        let gradeClass = "go-a";
+        let gradeIcon = "🔥";
+        let gradeTitle = "Grade A Trend Signal (Score >= 80%, High Conviction)";
+        if (goGrade === "GO (B)") {
+          gradeClass = "go-b";
+          gradeIcon = "⚡";
+          gradeTitle = "Grade B Standard Signal (Score 60-79%)";
+        } else if (goGrade === "SCALP") {
+          gradeClass = "scalp";
+          gradeIcon = "🎯";
+          gradeTitle = "Fast Scalp Momentum Breakout";
+        }
+
         const badges = Array.isArray(s.setupBadges) && s.setupBadges.length > 0 
           ? s.setupBadges 
           : [
@@ -8431,11 +8679,12 @@
           <div class="signal-card ${isBuy ? 'buy' : 'sell'}">
             <div class="signal-top">
               <div>
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                   <span class="signal-symbol">${s.symbol}</span>
                   <span class="tag-badge ${isBuy ? 'buy' : 'sell'}">${isBuy ? 'BUY' : 'SELL'}</span>
+                  <span class="go-grade-badge ${gradeClass}" title="${gradeTitle}">${gradeIcon} ${goGrade}</span>
                 </div>
-                <div style="font-size: 11px; color: var(--muted); margin-top: 3px;">
+                <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">
                   ${s.source || 'Profit GeNIE Scanner 5m'}
                 </div>
               </div>
@@ -8450,7 +8699,7 @@
             </div>
 
             <!-- Visual Day Range Slider -->
-            <div class="day-range-bar-wrap" style="margin: 2px 0;">
+            <div class="day-range-bar-wrap" style="margin: 4px 0;">
               <div class="day-range-labels">
                 <span>L: ₹${Number(dayLow).toLocaleString("en-IN", { minimumFractionDigits: 1 })}</span>
                 <span style="color: ${dayRangePct >= 75 ? '#22c55e' : (dayRangePct <= 30 ? '#ef4444' : 'var(--text)')}; font-weight: 700;">
@@ -8490,7 +8739,7 @@
             <!-- Signal Footer Actions -->
             <div class="signal-footer">
               <span>🕒 <strong>${formatStamp(s.time)}</strong></span>
-              <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <button class="btn-chart-link" style="font-size: 11.5px; padding: 4px 10px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1);" onclick="openPositionSizer('${s.symbol}', ${price}, '${isBuy ? 'BUY' : 'SELL'}', ${dayLow}, ${dayHigh})">
                   🛡️ Sizer & R:R
                 </button>
@@ -8506,14 +8755,16 @@
         `;
       }
 
+      const activeFilterLabel = state.signalFilter === "ALL" ? "" : ` (${state.signalFilter})`;
+
       if (!buySignals.length) {
-        buyList.innerHTML = `<div class="empty-placeholder">No buy signals received yet.<br><small>New confirmed signals will appear here in real time.</small></div>`;
+        buyList.innerHTML = `<div class="empty-placeholder">No bullish${activeFilterLabel} signals detected yet.<br><small>New confirmed signals meeting criteria will appear here in real time.</small></div>`;
       } else {
         buyList.innerHTML = buySignals.map(renderSignalCard).join("");
       }
 
       if (!sellSignals.length) {
-        sellList.innerHTML = `<div class="empty-placeholder">No sell signals received yet.<br><small>New confirmed signals will appear here in real time.</small></div>`;
+        sellList.innerHTML = `<div class="empty-placeholder">No bearish${activeFilterLabel} signals detected yet.<br><small>New confirmed signals meeting criteria will appear here in real time.</small></div>`;
       } else {
         sellList.innerHTML = sellSignals.map(renderSignalCard).join("");
       }
@@ -15055,29 +15306,134 @@
         }
       });
 
-      // Universe Presets
-      document.getElementById("loadNifty50Preset").addEventListener("click", () => {
-        const nifty50 = ["ADANIENT","ADANIPORTS","APOLLOHOSP","ASIANPAINT","AXISBANK","BAJAJ-AUTO","BAJFINANCE","BAJAJFINSV","BEL","BHARTIARTL","CIPLA","COALINDIA","DRREDDY","EICHERMOT","ETERNAL","GRASIM","HCLTECH","HDFCBANK","HDFCLIFE","HINDALCO","HINDUNILVR","ICICIBANK","INDIGO","INFY","ITC","JIOFIN","JSWSTEEL","KOTAKBANK","LT","M&M","MARUTI","MAXHEALTH","NESTLEIND","NTPC","ONGC","POWERGRID","RELIANCE","SBILIFE","SHRIRAMFIN","SBIN","SUNPHARMA","TCS","TATACONSUM","TATASTEEL","TECHM","TITAN","TRENT","ULTRACEMCO","WIPRO","TATAMOTORS"];
-        document.getElementById("universeTextarea").value = nifty50.join(", ");
-        showToast("Loaded Nifty 50 preset (50 symbols)");
-      });
+      // Broad Market Index Universe Datasets
+      const broadMarketPresetMap = {
+        nifty50: {
+          name: "Nifty 50",
+          symbols: ["ADANIENT","ADANIPORTS","APOLLOHOSP","ASIANPAINT","AXISBANK","BAJAJ-AUTO","BAJFINANCE","BAJAJFINSV","BEL","BHARTIARTL","CIPLA","COALINDIA","DRREDDY","EICHERMOT","ETERNAL","GRASIM","HCLTECH","HDFCBANK","HDFCLIFE","HINDALCO","HINDUNILVR","ICICIBANK","INDIGO","INFY","ITC","JIOFIN","JSWSTEEL","KOTAKBANK","LT","M&M","MARUTI","MAXHEALTH","NESTLEIND","NTPC","ONGC","POWERGRID","RELIANCE","SBILIFE","SHRIRAMFIN","SBIN","SUNPHARMA","TCS","TATACONSUM","TATASTEEL","TECHM","TITAN","TRENT","ULTRACEMCO","WIPRO","TATAMOTORS"]
+        },
+        niftyNext50: {
+          name: "Nifty Next 50",
+          symbols: ["ABB","ADANIENSOL","ADANIGREEN","ADANIPOWER","AMBUJACEM","BAJAJHLDNG","BANKBARODA","BPCL","BRITANNIA","BOSCHLTD","CANBK","CGPOWER","CHOLAFIN","CUMMINSIND","DIVISLAB","DLF","DMART","GAIL","GODREJCP","HDFCAMC","HAL","HINDZINC","HYUNDAI","INDHOTEL","IOC","IRFC","JINDALSTEL","LODHA","LTIM","MAZDOCK","MUTHOOTFIN","PIDILITIND","PFC","PNB","RECLTD","MOTHERSON","SHREECEM","SIEMENS","SOLARINDS","TATAPOWER","TORNTPHARM","TVSMOTOR","UNIONBANK","UNITDSPR","VBL","VEDL","ZYDUSLIFE","HEROMOTOCO","DABUR","ICICIGI"]
+        },
+        nifty100: {
+          name: "Nifty 100",
+          symbols: ["ADANIENT","ADANIPORTS","APOLLOHOSP","ASIANPAINT","AXISBANK","BAJAJ-AUTO","BAJFINANCE","BAJAJFINSV","BEL","BHARTIARTL","CIPLA","COALINDIA","DRREDDY","EICHERMOT","ETERNAL","GRASIM","HCLTECH","HDFCBANK","HDFCLIFE","HINDALCO","HINDUNILVR","ICICIBANK","INDIGO","INFY","ITC","JIOFIN","JSWSTEEL","KOTAKBANK","LT","M&M","MARUTI","MAXHEALTH","NESTLEIND","NTPC","ONGC","POWERGRID","RELIANCE","SBILIFE","SHRIRAMFIN","SBIN","SUNPHARMA","TCS","TATACONSUM","TATASTEEL","TECHM","TITAN","TRENT","ULTRACEMCO","WIPRO","TATAMOTORS","ABB","ADANIENSOL","ADANIGREEN","ADANIPOWER","AMBUJACEM","BAJAJHLDNG","BANKBARODA","BPCL","BRITANNIA","BOSCHLTD","CANBK","CGPOWER","CHOLAFIN","CUMMINSIND","DIVISLAB","DLF","DMART","GAIL","GODREJCP","HDFCAMC","HAL","HINDZINC","HYUNDAI","INDHOTEL","IOC","IRFC","JINDALSTEL","LODHA","LTIM","MAZDOCK","MUTHOOTFIN","PIDILITIND","PFC","PNB","RECLTD","MOTHERSON","SHREECEM","SIEMENS","SOLARINDS","TATAPOWER","TORNTPHARM","TVSMOTOR","UNIONBANK","UNITDSPR","VBL","VEDL","ZYDUSLIFE","HEROMOTOCO","DABUR","ICICIGI"]
+        },
+        niftyMidcap50: {
+          name: "Nifty Midcap 50",
+          symbols: ["360ONE","APLAPOLLO","AUBANK","ABCAPITAL","ALKEM","ASHOKLEY","ASTRAL","AUROPHARMA","BSE","BDL","BHARATFORG","BHEL","BIOCON","BLUESTARCO","COCHINSHIP","COFORGE","COLPAL","CONCOR","CUMMINSIND","DIXON","FEDERALBNK","FORTIS","GLENMARK","GODREJPROP","HAVELLS","HUDCO","INDIANB","INDUSINDBK","IRCTC","IREDA","JSWENERGY","JUBLFOOD","KPITTECH","KALYANKJIL","LUPIN","MRF","M&MFIN","MANKIND","MARICO","MAXHEALTH","MPHASIS","MCX","NMDC","OFSS","PERSISTENT","POLYCAB","PRESTIGE","RVNL","SUZLON","VOLTAS"]
+        },
+        niftyMidcapSelect: {
+          name: "Nifty Midcap Select",
+          symbols: ["AUBANK","BHARATFORG","BHEL","COFORGE","CONCOR","CUMMINSIND","DIXON","FEDERALBNK","GODREJPROP","HAVELLS","INDIANB","INDUSINDBK","JSWENERGY","JUBLFOOD","KPITTECH","LUPIN","M&MFIN","MANKIND","MPHASIS","MCX","OFSS","PERSISTENT","POLYCAB","SUZLON","VOLTAS"]
+        },
+        niftyMidcap100: {
+          name: "Nifty Midcap 100",
+          symbols: ["360ONE","APLAPOLLO","AUBANK","ATGL","ABCAPITAL","ALKEM","ASHOKLEY","ASTRAL","AUROPHARMA","BSE","BANKINDIA","BDL","BHARATFORG","BHEL","GROWW","BIOCON","BLUESTARCO","COCHINSHIP","COFORGE","COLPAL","CONCOR","COROMANDEL","DABUR","DIXON","EXIDEIND","NYKAA","FORTIS","GVT&D","GMRAIRPORT","GLENMARK","GODFRYPHLP","GODREJPROP","HAVELLS","HEROMOTOCO","HINDPETRO","POWERINDIA","HUDCO","ICICIGI","ICICIAMC","IDFCFIRSTB","INDIANB","IRCTC","IREDA","INDUSTOWER","INDUSINDBK","NAUKRI","JSWENERGY","JUBLFOOD","KEI","KPITTECH","KALYANKJIL","LTF","LGEINDIA","LICHSGFIN","LAURUSLABS","LENSKART","LUPIN","MRF","M&MFIN","MANKIND","MARICO","MFSL","MOTILALOFS","MPHASIS","MCX","NHPC","NMDC","NATIONALUM","OBEROIRLTY","OIL","PAYTM","OFSS","POLICYBZR","PIIND","PAGEIND","PATANJALI","PERSISTENT","POLYCAB","PREMIERENE","PRESTIGE","RADICO","RVNL","SBICARD","SRF","SAIL","SUPREMEIND","SUZLON","SWIGGY","TATACOMM","TATAELXSI","TATAINVEST","FEDERALBNK","PHOENIXLTD","TIINDIA","UPL","VMM","IDEA","VOLTAS","WAAREEENER","YESBANK"]
+        },
+        niftyMidcap150: {
+          name: "Nifty Midcap 150",
+          symbols: ["360ONE","APLAPOLLO","AUBANK","ATGL","ABCAPITAL","ALKEM","ASHOKLEY","ASTRAL","AUROPHARMA","BSE","BANKINDIA","BDL","BHARATFORG","BHEL","GROWW","BIOCON","BLUESTARCO","COCHINSHIP","COFORGE","COLPAL","CONCOR","COROMANDEL","DABUR","DIXON","EXIDEIND","NYKAA","FORTIS","GVT&D","GMRAIRPORT","GLENMARK","GODFRYPHLP","GODREJPROP","HAVELLS","HEROMOTOCO","HINDPETRO","POWERINDIA","HUDCO","ICICIGI","ICICIAMC","IDFCFIRSTB","INDIANB","IRCTC","IREDA","INDUSTOWER","INDUSINDBK","NAUKRI","JSWENERGY","JUBLFOOD","KEI","KPITTECH","KALYANKJIL","LTF","LGEINDIA","LICHSGFIN","LAURUSLABS","LENSKART","LUPIN","MRF","M&MFIN","MANKIND","MARICO","MFSL","MOTILALOFS","MPHASIS","MCX","NHPC","NMDC","NATIONALUM","OBEROIRLTY","OIL","PAYTM","OFSS","POLICYBZR","PIIND","PAGEIND","PATANJALI","PERSISTENT","POLYCAB","PREMIERENE","PRESTIGE","RADICO","RVNL","SBICARD","SRF","SAIL","SUPREMEIND","SUZLON","SWIGGY","TATACOMM","TATAELXSI","TATAINVEST","FEDERALBNK","PHOENIXLTD","TIINDIA","UPL","VMM","IDEA","VOLTAS","WAAREEENER","YESBANK","ACC","AIAENG","AJANTPHARM","APOLLOTYRE","BALKRISIND","BATAINDIA","BHARATDYN","CANFINHOME","CASTROLIND","CENTURYPLY","CESC","CHAMBLFERT","CROMPTON","DEEPAKNTR","DELHIVERY","DEVYANI","EMAMILTD","ENDURANCE","ESCORTS","GLAND","GLAXO","GNFC","GODREJIND","GRANULES","GSPL","GUJGASLTD","HATSUN","HONAUT","IBREALEST","IDBI","IIFL","IPCALAB","J&KBANK","JBCHEPHARM","JINDALSAW","JKCEMENT","JSWINFRA","KAJARIACER","KAYNES","KEC","LALPATHLAB","LINDEINDIA","LLOYDSME","MEDANTA","METROPOLIS","MSUMI","NATCOPHARM","NBCC","NIPPONLIFE","PETRONET","PFIZER"]
+        },
+        niftySmallcap50: {
+          name: "Nifty Smallcap 50",
+          symbols: ["AMBER","ANGELONE","ANANTRAJ","BLS","BSOFT","BRIGADE","CDSL","CENTURYTEX","CAMS","CESC","CLEAN","CYIENT","DATAPATTNS","ECLERX","ENGINERSIN","EIDPARRY","EXIDEIND","FINCABLES","FIVESTAR","GLENMARK","GRAVITA","HBLPOWER","HFCL","HINDCOPPER","HOMEFIRST","HONASA","IIFL","JBMA","JWL","KAYNES","KEC","LEMONTREE","MANAPPURAM","MAPMYINDIA","METROBRAND","NBCC","NCC","PNCINFRA","POONAWALLA","RBLBANK","RITES","ROUTE","SONACOMS","SWANENERGY","TEJASNET","TRITURBINE","UTIAMC","VGUARD","WELCORP","ZENSARTECH"]
+        },
+        niftySmallcap100: {
+          name: "Nifty Smallcap 100",
+          symbols: ["AMBER","ANGELONE","ANANTRAJ","BLS","BSOFT","BRIGADE","CDSL","CENTURYTEX","CAMS","CESC","CLEAN","CYIENT","DATAPATTNS","ECLERX","ENGINERSIN","EIDPARRY","EXIDEIND","FINCABLES","FIVESTAR","GLENMARK","GRAVITA","HBLPOWER","HFCL","HINDCOPPER","HOMEFIRST","HONASA","IIFL","JBMA","JWL","KAYNES","KEC","LEMONTREE","MANAPPURAM","MAPMYINDIA","METROBRAND","NBCC","NCC","PNCINFRA","POONAWALLA","RBLBANK","RITES","ROUTE","SONACOMS","SWANENERGY","TEJASNET","TRITURBINE","UTIAMC","VGUARD","WELCORP","ZENSARTECH","AARTIIND","ABFRL","AETHER","AFFLE","ALLCARGO","ALOKINDS","AMARAJABAT","APTUS","ASTERDM","AVANTIFEED","BALRAMCHIN","BBL","BIKAJI","BIRLACORPN","BLUEJET","CAMPUS","CANFINHOME","CARBORUNIV","CEATLTD","CENTRALBK","CHAMBLFERT","CHEMPLASTS","CUB","DOMS","EPL","ERIS","FINPIPE","FIRSTSOURC","GLS","GODFRYPHLP","GPPL","GRANULES","GRAPHITE","HEG","HUDCO","IDBI","IFCI","INDIACEM","IONEXCHANG"]
+        },
+        niftySmallcap250: {
+          name: "Nifty Smallcap 250",
+          symbols: ["AMBER","ANGELONE","ANANTRAJ","BLS","BSOFT","BRIGADE","CDSL","CENTURYTEX","CAMS","CESC","CLEAN","CYIENT","DATAPATTNS","ECLERX","ENGINERSIN","EIDPARRY","EXIDEIND","FINCABLES","FIVESTAR","GLENMARK","GRAVITA","HBLPOWER","HFCL","HINDCOPPER","HOMEFIRST","HONASA","IIFL","JBMA","JWL","KAYNES","KEC","LEMONTREE","MANAPPURAM","MAPMYINDIA","METROBRAND","NBCC","NCC","PNCINFRA","POONAWALLA","RBLBANK","RITES","ROUTE","SONACOMS","SWANENERGY","TEJASNET","TRITURBINE","UTIAMC","VGUARD","WELCORP","ZENSARTECH","AARTIIND","ABFRL","AETHER","AFFLE","ALLCARGO","ALOKINDS","AMARAJABAT","APTUS","ASTERDM","AVANTIFEED","BALRAMCHIN","BBL","BIKAJI","BIRLACORPN","BLUEJET","CAMPUS","CANFINHOME","CARBORUNIV","CEATLTD","CENTRALBK","CHAMBLFERT","CHEMPLASTS","CUB","DOMS","EPL","ERIS","FINPIPE","FIRSTSOURC","GLS","GODFRYPHLP","GPPL","GRANULES","GRAPHITE","HEG","HUDCO","IDBI","IFCI","INDIACEM","IONEXCHANG","ACE","ACTIONCONST","AHLUCONT","AIAENG","AJANTPHARM","AKUMS","ALKYLAMINE","ANANDRATHI","APARINDS","APLLTD","ARCHEAN","ARE&M","ASKAUTOLTD","ASAHIINDIA","ASTRAZEN","ATUL","AVALON","AWL","BAJAJCON","BALAJIAMIN","BANCOINDIA","BEML","BORORENEW","CCL","CERA","CHALET","CHENNPETRO","CHOICEIN","CIEINDIA","COCHINSHIP","CONCORDBIO","CRAFTSMAN","CREDITACC","DBREALTY","DCBBANK","DEEPAKFERT","DELHIVERY","DEVYANI","DISHTV","DREDGECORP","EDELWEISS","ELECON","EMIL","EPIGRAL","ESCORTS","FDC","FEDFINA","FORCEIND","FORTIS","FSL","GABRIEL","GARFIBRES","GATEWAY","GENUSPOWER","GICRE","GILLETTE","GLOBAL","GMMPFAUDLR","GOCLCORP","GODREJIND","GOKEX","GOKULAGRO","GPIL","GREAVESCOT","GRINDWELL","GRSE","GSFC","GSPL","GTLINFRA","HALEON","HAPPSTMNDS","HATHWAY","HATSUN","HEIDELBERG","HERITGFOOD","HIKAL","HINDOILEXP","HINDWAREAP","HMT","IBREALEST","ICRA","IMFA","INDGN","INDIAGLYCO","INDIAMART","INDIANB","INDIGOPNTS","INDOCO","INDRAMEDCO","INFIBEAM","INGERRAND","INOXINDIA","INOXWIND","IOB","IPCALAB","IRB","IRCON","ISEC","ITI","JAICORPLTD","JAMNAAUTO","JBCHEPHARM","JINDWORLD","JKIL","JKLAKSHMI","JKPAPER","JKTYRE","JMFINANCIL","JPASSOCIAT","JSWINFRA","JUBLINGREA","JUBLPHARMA","JUSTDIAL","JYOTHYLAB","JYOTICNC","KAJARIACER","KANSAINER","KARURVYSYA","KEI","KFINTECH","KIMS","KIRLOSBROS","KIRLENG","KIRLOSIND","KNRCON","KPIL","KRBL","KSB","KSL","KTKBANK"]
+        },
+        nifty200: {
+          name: "Nifty 200",
+          symbols: ["ADANIENT","ADANIPORTS","APOLLOHOSP","ASIANPAINT","AXISBANK","BAJAJ-AUTO","BAJFINANCE","BAJAJFINSV","BEL","BHARTIARTL","CIPLA","COALINDIA","DRREDDY","EICHERMOT","ETERNAL","GRASIM","HCLTECH","HDFCBANK","HDFCLIFE","HINDALCO","HINDUNILVR","ICICIBANK","INDIGO","INFY","ITC","JIOFIN","JSWSTEEL","KOTAKBANK","LT","M&M","MARUTI","MAXHEALTH","NESTLEIND","NTPC","ONGC","POWERGRID","RELIANCE","SBILIFE","SHRIRAMFIN","SBIN","SUNPHARMA","TCS","TATACONSUM","TATASTEEL","TECHM","TITAN","TRENT","ULTRACEMCO","WIPRO","TATAMOTORS","ABB","ADANIENSOL","ADANIGREEN","ADANIPOWER","AMBUJACEM","BAJAJHLDNG","BANKBARODA","BPCL","BRITANNIA","BOSCHLTD","CANBK","CGPOWER","CHOLAFIN","CUMMINSIND","DIVISLAB","DLF","DMART","GAIL","GODREJCP","HDFCAMC","HAL","HINDZINC","HYUNDAI","INDHOTEL","IOC","IRFC","JINDALSTEL","LODHA","LTIM","MAZDOCK","MUTHOOTFIN","PIDILITIND","PFC","PNB","RECLTD","MOTHERSON","SHREECEM","SIEMENS","SOLARINDS","TATAPOWER","TORNTPHARM","TVSMOTOR","UNIONBANK","UNITDSPR","VBL","VEDL","ZYDUSLIFE","HEROMOTOCO","DABUR","ICICIGI","360ONE","APLAPOLLO","AUBANK","ATGL","ABCAPITAL","ALKEM","ASHOKLEY","ASTRAL","AUROPHARMA","BSE","BANKINDIA","BDL","BHARATFORG","BHEL","GROWW","BIOCON","BLUESTARCO","COCHINSHIP","COFORGE","COLPAL","CONCOR","COROMANDEL","DIXON","EXIDEIND","NYKAA","FORTIS","GVT&D","GMRAIRPORT","GLENMARK","GODFRYPHLP","GODREJPROP","HAVELLS","HINDPETRO","POWERINDIA","HUDCO","ICICIAMC","IDFCFIRSTB","INDIANB","IRCTC","IREDA","INDUSTOWER","INDUSINDBK","NAUKRI","JSWENERGY","JUBLFOOD","KEI","KPITTECH","KALYANKJIL","LTF","LGEINDIA","LICHSGFIN","LAURUSLABS","LENSKART","LUPIN","MRF","M&MFIN","MANKIND","MARICO","MFSL","MOTILALOFS","MPHASIS","MCX","NHPC","NMDC","NATIONALUM","OBEROIRLTY","OIL","PAYTM","OFSS","POLICYBZR","PIIND","PAGEIND","PATANJALI","PERSISTENT","POLYCAB","PREMIERENE","PRESTIGE","RADICO","RVNL","SBICARD","SRF","SAIL","SUPREMEIND","SUZLON","SWIGGY","TATACOMM","TATAELXSI","TATAINVEST","FEDERALBNK","PHOENIXLTD","TIINDIA","UPL","VMM","IDEA","VOLTAS","WAAREEENER","YESBANK"]
+        },
+        niftyLargeMidcap250: {
+          name: "Nifty LargeMidcap 250",
+          symbols: ["ADANIENT","ADANIPORTS","APOLLOHOSP","ASIANPAINT","AXISBANK","BAJAJ-AUTO","BAJFINANCE","BAJAJFINSV","BEL","BHARTIARTL","CIPLA","COALINDIA","DRREDDY","EICHERMOT","ETERNAL","GRASIM","HCLTECH","HDFCBANK","HDFCLIFE","HINDALCO","HINDUNILVR","ICICIBANK","INDIGO","INFY","ITC","JIOFIN","JSWSTEEL","KOTAKBANK","LT","M&M","MARUTI","MAXHEALTH","NESTLEIND","NTPC","ONGC","POWERGRID","RELIANCE","SBILIFE","SHRIRAMFIN","SBIN","SUNPHARMA","TCS","TATACONSUM","TATASTEEL","TECHM","TITAN","TRENT","ULTRACEMCO","WIPRO","TATAMOTORS","ABB","ADANIENSOL","ADANIGREEN","ADANIPOWER","AMBUJACEM","BAJAJHLDNG","BANKBARODA","BPCL","BRITANNIA","BOSCHLTD","CANBK","CGPOWER","CHOLAFIN","CUMMINSIND","DIVISLAB","DLF","DMART","GAIL","GODREJCP","HDFCAMC","HAL","HINDZINC","HYUNDAI","INDHOTEL","IOC","IRFC","JINDALSTEL","LODHA","LTIM","MAZDOCK","MUTHOOTFIN","PIDILITIND","PFC","PNB","RECLTD","MOTHERSON","SHREECEM","SIEMENS","SOLARINDS","TATAPOWER","TORNTPHARM","TVSMOTOR","UNIONBANK","UNITDSPR","VBL","VEDL","ZYDUSLIFE","HEROMOTOCO","DABUR","ICICIGI","360ONE","APLAPOLLO","AUBANK","ATGL","ABCAPITAL","ALKEM","ASHOKLEY","ASTRAL","AUROPHARMA","BSE","BANKINDIA","BDL","BHARATFORG","BHEL","GROWW","BIOCON","BLUESTARCO","COCHINSHIP","COFORGE","COLPAL","CONCOR","COROMANDEL","DIXON","EXIDEIND","NYKAA","FORTIS","GVT&D","GMRAIRPORT","GLENMARK","GODFRYPHLP","GODREJPROP","HAVELLS","HINDPETRO","POWERINDIA","HUDCO","ICICIAMC","IDFCFIRSTB","INDIANB","IRCTC","IREDA","INDUSTOWER","INDUSINDBK","NAUKRI","JSWENERGY","JUBLFOOD","KEI","KPITTECH","KALYANKJIL","LTF","LGEINDIA","LICHSGFIN","LAURUSLABS","LENSKART","LUPIN","MRF","M&MFIN","MANKIND","MARICO","MFSL","MOTILALOFS","MPHASIS","MCX","NHPC","NMDC","NATIONALUM","OBEROIRLTY","OIL","PAYTM","OFSS","POLICYBZR","PIIND","PAGEIND","PATANJALI","PERSISTENT","POLYCAB","PREMIERENE","PRESTIGE","RADICO","RVNL","SBICARD","SRF","SAIL","SUPREMEIND","SUZLON","SWIGGY","TATACOMM","TATAELXSI","TATAINVEST","FEDERALBNK","PHOENIXLTD","TIINDIA","UPL","VMM","IDEA","VOLTAS","WAAREEENER","YESBANK","ACC","AIAENG","AJANTPHARM","APOLLOTYRE","BALKRISIND","BATAINDIA","BHARATDYN","CANFINHOME","CASTROLIND","CENTURYPLY","CESC","CHAMBLFERT","CROMPTON","DEEPAKNTR","DELHIVERY","DEVYANI","EMAMILTD","ENDURANCE","ESCORTS","GLAND","GLAXO","GNFC","GODREJIND","GRANULES","GSPL","GUJGASLTD","HATSUN","HONAUT","IBREALEST","IDBI","IIFL","IPCALAB","J&KBANK","JBCHEPHARM","JINDALSAW","JKCEMENT","JSWINFRA","KAJARIACER","KAYNES","KEC","LALPATHLAB","LINDEINDIA","LLOYDSME","MEDANTA","METROPOLIS","MSUMI","NATCOPHARM","NBCC","NIPPONLIFE","PETRONET","PFIZER"]
+        },
+        niftyMidSmallcap400: {
+          name: "Nifty MidSmallcap 400",
+          symbols: ["360ONE","APLAPOLLO","AUBANK","ATGL","ABCAPITAL","ALKEM","ASHOKLEY","ASTRAL","AUROPHARMA","BSE","BANKINDIA","BDL","BHARATFORG","BHEL","GROWW","BIOCON","BLUESTARCO","COCHINSHIP","COFORGE","COLPAL","CONCOR","COROMANDEL","DABUR","DIXON","EXIDEIND","NYKAA","FORTIS","GVT&D","GMRAIRPORT","GLENMARK","GODFRYPHLP","GODREJPROP","HAVELLS","HEROMOTOCO","HINDPETRO","POWERINDIA","HUDCO","ICICIGI","ICICIAMC","IDFCFIRSTB","INDIANB","IRCTC","IREDA","INDUSTOWER","INDUSINDBK","NAUKRI","JSWENERGY","JUBLFOOD","KEI","KPITTECH","KALYANKJIL","LTF","LGEINDIA","LICHSGFIN","LAURUSLABS","LENSKART","LUPIN","MRF","M&MFIN","MANKIND","MARICO","MFSL","MOTILALOFS","MPHASIS","MCX","NHPC","NMDC","NATIONALUM","OBEROIRLTY","OIL","PAYTM","OFSS","POLICYBZR","PIIND","PAGEIND","PATANJALI","PERSISTENT","POLYCAB","PREMIERENE","PRESTIGE","RADICO","RVNL","SBICARD","SRF","SAIL","SUPREMEIND","SUZLON","SWIGGY","TATACOMM","TATAELXSI","TATAINVEST","FEDERALBNK","PHOENIXLTD","TIINDIA","UPL","VMM","IDEA","VOLTAS","WAAREEENER","YESBANK","ACC","AIAENG","AJANTPHARM","APOLLOTYRE","BALKRISIND","BATAINDIA","BHARATDYN","CANFINHOME","CASTROLIND","CENTURYPLY","CESC","CHAMBLFERT","CROMPTON","DEEPAKNTR","DELHIVERY","DEVYANI","EMAMILTD","ENDURANCE","ESCORTS","GLAND","GLAXO","GNFC","GODREJIND","GRANULES","GSPL","GUJGASLTD","HATSUN","HONAUT","IBREALEST","IDBI","IIFL","IPCALAB","J&KBANK","JBCHEPHARM","JINDALSAW","JKCEMENT","JSWINFRA","KAJARIACER","KAYNES","KEC","LALPATHLAB","LINDEINDIA","LLOYDSME","MEDANTA","METROPOLIS","MSUMI","NATCOPHARM","NBCC","NIPPONLIFE","PETRONET","PFIZER","AMBER","ANGELONE","ANANTRAJ","BLS","BSOFT","BRIGADE","CDSL","CENTURYTEX","CAMS","CLEAN","CYIENT","DATAPATTNS","ECLERX","ENGINERSIN","EIDPARRY","FINCABLES","FIVESTAR","GRAVITA","HBLPOWER","HFCL","HINDCOPPER","HOMEFIRST","HONASA","JBMA","JWL","LEMONTREE","MANAPPURAM","MAPMYINDIA","METROBRAND","NCC","PNCINFRA","POONAWALLA","RBLBANK","RITES","ROUTE","SONACOMS","SWANENERGY","TEJASNET","TRITURBINE","UTIAMC","VGUARD","WELCORP","ZENSARTECH","AARTIIND","ABFRL","AETHER","AFFLE","ALLCARGO","ALOKINDS","AMARAJABAT","APTUS","ASTERDM","AVANTIFEED","BALRAMCHIN","BBL","BIKAJI","BIRLACORPN","BLUEJET","CAMPUS","CARBORUNIV","CEATLTD","CENTRALBK","CHEMPLASTS","CUB","DOMS","EPL","ERIS","FINPIPE","FIRSTSOURC","GLS","GPPL","GRAPHITE","HEG","IFCI","INDIACEM","IONEXCHANG","ACE","ACTIONCONST","AHLUCONT","AKUMS","ALKYLAMINE","ANANDRATHI","APARINDS","APLLTD","ARCHEAN","ARE&M","ASKAUTOLTD","ASAHIINDIA","ASTRAZEN","ATUL","AVALON","AWL","BAJAJCON","BALAJIAMIN","BANCOINDIA","BEML","BORORENEW","CCL","CERA","CHALET","CHENNPETRO","CHOICEIN","CIEINDIA","CONCORDBIO","CRAFTSMAN","CREDITACC","DBREALTY","DCBBANK","DEEPAKFERT","DISHTV","DREDGECORP","EDELWEISS","ELECON","EMIL","EPIGRAL","FDC","FEDFINA","FORCEIND","FSL","GABRIEL","GARFIBRES","GATEWAY","GENUSPOWER","GICRE","GILLETTE","GLOBAL","GMMPFAUDLR","GOCLCORP","GOKEX","GOKULAGRO","GPIL","GREAVESCOT","GRINDWELL","GRSE","GSFC","GTLINFRA","HALEON","HAPPSTMNDS","HEIDELBERG","HERITGFOOD","HIKAL","HINDOILEXP","HINDWAREAP","HMT","ICRA","IMFA","INDGN","INDIAGLYCO","INDIGOPNTS","INDOCO","INDRAMEDCO","INFIBEAM","INGERRAND","INOXINDIA","INOXWIND","IOB","IRB","IRCON","ISEC","ITI","JAICORPLTD","JAMNAAUTO","JINDWORLD","JKIL","JKLAKSHMI","JKPAPER","JKTYRE","JMFINANCIL","JPASSOCIAT","JUBLINGREA","JUBLPHARMA","JUSTDIAL","JYOTHYLAB","JYOTICNC","KANSAINER","KARURVYSYA","KFINTECH","KIMS","KIRLOSBROS","KIRLENG","KIRLOSIND","KNRCON","KPIL","KRBL","KSB","KSL","KTKBANK"]
+        },
+        niftyMidSmallcap400_5050: {
+          name: "Nifty MidSmallcap400 50:50",
+          symbols: ["360ONE","APLAPOLLO","AUBANK","ATGL","ABCAPITAL","ALKEM","ASHOKLEY","ASTRAL","AUROPHARMA","BSE","BANKINDIA","BDL","BHARATFORG","BHEL","GROWW","BIOCON","BLUESTARCO","COCHINSHIP","COFORGE","COLPAL","CONCOR","COROMANDEL","DABUR","DIXON","EXIDEIND","NYKAA","FORTIS","GVT&D","GMRAIRPORT","GLENMARK","GODFRYPHLP","GODREJPROP","HAVELLS","HEROMOTOCO","HINDPETRO","POWERINDIA","HUDCO","ICICIGI","ICICIAMC","IDFCFIRSTB","INDIANB","IRCTC","IREDA","INDUSTOWER","INDUSINDBK","NAUKRI","JSWENERGY","JUBLFOOD","KEI","KPITTECH","KALYANKJIL","LTF","LGEINDIA","LICHSGFIN","LAURUSLABS","LENSKART","LUPIN","MRF","M&MFIN","MANKIND","MARICO","MFSL","MOTILALOFS","MPHASIS","MCX","NHPC","NMDC","NATIONALUM","OBEROIRLTY","OIL","PAYTM","OFSS","POLICYBZR","PIIND","PAGEIND","PATANJALI","PERSISTENT","POLYCAB","PREMIERENE","PRESTIGE","RADICO","RVNL","SBICARD","SRF","SAIL","SUPREMEIND","SUZLON","SWIGGY","TATACOMM","TATAELXSI","TATAINVEST","FEDERALBNK","PHOENIXLTD","TIINDIA","UPL","VMM","IDEA","VOLTAS","WAAREEENER","YESBANK","ACC","AIAENG","AJANTPHARM","APOLLOTYRE","BALKRISIND","BATAINDIA","BHARATDYN","CANFINHOME","CASTROLIND","CENTURYPLY","CESC","CHAMBLFERT","CROMPTON","DEEPAKNTR","DELHIVERY","DEVYANI","EMAMILTD","ENDURANCE","ESCORTS","GLAND","GLAXO","GNFC","GODREJIND","GRANULES","GSPL","GUJGASLTD","HATSUN","HONAUT","IBREALEST","IDBI","IIFL","IPCALAB","J&KBANK","JBCHEPHARM","JINDALSAW","JKCEMENT","JSWINFRA","KAJARIACER","KAYNES","KEC","LALPATHLAB","LINDEINDIA","LLOYDSME","MEDANTA","METROPOLIS","MSUMI","NATCOPHARM","NBCC","NIPPONLIFE","PETRONET","PFIZER","AMBER","ANGELONE","ANANTRAJ","BLS","BSOFT","BRIGADE","CDSL","CENTURYTEX","CAMS","CLEAN","CYIENT","DATAPATTNS","ECLERX","ENGINERSIN","EIDPARRY","FINCABLES","FIVESTAR","GRAVITA","HBLPOWER","HFCL","HINDCOPPER","HOMEFIRST","HONASA","JBMA","JWL","LEMONTREE","MANAPPURAM","MAPMYINDIA","METROBRAND","NCC","PNCINFRA","POONAWALLA","RBLBANK","RITES","ROUTE","SONACOMS","SWANENERGY","TEJASNET","TRITURBINE","UTIAMC","VGUARD","WELCORP","ZENSARTECH","AARTIIND","ABFRL","AETHER","AFFLE","ALLCARGO","ALOKINDS","AMARAJABAT","APTUS","ASTERDM","AVANTIFEED","BALRAMCHIN","BBL","BIKAJI","BIRLACORPN","BLUEJET","CAMPUS","CARBORUNIV","CEATLTD","CENTRALBK","CHEMPLASTS","CUB","DOMS","EPL","ERIS","FINPIPE","FIRSTSOURC","GLS","GPPL","GRAPHITE","HEG","IFCI","INDIACEM","IONEXCHANG"]
+        },
+        nifty500: {
+          name: "Nifty 500",
+          symbols: ["ADANIENT","ADANIPORTS","APOLLOHOSP","ASIANPAINT","AXISBANK","BAJAJ-AUTO","BAJFINANCE","BAJAJFINSV","BEL","BHARTIARTL","CIPLA","COALINDIA","DRREDDY","EICHERMOT","ETERNAL","GRASIM","HCLTECH","HDFCBANK","HDFCLIFE","HINDALCO","HINDUNILVR","ICICIBANK","INDIGO","INFY","ITC","JIOFIN","JSWSTEEL","KOTAKBANK","LT","M&M","MARUTI","MAXHEALTH","NESTLEIND","NTPC","ONGC","POWERGRID","RELIANCE","SBILIFE","SHRIRAMFIN","SBIN","SUNPHARMA","TCS","TATACONSUM","TATASTEEL","TECHM","TITAN","TRENT","ULTRACEMCO","WIPRO","TATAMOTORS","ABB","ADANIENSOL","ADANIGREEN","ADANIPOWER","AMBUJACEM","BAJAJHLDNG","BANKBARODA","BPCL","BRITANNIA","BOSCHLTD","CANBK","CGPOWER","CHOLAFIN","CUMMINSIND","DIVISLAB","DLF","DMART","GAIL","GODREJCP","HDFCAMC","HAL","HINDZINC","HYUNDAI","INDHOTEL","IOC","IRFC","JINDALSTEL","LODHA","LTIM","MAZDOCK","MUTHOOTFIN","PIDILITIND","PFC","PNB","RECLTD","MOTHERSON","SHREECEM","SIEMENS","SOLARINDS","TATAPOWER","TORNTPHARM","TVSMOTOR","UNIONBANK","UNITDSPR","VBL","VEDL","ZYDUSLIFE","HEROMOTOCO","DABUR","ICICIGI","360ONE","APLAPOLLO","AUBANK","ATGL","ABCAPITAL","ALKEM","ASHOKLEY","ASTRAL","AUROPHARMA","BSE","BANKINDIA","BDL","BHARATFORG","BHEL","GROWW","BIOCON","BLUESTARCO","COCHINSHIP","COFORGE","COLPAL","CONCOR","COROMANDEL","DIXON","EXIDEIND","NYKAA","FORTIS","GVT&D","GMRAIRPORT","GLENMARK","GODFRYPHLP","GODREJPROP","HAVELLS","HINDPETRO","POWERINDIA","HUDCO","ICICIAMC","IDFCFIRSTB","INDIANB","IRCTC","IREDA","INDUSTOWER","INDUSINDBK","NAUKRI","JSWENERGY","JUBLFOOD","KEI","KPITTECH","KALYANKJIL","LTF","LGEINDIA","LICHSGFIN","LAURUSLABS","LENSKART","LUPIN","MRF","M&MFIN","MANKIND","MARICO","MFSL","MOTILALOFS","MPHASIS","MCX","NHPC","NMDC","NATIONALUM","OBEROIRLTY","OIL","PAYTM","OFSS","POLICYBZR","PIIND","PAGEIND","PATANJALI","PERSISTENT","POLYCAB","PREMIERENE","PRESTIGE","RADICO","RVNL","SBICARD","SRF","SAIL","SUPREMEIND","SUZLON","SWIGGY","TATACOMM","TATAELXSI","TATAINVEST","FEDERALBNK","PHOENIXLTD","TIINDIA","UPL","VMM","IDEA","VOLTAS","WAAREEENER","YESBANK","ACC","AIAENG","AJANTPHARM","APOLLOTYRE","BALKRISIND","BATAINDIA","BHARATDYN","CANFINHOME","CASTROLIND","CENTURYPLY","CESC","CHAMBLFERT","CROMPTON","DEEPAKNTR","DELHIVERY","DEVYANI","EMAMILTD","ENDURANCE","ESCORTS","GLAND","GLAXO","GNFC","GODREJIND","GRANULES","GSPL","GUJGASLTD","HATSUN","HONAUT","IBREALEST","IDBI","IIFL","IPCALAB","J&KBANK","JBCHEPHARM","JINDALSAW","JKCEMENT","JSWINFRA","KAJARIACER","KAYNES","KEC","LALPATHLAB","LINDEINDIA","LLOYDSME","MEDANTA","METROPOLIS","MSUMI","NATCOPHARM","NBCC","NIPPONLIFE","PETRONET","PFIZER","AMBER","ANGELONE","ANANTRAJ","BLS","BSOFT","BRIGADE","CDSL","CENTURYTEX","CAMS","CLEAN","CYIENT","DATAPATTNS","ECLERX","ENGINERSIN","EIDPARRY","FINCABLES","FIVESTAR","GRAVITA","HBLPOWER","HFCL","HINDCOPPER","HOMEFIRST","HONASA","JBMA","JWL","LEMONTREE","MANAPPURAM","MAPMYINDIA","METROBRAND","NCC","PNCINFRA","POONAWALLA","RBLBANK","RITES","ROUTE","SONACOMS","SWANENERGY","TEJASNET","TRITURBINE","UTIAMC","VGUARD","WELCORP","ZENSARTECH","AARTIIND","ABFRL","AETHER","AFFLE","ALLCARGO","ALOKINDS","AMARAJABAT","APTUS","ASTERDM","AVANTIFEED","BALRAMCHIN","BBL","BIKAJI","BIRLACORPN","BLUEJET","CAMPUS","CARBORUNIV","CEATLTD","CENTRALBK","CHEMPLASTS","CUB","DOMS","EPL","ERIS","FINPIPE","FIRSTSOURC","GLS","GPPL","GRAPHITE","HEG","IFCI","INDIACEM","IONEXCHANG","ACE","ACTIONCONST","AHLUCONT","AKUMS","ALKYLAMINE","ANANDRATHI","APARINDS","APLLTD","ARCHEAN","ARE&M","ASKAUTOLTD","ASAHIINDIA","ASTRAZEN","ATUL","AVALON","AWL","BAJAJCON","BALAJIAMIN","BANCOINDIA","BEML","BORORENEW","CCL","CERA","CHALET","CHENNPETRO","CHOICEIN","CIEINDIA","CONCORDBIO","CRAFTSMAN","CREDITACC","DBREALTY","DCBBANK","DEEPAKFERT","DISHTV","DREDGECORP","EDELWEISS","ELECON","EMIL","EPIGRAL","FDC","FEDFINA","FORCEIND","FSL","GABRIEL","GARFIBRES","GATEWAY","GENUSPOWER","GICRE","GILLETTE","GLOBAL","GMMPFAUDLR","GOCLCORP","GOKEX","GOKULAGRO","GPIL","GREAVESCOT","GRINDWELL","GRSE","GSFC","GTLINFRA","HALEON","HAPPSTMNDS","HEIDELBERG","HERITGFOOD","HIKAL","HINDOILEXP","HINDWAREAP","HMT","ICRA","IMFA","INDGN","INDIAGLYCO","INDIGOPNTS","INDOCO","INDRAMEDCO","INFIBEAM","INGERRAND","INOXINDIA","INOXWIND","IOB","IRB","IRCON","ISEC","ITI","JAICORPLTD","JAMNAAUTO","JINDWORLD","JKIL","JKLAKSHMI","JKPAPER","JKTYRE","JMFINANCIL","JPASSOCIAT","JUBLINGREA","JUBLPHARMA","JUSTDIAL","JYOTHYLAB","JYOTICNC","KANSAINER","KARURVYSYA","KFINTECH","KIMS","KIRLOSBROS","KIRLENG","KIRLOSIND","KNRCON","KPIL","KRBL","KSB","KSL","KTKBANK"]
+        },
+        nifty500Multicap502525: {
+          name: "Nifty500 Multicap 50:25:25",
+          symbols: ["ADANIENT","ADANIPORTS","APOLLOHOSP","ASIANPAINT","AXISBANK","BAJAJ-AUTO","BAJFINANCE","BAJAJFINSV","BEL","BHARTIARTL","CIPLA","COALINDIA","DRREDDY","EICHERMOT","ETERNAL","GRASIM","HCLTECH","HDFCBANK","HDFCLIFE","HINDALCO","HINDUNILVR","ICICIBANK","INDIGO","INFY","ITC","JIOFIN","JSWSTEEL","KOTAKBANK","LT","M&M","MARUTI","MAXHEALTH","NESTLEIND","NTPC","ONGC","POWERGRID","RELIANCE","SBILIFE","SHRIRAMFIN","SBIN","SUNPHARMA","TCS","TATACONSUM","TATASTEEL","TECHM","TITAN","TRENT","ULTRACEMCO","WIPRO","TATAMOTORS","ABB","ADANIENSOL","ADANIGREEN","ADANIPOWER","AMBUJACEM","BAJAJHLDNG","BANKBARODA","BPCL","BRITANNIA","BOSCHLTD","CANBK","CGPOWER","CHOLAFIN","CUMMINSIND","DIVISLAB","DLF","DMART","GAIL","GODREJCP","HDFCAMC","HAL","HINDZINC","HYUNDAI","INDHOTEL","IOC","IRFC","JINDALSTEL","LODHA","LTIM","MAZDOCK","MUTHOOTFIN","PIDILITIND","PFC","PNB","RECLTD","MOTHERSON","SHREECEM","SIEMENS","SOLARINDS","TATAPOWER","TORNTPHARM","TVSMOTOR","UNIONBANK","UNITDSPR","VBL","VEDL","ZYDUSLIFE","HEROMOTOCO","DABUR","ICICIGI","360ONE","APLAPOLLO","AUBANK","ATGL","ABCAPITAL","ALKEM","ASHOKLEY","ASTRAL","AUROPHARMA","BSE","BANKINDIA","BDL","BHARATFORG","BHEL","GROWW","BIOCON","BLUESTARCO","COCHINSHIP","COFORGE","COLPAL","CONCOR","COROMANDEL","DIXON","EXIDEIND","NYKAA","FORTIS","GVT&D","GMRAIRPORT","GLENMARK","GODFRYPHLP","GODREJPROP","HAVELLS","HINDPETRO","POWERINDIA","HUDCO","ICICIAMC","IDFCFIRSTB","INDIANB","IRCTC","IREDA","INDUSTOWER","INDUSINDBK","NAUKRI","JSWENERGY","JUBLFOOD","KEI","KPITTECH","KALYANKJIL","LTF","LGEINDIA","LICHSGFIN","LAURUSLABS","LENSKART","LUPIN","MRF","M&MFIN","MANKIND","MARICO","MFSL","MOTILALOFS","MPHASIS","MCX","NHPC","NMDC","NATIONALUM","OBEROIRLTY","OIL","PAYTM","OFSS","POLICYBZR","PIIND","PAGEIND","PATANJALI","PERSISTENT","POLYCAB","PREMIERENE","PRESTIGE","RADICO","RVNL","SBICARD","SRF","SAIL","SUPREMEIND","SUZLON","SWIGGY","TATACOMM","TATAELXSI","TATAINVEST","FEDERALBNK","PHOENIXLTD","TIINDIA","UPL","VMM","IDEA","VOLTAS","WAAREEENER","YESBANK"]
+        },
+        nifty500EqualCap: {
+          name: "Nifty500 LargeMidSmall Equal-Cap",
+          symbols: ["ADANIENT","ADANIPORTS","APOLLOHOSP","ASIANPAINT","AXISBANK","BAJAJ-AUTO","BAJFINANCE","BAJAJFINSV","BEL","BHARTIARTL","CIPLA","COALINDIA","DRREDDY","EICHERMOT","ETERNAL","GRASIM","HCLTECH","HDFCBANK","HDFCLIFE","HINDALCO","HINDUNILVR","ICICIBANK","INDIGO","INFY","ITC","JIOFIN","JSWSTEEL","KOTAKBANK","LT","M&M","MARUTI","MAXHEALTH","NESTLEIND","NTPC","ONGC","POWERGRID","RELIANCE","SBILIFE","SHRIRAMFIN","SBIN","SUNPHARMA","TCS","TATACONSUM","TATASTEEL","TECHM","TITAN","TRENT","ULTRACEMCO","WIPRO","TATAMOTORS","ABB","ADANIENSOL","ADANIGREEN","ADANIPOWER","AMBUJACEM","BAJAJHLDNG","BANKBARODA","BPCL","BRITANNIA","BOSCHLTD","CANBK","CGPOWER","CHOLAFIN","CUMMINSIND","DIVISLAB","DLF","DMART","GAIL","GODREJCP","HDFCAMC","HAL","HINDZINC","HYUNDAI","INDHOTEL","IOC","IRFC","JINDALSTEL","LODHA","LTIM","MAZDOCK","MUTHOOTFIN","PIDILITIND","PFC","PNB","RECLTD","MOTHERSON","SHREECEM","SIEMENS","SOLARINDS","TATAPOWER","TORNTPHARM","TVSMOTOR","UNIONBANK","UNITDSPR","VBL","VEDL","ZYDUSLIFE","HEROMOTOCO","DABUR","ICICIGI","360ONE","APLAPOLLO","AUBANK","ATGL","ABCAPITAL","ALKEM","ASHOKLEY","ASTRAL","AUROPHARMA","BSE","BANKINDIA","BDL","BHARATFORG","BHEL","GROWW","BIOCON","BLUESTARCO","COCHINSHIP","COFORGE","COLPAL","CONCOR","COROMANDEL","DIXON","EXIDEIND","NYKAA","FORTIS","GVT&D","GMRAIRPORT","GLENMARK","GODFRYPHLP","GODREJPROP","HAVELLS","HINDPETRO","POWERINDIA","HUDCO","ICICIAMC","IDFCFIRSTB","INDIANB","IRCTC","IREDA","INDUSTOWER","INDUSINDBK","NAUKRI","JSWENERGY","JUBLFOOD","KEI","KPITTECH","KALYANKJIL","LTF","LGEINDIA","LICHSGFIN","LAURUSLABS","LENSKART","LUPIN","MRF","M&MFIN","MANKIND","MARICO","MFSL","MOTILALOFS","MPHASIS","MCX","NHPC","NMDC","NATIONALUM","OBEROIRLTY","OIL","PAYTM","OFSS","POLICYBZR","PIIND","PAGEIND","PATANJALI","PERSISTENT","POLYCAB","PREMIERENE","PRESTIGE","RADICO","RVNL","SBICARD","SRF","SAIL","SUPREMEIND","SUZLON","SWIGGY","TATACOMM","TATAELXSI","TATAINVEST","FEDERALBNK","PHOENIXLTD","TIINDIA","UPL","VMM","IDEA","VOLTAS","WAAREEENER","YESBANK"]
+        },
+        niftyMicrocap250: {
+          name: "Nifty Microcap 250",
+          symbols: ["20MICRONS","5PAISA","63MOONS","AARTISURF","ABAN","ACCELYA","ADFFOODS","ADVANIHOTR","ADVENZYMES","AGARIND","AGI","AGROPHOS","AJMERA","ALANKIT","ALBERTDAVD","ALLSEC","ALMONDZ","ALPA","ALPHAGEO","AMJLAND","ANDHRAPAP","ANDHRSUGAR","ANGELONE","ANIKINDS","ANMOL","ANSALAPI","ANTGRAPHIC","APCOTEXIND","APEX","APOLLO","APOLSINHOT","APTECHT","ARCHIDPLY","ARCHIES","ARIES","ARIHANTCAP","ARIHANTSUP","ARMSTRONG","ARMANFIN","ARROWGREEN","ARSHIYA","ARVEE","ARVIND","ASAHISONG","ASAL","ASHAPURMIN","ASHIANA","ASHIMASYN","ASHOKA","ASIANENE","ASIANHOTNR","ASIANSTAR","ASTEC","ASTRAL","ASTRAMICRO","ASTROVITA","ATFL","ATLANTA","ATLASCYCLE","ATULAUTO","AURIONPRO","AUROLABS","AUSOMENT","AUTOAXLES","AUTOLITIND","AVADHSUGAR","AVANTIFEED","AVONMORE","AXISCADES","AYMSYNTEX","BAFNAPH","BAGFILMS","BAJAJHCARE","BAJAJHIND","BALAJITELE","BALAMINES","BALMLAWRIE","BALPHARMA","BANARBEADS","BANARISUG","BANCOINDIA","BANG","BANKA","BANSWRAS","BARBEQUE","BARTRONICS","BASF","BASML","BATAINDIA","BAYERCROP","BBL","BBTC","BCG","BCLIND","BCP","BDL","BEARDSELL","BECTORFOOD","BEDMUTHA","BEL","BEML","BEPL","BERGEPAINT","BESTAGRO","BFINVEST","BFUTILITIE","BGRENERGY","BHAGCHEM","BHAGERIA","BHAGYANGR","BHANDARI","BHARATFORG","BHARATGEAR","BHARATRAS","BHARATWIRE","BHARTIHEXA","BHEL","BIGBLOC","BIL","BILENERGY","BINANIIND","BIOCON","BIOFILCHEM","BIRLACABLE","BIRLACORPN","BIRLAMONEY","BIRLATYRE","BLACKROSE","BLBLIMITED","BLISSGVS","BLKASHYAP","BLS","BLUECHIP","BLUECOAST","BLUEDART","BLUESTARCO","BODALCHEM","BOHRAIND","BOMDYEING","BOROLTD","BORORENEW","BOSCHLTD","BPCL","BPL","BRIGADE","BRITANNIA","BRNL","BROOKS","BSE","BSL","BSOFT","BURNPUR","BUTTERFLY","BVCL","BYKE","CALSOFT","CAMLINFINE","CAMPUS","CAMS","CANBK","CANDC","CANFINHOME","CANTABIL","CAPACITE","CAPL","CAPTRUST","CARBORUNIV","CAREERP","CARERATING","CARTRADE","CARYSIL","CASTROLIND","CCCL","CCHHL","CCL","CDSL","CEATLTD","CELEBRITY","CENTENKA","CENTEXT","CENTRALBK","CENTRUM","CENTUM","CENTURYENC","CENTURYPLY"]
+        },
+        niftyTotalMarket: {
+          name: "Nifty Total Market (Top 750)",
+          symbols: ["ADANIENT","ADANIPORTS","APOLLOHOSP","ASIANPAINT","AXISBANK","BAJAJ-AUTO","BAJFINANCE","BAJAJFINSV","BEL","BHARTIARTL","CIPLA","COALINDIA","DRREDDY","EICHERMOT","ETERNAL","GRASIM","HCLTECH","HDFCBANK","HDFCLIFE","HINDALCO","HINDUNILVR","ICICIBANK","INDIGO","INFY","ITC","JIOFIN","JSWSTEEL","KOTAKBANK","LT","M&M","MARUTI","MAXHEALTH","NESTLEIND","NTPC","ONGC","POWERGRID","RELIANCE","SBILIFE","SHRIRAMFIN","SBIN","SUNPHARMA","TCS","TATACONSUM","TATASTEEL","TECHM","TITAN","TRENT","ULTRACEMCO","WIPRO","TATAMOTORS","ABB","ADANIENSOL","ADANIGREEN","ADANIPOWER","AMBUJACEM","BAJAJHLDNG","BANKBARODA","BPCL","BRITANNIA","BOSCHLTD","CANBK","CGPOWER","CHOLAFIN","CUMMINSIND","DIVISLAB","DLF","DMART","GAIL","GODREJCP","HDFCAMC","HAL","HINDZINC","HYUNDAI","INDHOTEL","IOC","IRFC","JINDALSTEL","LODHA","LTIM","MAZDOCK","MUTHOOTFIN","PIDILITIND","PFC","PNB","RECLTD","MOTHERSON","SHREECEM","SIEMENS","SOLARINDS","TATAPOWER","TORNTPHARM","TVSMOTOR","UNIONBANK","UNITDSPR","VBL","VEDL","ZYDUSLIFE","HEROMOTOCO","DABUR","ICICIGI","360ONE","APLAPOLLO","AUBANK","ATGL","ABCAPITAL","ALKEM","ASHOKLEY","ASTRAL","AUROPHARMA","BSE","BANKINDIA","BDL","BHARATFORG","BHEL","GROWW","BIOCON","BLUESTARCO","COCHINSHIP","COFORGE","COLPAL","CONCOR","COROMANDEL","DIXON","EXIDEIND","NYKAA","FORTIS","GVT&D","GMRAIRPORT","GLENMARK","GODFRYPHLP","GODREJPROP","HAVELLS","HINDPETRO","POWERINDIA","HUDCO","ICICIAMC","IDFCFIRSTB","INDIANB","IRCTC","IREDA","INDUSTOWER","INDUSINDBK","NAUKRI","JSWENERGY","JUBLFOOD","KEI","KPITTECH","KALYANKJIL","LTF","LGEINDIA","LICHSGFIN","LAURUSLABS","LENSKART","LUPIN","MRF","M&MFIN","MANKIND","MARICO","MFSL","MOTILALOFS","MPHASIS","MCX","NHPC","NMDC","NATIONALUM","OBEROIRLTY","OIL","PAYTM","OFSS","POLICYBZR","PIIND","PAGEIND","PATANJALI","PERSISTENT","POLYCAB","PREMIERENE","PRESTIGE","RADICO","RVNL","SBICARD","SRF","SAIL","SUPREMEIND","SUZLON","SWIGGY","TATACOMM","TATAELXSI","TATAINVEST","FEDERALBNK","PHOENIXLTD","TIINDIA","UPL","VMM","IDEA","VOLTAS","WAAREEENER","YESBANK","ACC","AIAENG","AJANTPHARM","APOLLOTYRE","BALKRISIND","BATAINDIA","BHARATDYN","CANFINHOME","CASTROLIND","CENTURYPLY","CESC","CHAMBLFERT","CROMPTON","DEEPAKNTR","DELHIVERY","DEVYANI","EMAMILTD","ENDURANCE","ESCORTS","GLAND","GLAXO","GNFC","GODREJIND","GRANULES","GSPL","GUJGASLTD","HATSUN","HONAUT","IBREALEST","IDBI","IIFL","IPCALAB","J&KBANK","JBCHEPHARM","JINDALSAW","JKCEMENT","JSWINFRA","KAJARIACER","KAYNES","KEC","LALPATHLAB","LINDEINDIA","LLOYDSME","MEDANTA","METROPOLIS","MSUMI","NATCOPHARM","NBCC","NIPPONLIFE","PETRONET","PFIZER","20MICRONS","5PAISA","63MOONS","AARTISURF","ABAN","ACCELYA","ADFFOODS","ADVANIHOTR","ADVENZYMES","AGARIND","AGI","AGROPHOS","AJMERA","ALANKIT","ALBERTDAVD","ALLSEC","ALMONDZ","ALPA","ALPHAGEO","AMJLAND","ANDHRAPAP","ANDHRSUGAR","ANGELONE","ANIKINDS","ANMOL","ANSALAPI","ANTGRAPHIC","APCOTEXIND","APEX","APOLLO","APOLSINHOT","APTECHT","ARCHIDPLY","ARCHIES","ARIES","ARIHANTCAP","ARIHANTSUP","ARMSTRONG","ARMANFIN","ARROWGREEN","ARSHIYA","ARVEE","ARVIND","ASAHISONG","ASAL","ASHAPURMIN","ASHIANA","ASHIMASYN","ASHOKA","ASIANENE","ASIANHOTNR","ASIANSTAR","ASTEC","ASTRAMICRO","ASTROVITA","ATFL","ATLANTA","ATLASCYCLE","ATULAUTO","AURIONPRO","AUROLABS","AUSOMENT","AUTOAXLES","AUTOLITIND","AVADHSUGAR","AVONMORE","AXISCADES","AYMSYNTEX","BAFNAPH","BAGFILMS","BAJAJHCARE","BAJAJHIND","BALAJITELE","BALAMINES","BALMLAWRIE","BALPHARMA","BANARBEADS","BANARISUG","BANCOINDIA","BANG","BANKA","BANSWRAS","BARBEQUE","BARTRONICS","BASF","BASML","BAYERCROP","BBTC","BCG","BCLIND","BCP","BEARDSELL","BECTORFOOD","BEDMUTHA","BEPL","BERGEPAINT","BESTAGRO","BFINVEST","BFUTILITIE","BGRENERGY","BHAGCHEM","BHAGERIA","BHAGYANGR","BHANDARI","BHARATGEAR","BHARATRAS","BHARATWIRE","BHARTIHEXA","BIGBLOC","BIL","BILENERGY","BINANIIND","BIOFILCHEM","BIRLACABLE","BIRLAMONEY","BIRLATYRE","BLACKROSE","BLBLIMITED","BLISSGVS","BLKASHYAP","BLUECHIP","BLUECOAST","BLUEDART","BODALCHEM","BOHRAIND","BOMDYEING","BOROLTD","BPL","BRNL","BROOKS","BSL","BURNPUR","BUTTERFLY","BVCL","BYKE","CALSOFT","CAMLINFINE","CANDC","CANTABIL","CAPACITE","CAPL","CAPTRUST","CAREERP","CARERATING","CARTRADE","CARYSIL","CCCL","CCHHL","CELEBRITY","CENTENKA","CENTEXT","CENTRUM","CENTUM","CENTURYENC"]
+        },
+        niftyIndiaFPI150: {
+          name: "Nifty India FPI 150",
+          symbols: ["ADANIENT","ADANIPORTS","APOLLOHOSP","ASIANPAINT","AXISBANK","BAJAJ-AUTO","BAJFINANCE","BAJAJFINSV","BEL","BHARTIARTL","CIPLA","COALINDIA","DRREDDY","EICHERMOT","ETERNAL","GRASIM","HCLTECH","HDFCBANK","HDFCLIFE","HINDALCO","HINDUNILVR","ICICIBANK","INDIGO","INFY","ITC","JIOFIN","JSWSTEEL","KOTAKBANK","LT","M&M","MARUTI","MAXHEALTH","NESTLEIND","NTPC","ONGC","POWERGRID","RELIANCE","SBILIFE","SHRIRAMFIN","SBIN","SUNPHARMA","TCS","TATACONSUM","TATASTEEL","TECHM","TITAN","TRENT","ULTRACEMCO","WIPRO","TATAMOTORS","APLAPOLLO","ASTRAL","AUBANK","AUROPHARMA","BHARATFORG","CGPOWER","CHOLAFIN","COFORGE","CUMMINSIND","DIVISLAB","DIXON","DLF","DMART","FEDERALBNK","GODREJCP","GODREJPROP","HAL","HAVELLS","HDFCAMC","INDHOTEL","INDUSINDBK","JINDALSTEL","JSWENERGY","JUBLFOOD","KALYANKJIL","KPITTECH","LODHA","LTIM","LUPIN","MANKIND","MARICO","MOTHERSON","MPHASIS","MUTHOOTFIN","NAUKRI","OFSS","PERSISTENT","PFC","PHOENIXLTD","PIDILITIND","PIIND","POLYCAB","PRESTIGE","RECLTD","RVNL","SHREECEM","SIEMENS","SOLARINDS","SRF","SUZLON","TATAPOWER","TORNTPHARM","TVSMOTOR","UNITDSPR","VBL","VEDL","VOLTAS","ZYDUSLIFE"]
+        },
+        fnoUniverse: {
+          name: "Complete F&O Universe (131+ Stocks)",
+          symbols: ["AARTIIND","ABB","ABBOTINDIA","ABCAPITAL","ABFRL","ACC","ADANIENT","ADANIPORTS","ALKEM","AMARAJABAT","AMBUJACEM","APOLLOHOSP","APOLLOTYRE","ASHOKLEY","ASIANPAINT","ASTRAL","ATUL","AUBANK","AUROPHARMA","AXISBANK","BAJAJ-AUTO","BAJAJFINSV","BAJFINANCE","BALKRISIND","BALRAMCHIN","BANDHANBNK","BANKBARODA","BATAINDIA","BEL","BERGEPAINT","BHARATFORG","BHARTIARTL","BHEL","BIOCON","BOSCHLTD","BPCL","BRITANNIA","BSOFT","CANBK","CANFINHOME","CHAMBLFERT","CHOLAFIN","CIPLA","COALINDIA","COFORGE","COLPAL","CONCOR","COROMANDEL","CROMPTON","CUMMINSIND","DABUR","DALBHARAT","DEEPAKNTR","DELHIVERY","DIVISLAB","DIXON","DLF","DRREDDY","EICHERMOT","ESCORTS","EXIDEIND","FEDERALBNK","GAIL","GLENMARK","GMRINFRA","GNFC","GODREJCP","GODREJPROP","GRANULES","GRASIM","GUJGASLTD","HAL","HAVELLS","HCLTECH","HDFCAMC","HDFCBANK","HDFCLIFE","HEROMOTOCO","HINDALCO","HINDCOPPER","HINDPETRO","HINDUNILVR","ICICIAMC","ICICIBANK","ICICIGI","ICICIPRULI","IDEA","IDFCFIRSTB","IEX","IGL","INDHOTEL","INDIACEM","INDIAMART","INDIANB","INDIGO","INDUSINDBK","INDUSTOWER","INFY","IOC","IPCALAB","IRCTC","IRFC","ITC","JINDALSTEL","JKCEMENT","JSWENERGY","JSWSTEEL","JUBLFOOD","KALYANKJIL","KOTAKBANK","KPITTECH","LALPATHLAB","LAURUSLABS","LICHSGFIN","LODHA","LT","LTF","LTIM","LTTS","LUPIN","M&M","M&MFIN","MANKIND","MARICO","MARUTI","MAZDOCK","MCX","METROPOLIS","MFSL","MGL","MOTHERSON","MPHASIS","MRF","MUTHOOTFIN","NATIONALUM","NAUKRI","NAVINFLUOR","NESTLEIND","NHPC","NMDC","NTPC","OBEROIRLTY","OFSS","OIL","ONGC","PAGEIND","PEL","PERSISTENT","PETRONET","PFC","PIDILITIND","PIIND","PNB","POLYCAB","POONAWALLA","POWERGRID","PRESTIGE","PVRINOX","RADICO","RAMCOCEM","RBLBANK","RECLTD","RELIANCE","SAIL","SBICARD","SBILIFE","SBIN","SHREECEM","SHRIRAMFIN","SIEMENS","SOLARINDS","SONACOMS","SRF","SUNPHARMA","SUNTV","SUPREMEIND","SYNGENE","TATACHEM","TATACOMM","TATACONSUM","TATAELXSI","TATAMOTORS","TATAPOWER","TATASTEEL","TCS","TECHM","TITAN","TORNTPHARM","TRENT","TVSMOTOR","UBL","ULTRACEMCO","UNIONBANK","UNITDSPR","UPL","VBL","VEDL","VOLTAS","WIPRO","YESBANK","ZYDUSLIFE"]
+        },
+        bankNifty: {
+          name: "Bank Nifty",
+          symbols: ["HDFCBANK","ICICIBANK","SBIN","AXISBANK","KOTAKBANK","INDUSINDBK","BANKBARODA","PNB","AUBANK","FEDERALBNK","IDFCFIRSTB","BANDHANBNK"]
+        }
+      };
 
-      document.getElementById("loadNiftyNext50Preset").addEventListener("click", () => {
-        const next50 = ["ABB","ADANIENSOL","ADANIGREEN","ADANIPOWER","AMBUJACEM","BAJAJHLDNG","BANKBARODA","BPCL","BRITANNIA","BOSCHLTD","CANBK","CGPOWER","CHOLAFIN","CUMMINSIND","DIVISLAB","DLF","DMART","GAIL","GODREJCP","HDFCAMC","HAL","HINDZINC","HYUNDAI","INDHOTEL","IOC","IRFC","JINDALSTEL","LODHA","LTIM","MAZDOCK","MUTHOOTFIN","PIDILITIND","PFC","PNB","RECLTD","MOTHERSON","SHREECEM","SIEMENS","SOLARINDS","TATAPOWER","TORNTPHARM","TVSMOTOR","UNIONBANK","UNITDSPR","VBL","VEDL","ZYDUSLIFE","HEROMOTOCO","DABUR","ICICIGI"];
-        document.getElementById("universeTextarea").value = next50.join(", ");
-        showToast("Loaded Nifty Next 50 preset (50 symbols)");
-      });
+      function loadUniversePreset(presetKey) {
+        const item = broadMarketPresetMap[presetKey];
+        if (!item || !Array.isArray(item.symbols)) return;
+        const textarea = document.getElementById("universeTextarea");
+        if (textarea) {
+          textarea.value = item.symbols.join(", ");
+        }
+        showToast(`Loaded ${item.name} (${item.symbols.length} symbols)`);
+      }
 
-      document.getElementById("loadBankPreset").addEventListener("click", () => {
-        const bankSymbols = ["HDFCBANK","ICICIBANK","SBIN","AXISBANK","KOTAKBANK","INDUSINDBK","BANKBARODA","PNB","AUBANK","FEDERALBNK","IDFCFIRSTB","BANDHANBNK"];
-        document.getElementById("universeTextarea").value = bankSymbols.join(", ");
-        showToast("Loaded Bank Nifty preset (12 symbols)");
-      });
+      // Dropdown & Button Handlers
+      const loadSelectedUniverseBtn = document.getElementById("loadSelectedUniverseBtn");
+      if (loadSelectedUniverseBtn) {
+        loadSelectedUniverseBtn.addEventListener("click", () => {
+          const select = document.getElementById("broadMarketIndexSelect");
+          const val = select ? select.value : "nifty50";
+          loadUniversePreset(val);
+        });
+      }
 
-      document.getElementById("loadMidcapPreset").addEventListener("click", () => {
-        const midcap = ["360ONE","APLAPOLLO","AUBANK","ATGL","ABCAPITAL","ALKEM","ASHOKLEY","ASTRAL","AUROPHARMA","BSE","BANKINDIA","BDL","BHARATFORG","BHEL","GROWW","BIOCON","BLUESTARCO","COCHINSHIP","COFORGE","COLPAL","CONCOR","COROMANDEL","DABUR","DIXON","EXIDEIND","NYKAA","FORTIS","GVT&D","GMRAIRPORT","GLENMARK","GODFRYPHLP","GODREJPROP","HAVELLS","HEROMOTOCO","HINDPETRO","POWERINDIA","HUDCO","ICICIGI","ICICIAMC","IDFCFIRSTB","INDIANB","IRCTC","IREDA","INDUSTOWER","INDUSINDBK","NAUKRI","JSWENERGY","JUBLFOOD","KEI","KPITTECH","KALYANKJIL","LTF","LGEINDIA","LICHSGFIN","LAURUSLABS","LENSKART","LUPIN","MRF","M&MFIN","MANKIND","MARICO","MFSL","MOTILALOFS","MPHASIS","MCX","NHPC","NMDC","NATIONALUM","OBEROIRLTY","OIL","PAYTM","OFSS","POLICYBZR","PIIND","PAGEIND","PATANJALI","PERSISTENT","POLYCAB","PREMIERENE","PRESTIGE","RADICO","RVNL","SBICARD","SRF","SAIL","SUPREMEIND","SUZLON","SWIGGY","TATACOMM","TATAELXSI","TATAINVEST","FEDERALBNK","PHOENIXLTD","TIINDIA","UPL","VMM","IDEA","VOLTAS","WAAREEENER","YESBANK"];
-        document.getElementById("universeTextarea").value = midcap.join(", ");
-        showToast("Loaded Nifty Midcap 100 preset (100 symbols)");
+      const presetBtnMap = {
+        loadNifty50Preset: "nifty50",
+        loadNiftyNext50Preset: "niftyNext50",
+        loadNifty100Preset: "nifty100",
+        loadMidcapPreset: "niftyMidcap150",
+        loadSmallcap250Preset: "niftySmallcap250",
+        loadNifty500Preset: "nifty500",
+        loadFnoPreset: "fnoUniverse",
+        loadBankPreset: "bankNifty"
+      };
+
+      Object.entries(presetBtnMap).forEach(([btnId, key]) => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+          btn.addEventListener("click", () => loadUniversePreset(key));
+        }
       });
 
       document.getElementById("saveUniverseBtn").addEventListener("click", async () => {

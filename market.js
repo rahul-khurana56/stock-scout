@@ -1228,6 +1228,18 @@ async function enrichSignalsList(signals) {
       setupBadges.push({ label: "RSI Bearish < 50", type: "vwap-bear", icon: "📉" });
     }
 
+    // Classify Profit GeNIE Strategy Grade: GO (A) [Grade A Trend >=80], GO (B) [Grade B Standard 60-79], SCALP [<60]
+    let goGrade = signal.goGrade;
+    if (!goGrade) {
+      if (potentialScore >= 80) {
+        goGrade = "GO (A)";
+      } else if (potentialScore >= 60) {
+        goGrade = "GO (B)";
+      } else {
+        goGrade = "SCALP";
+      }
+    }
+
     return {
       ...signal,
       price,
@@ -1242,6 +1254,7 @@ async function enrichSignalsList(signals) {
       volume,
       turnoverCr,
       potentialScore,
+      goGrade,
       setupBadges
     };
   });

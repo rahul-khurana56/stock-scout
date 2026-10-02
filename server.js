@@ -8,6 +8,7 @@ loadEnvFile(path.join(__dirname, ".env"));
 
 const { StockScoutScanner, timeframe, SCAN_INTERVAL_MS, providerConfig } = require("./scanner");
 const { getNifty50Data, getBankNiftyData, getSectorsData, getSectorConstituentsData, getMarketPulse, enrichSignalsList, getOptionsScoutData, clearOptionsScoutData, getStockQuote, getOptionChain, searchInstruments } = require("./market");
+const { broadMarketIndices } = require("./universe");
 const { getFullRiskProfile, saveTradeToDb, deleteTradeFromDb, saveScreenshotFile, uploadsDir, isPostgresConnected } = require("./db");
 
 const port = Number(process.env.PORT || 8787);
@@ -862,6 +863,11 @@ const server = http.createServer(async (request, response) => {
       fyersAuth.error = error.message;
       writeJson(response, 400, { error: error.message });
     }
+    return;
+  }
+
+  if (url.pathname === "/api/universe/presets" && request.method === "GET") {
+    writeJson(response, 200, { presets: broadMarketIndices });
     return;
   }
 

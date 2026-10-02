@@ -1,4 +1,12 @@
 {
-  "updatedAt": "2026-08-31T17:39:47.539Z",
-  "signals": []
+  "updatedAt": "2026-10-02T17:01:20.751Z",
+  "signals": [
+    {
+      "id": "1790960480750-493ba52da15d3",
+      "symbol": "RELIANCE",
+      "side": "buy",
+      "time": "2026-10-02T17:01:20.750Z",
+      "source": "Profit GeNIE 5m"
+    }
+  ]
 }
