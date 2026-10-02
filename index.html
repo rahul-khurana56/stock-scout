@@ -12529,6 +12529,43 @@
       }
     });
 
+    // Canvas Image Preprocessing for High-Accuracy OCR
+    async function preprocessImageForOcr(imageSource) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            const scale = Math.max(1.2, Math.min(2.5, 2400 / Math.max(img.width, img.height)));
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            const ctx = canvas.getContext("2d");
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const d = imgData.data;
+            for (let i = 0; i < d.length; i += 4) {
+              const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+              // Adaptive contrast enhancement
+              const enhanced = gray > 170 ? 255 : (gray < 85 ? 0 : gray);
+              d[i] = enhanced;
+              d[i + 1] = enhanced;
+              d[i + 2] = enhanced;
+            }
+            ctx.putImageData(imgData, 0, 0);
+            resolve(canvas);
+          } catch (err) {
+            resolve(img);
+          }
+        };
+        img.onerror = () => resolve(imageSource);
+        img.src = typeof imageSource === "string" ? imageSource : URL.createObjectURL(imageSource);
+      });
+    }
+
     async function parseUploadedImageContractNote() {
       const file = parsedContractNoteState.selectedImageFile || parsedContractNoteState.selectedImageDataUrl;
       if (!file) {
@@ -12553,6 +12590,9 @@
       if (btn) btn.disabled = true;
 
       try {
+        if (loadingText) loadingText.textContent = "⏳ Enhancing screenshot contrast...";
+        const preprocessed = await preprocessImageForOcr(file);
+
         if (loadingText) loadingText.textContent = "⏳ Initializing OCR recognition engine...";
         
         const worker = await Tesseract.createWorker('eng', 1, {
@@ -12567,14 +12607,17 @@
           }
         });
 
-        const imageSource = parsedContractNoteState.selectedImageDataUrl || file;
-        const res = await worker.recognize(imageSource);
+        const res = await worker.recognize(preprocessed);
         await worker.terminate();
 
-        const extractedText = res.data.text || "";
+        const extractedText = (res && res.data && res.data.text) ? res.data.text : "";
         if (!extractedText.trim()) {
           throw new Error("No readable text could be recognized in this image. Please upload a clearer trade table screenshot.");
         }
+
+        // Also copy into Paste Text tab for user visibility & flexibility
+        const txtArea = document.getElementById("contractNoteRawText");
+        if (txtArea) txtArea.value = extractedText;
 
         if (loadingEl) loadingEl.style.display = "none";
         processAndPreviewContractNoteText(extractedText);
@@ -12625,6 +12668,9 @@
           fullText += pageText + "\n";
         }
 
+        const txtArea = document.getElementById("contractNoteRawText");
+        if (txtArea) txtArea.value = fullText;
+
         if (loadingEl) loadingEl.style.display = "none";
         processAndPreviewContractNoteText(fullText);
       } catch (err) {
@@ -12650,7 +12696,8 @@
     function processAndPreviewContractNoteText(text) {
       const parsedData = parseContractNoteRawText(text);
       if (!parsedData.trades || parsedData.trades.length === 0) {
-        alert("Could not detect trade records in the provided text. Please ensure it contains instrument names, quantities, and prices (e.g., MCX OPTFUT, NIFTY options, or equity fills).");
+        switchContractNoteTab('text');
+        alert("Could not automatically match all table rows. We have pasted the raw text into the 'Paste Text / Tradebook' tab so you can inspect it or click '⚡ Parse & Combine Trades from Text'.");
         return;
       }
 
@@ -12662,14 +12709,13 @@
     function parseContractNoteRawText(text) {
       // 1. Extract Trade Date
       let tradeDate = new Date().toISOString().slice(0, 10);
-      const dateMatch = text.match(/Trade\s*Date\s*[:\s]*(\d{1,2})[-/](\d{1,2})[-/](\d{4})/i) ||
-                        text.match(/Trade\s*Date\s*[:\s]*(\d{4})[-/](\d{1,2})[-/](\d{1,2})/i) ||
-                        text.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
-      if (dateMatch) {
-        if (dateMatch[3] && dateMatch[3].length === 4) {
-          tradeDate = `${dateMatch[3]}-${String(dateMatch[2]).padStart(2, '0')}-${String(dateMatch[1]).padStart(2, '0')}`;
-        } else if (dateMatch[1] && dateMatch[1].length === 4) {
-          tradeDate = `${dateMatch[1]}-${String(dateMatch[2]).padStart(2, '0')}-${String(dateMatch[3]).padStart(2, '0')}`;
+      const headerDateMatch = text.match(/Trade\s*Date\s*[:\s]*(\d{1,2})[-/](\d{1,2})[-/](\d{4})/i) ||
+                              text.match(/Trade\s*Date\s*[:\s]*(\d{4})[-/](\d{1,2})[-/](\d{1,2})/i);
+      if (headerDateMatch) {
+        if (headerDateMatch[3] && headerDateMatch[3].length === 4) {
+          tradeDate = `${headerDateMatch[3]}-${String(headerDateMatch[2]).padStart(2, '0')}-${String(headerDateMatch[1]).padStart(2, '0')}`;
+        } else if (headerDateMatch[1] && headerDateMatch[1].length === 4) {
+          tradeDate = `${headerDateMatch[1]}-${String(headerDateMatch[2]).padStart(2, '0')}-${String(headerDateMatch[3]).padStart(2, '0')}`;
         }
       }
 
@@ -12692,7 +12738,7 @@
       // 3. Multi-Engine Trade Extraction with Intelligent Combination
       const tradesMap = new Map();
 
-      function addFill(canonicalKey, action, qty, price, tradedVal, timeStr, assetTypeHint) {
+      function addFill(canonicalKey, action, qty, price, tradedVal, timeStr, assetTypeHint, rowDate) {
         if (!canonicalKey || !qty || isNaN(qty) || qty <= 0) return;
         const cleanKey = canonicalKey.trim().toUpperCase().replace(/\s+/g, ' ');
 
@@ -12707,12 +12753,14 @@
             firstTime: timeStr ? timeStr.slice(0, 5) : '',
             lastTime: timeStr ? timeStr.slice(0, 5) : '',
             fillsCount: 0,
-            rawFills: []
+            tradeDate: rowDate || tradeDate,
+            rawPrices: []
           });
         }
 
         const entry = tradesMap.get(cleanKey);
         entry.fillsCount += 1;
+        if (rowDate) entry.tradeDate = rowDate;
         if (timeStr) {
           if (!entry.firstTime) entry.firstTime = timeStr.slice(0, 5);
           entry.lastTime = timeStr.slice(0, 5);
@@ -12728,84 +12776,83 @@
           entry.sellTotalVal += effectiveVal;
         }
 
-        entry.rawFills.push({ action, qty, price, effectiveVal, timeStr });
+        entry.rawPrices.push({ action, qty, price, effectiveVal });
       }
 
-      // Pattern 1: MCX Commodity Order Lines (e.g. OPTFUT 57420 8091000599 CRUDEOILM 15-10-2026 9200.00 PE Buy 1 568.20 5682.00 ...)
-      const mcxRegex = /(?:OPTFUT|FUTCOM|FUTIDX|FUTSTK|OPTIDX|OPTSTK)\s+(?:[0-9]+\s+)+([A-Z0-9]+)\s+([0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{2,4})\s+([0-9\.]+)\s+(CE|PE|CALL|PUT)\s+(Buy|Sell|B|S)\s+([0-9]+)\s+([0-9,]+\.?[0-9]*)\s+([0-9,]+\.?[0-9]*)/gi;
-      let match;
-      let matchedCount = 0;
+      // Process Line-by-Line to catch all table rows (MCX, NSE, Kite, Groww, Angel One)
+      const lines = text.split(/\r?\n/);
 
-      while ((match = mcxRegex.exec(text)) !== null) {
-        matchedCount++;
-        const symName = match[1];
-        const expiry = match[2];
-        const strike = parseFloat(match[3]);
-        const optType = match[4].toUpperCase().startsWith('C') ? 'CE' : 'PE';
-        const action = match[5].toUpperCase().startsWith('B') ? 'BUY' : 'SELL';
-        const qty = Math.abs(parseInt(match[6].replace(/,/g, ''), 10));
-        const price = parseFloat(match[7].replace(/,/g, ''));
-        const tradedVal = parseFloat(match[8].replace(/,/g, ''));
-
-        const canonicalSymbol = `${symName} ${expiry} ${strike} ${optType}`;
-        addFill(canonicalSymbol, action, qty, price, tradedVal, '18:30', 'COMMODITIES');
-      }
-
-      // Pattern 2: Groww / Standard F&O Summary Table
-      if (matchedCount === 0) {
-        const summaryRegex = /(?:NSE|BSE)\s+([A-Z0-9\s]+?(?:CE|PE|FUT)[A-Z0-9\s]*?)\s+(Buy|Sell|B|S)\s+([\-0-9]+)\s+([0-9,]+\.?[0-9]*)\s+[0-9\.]+\s+[0-9\.]+\s+([0-9\.\-]*)/gi;
-        while ((match = summaryRegex.exec(text)) !== null) {
-          matchedCount++;
-          const rawSymbol = match[1].trim();
-          const action = match[2].toUpperCase().startsWith('B') ? 'BUY' : 'SELL';
-          const qty = Math.abs(parseInt(match[3].replace(/,/g, ''), 10));
-          const price = parseFloat(match[4].replace(/,/g, ''));
-          addFill(rawSymbol, action, qty, price, qty * price, '', 'OPTIONS');
+      for (let rawLine of lines) {
+        let l = rawLine.replace(/[\|\t;\[\]\(\)]/g, ' ').replace(/\s+/g, ' ').trim();
+        if (!l || l.length < 8) continue;
+        // Ignore table headers
+        if (/InstrumentName|TMCode|ClientCode|BuyorSell|TradedQuantity|ExpiryDate/i.test(l) && /Symbol|Price/i.test(l)) {
+          continue;
         }
-      }
 
-      // Pattern 3: Annexure A Trade Executions (with exact timestamps)
-      const annexureRegex = /(?:[0-9]{10,20}\s+)?(\d{2}:\d{2}:\d{2})\s+[0-9]{5,15}\s+(\d{2}:\d{2}:\d{2})\s+([A-Z0-9\s]+?(?:CE|PE|FUT)[A-Z0-9\s]*?)\s+(?:NSE|BSE)\s+(B|S)\s+([\-0-9]+)\s+([0-9,]+\.?[0-9]*)/gi;
-      while ((match = annexureRegex.exec(text)) !== null) {
-        matchedCount++;
-        const tradeTime = match[2];
-        const rawSymbol = match[3].trim();
-        const action = match[4].toUpperCase() === 'B' ? 'BUY' : 'SELL';
-        const qty = Math.abs(parseInt(match[5].replace(/,/g, ''), 10));
-        const price = parseFloat(match[6].replace(/,/g, ''));
-        addFill(rawSymbol, action, qty, price, qty * price, tradeTime, 'OPTIONS');
-      }
+        // Look for dates in the row (e.g. 25-09-2026 or 15-10-2026)
+        let rowTradeDate = '';
+        const allDates = Array.from(l.matchAll(/\b(\d{1,2})[-/](\d{1,2})[-/](\d{4})\b/g));
+        if (allDates.length > 0) {
+          const lastDate = allDates[allDates.length - 1];
+          rowTradeDate = `${lastDate[3]}-${String(lastDate[2]).padStart(2, '0')}-${String(lastDate[1]).padStart(2, '0')}`;
+          tradeDate = rowTradeDate;
+        }
 
-      // Pattern 4: Fallback line-by-line parser for OCR screenshots & Tradebooks
-      if (tradesMap.size === 0) {
-        const lines = text.split(/\r?\n/);
-        for (const line of lines) {
-          const l = line.trim();
-          if (!l || l.length < 10) continue;
+        // Look for Buy or Sell action keyword
+        const actionMatch = l.match(/\b(Buy|Sell|BUY|SELL)\b/i) || l.match(/\b(B|S)\b/i);
+        if (!actionMatch) continue;
 
-          // Check if line contains a recognizable contract / instrument
-          const optMatch = l.match(/([A-Z0-9]{2,12})\s*([0-9]{1,2}[-/][0-9]{1,2}[-/][0-9]{2,4})?\s*([0-9]{3,6}(?:\.[0-9]+)?)\s*(CE|PE|CALL|PUT)\b/i);
-          const actionMatch = l.match(/\b(BUY|SELL|B|S)\b/i);
-          const numbers = l.match(/\b\d+(?:,\d+)*(?:\.\d+)?\b/g);
+        const action = actionMatch[1].toUpperCase().startsWith('B') ? 'BUY' : 'SELL';
+        const actionIndex = l.indexOf(actionMatch[0]);
+        const beforeAction = l.slice(0, actionIndex).trim();
+        const afterAction = l.slice(actionIndex + actionMatch[0].length).trim();
 
-          if (optMatch && actionMatch && numbers && numbers.length >= 2) {
-            const symName = optMatch[1].toUpperCase();
-            const exp = optMatch[2] || "";
-            const strike = optMatch[3];
-            const type = optMatch[4].toUpperCase().startsWith('C') ? 'CE' : 'PE';
-            const canonicalSymbol = `${symName} ${exp} ${strike} ${type}`.replace(/\s+/g, ' ').trim();
-            const action = actionMatch[1].toUpperCase().startsWith('B') ? 'BUY' : 'SELL';
+        // Filter out broker keywords like OPTFUT, FUTCOM, TMCODE from symbol search
+        const cleanBefore = beforeAction.replace(/\b(OPTFUT|FUTCOM|OPTIDX|OPTSTK|FUTIDX|FUTSTK|TMCODE|CLIENTCODE|INSTRUMENTNAME|NSE|BSE|MCX)\b/gi, ' ');
 
-            // Extract qty and price from numbers array
-            const numVals = numbers.map(n => parseFloat(n.replace(/,/g, ''))).filter(n => !isNaN(n) && n > 0);
-            if (numVals.length >= 2) {
-              const qty = Math.round(numVals[numVals.length - 2]);
-              const price = numVals[numVals.length - 1];
-              const isCommodity = /CRUDE|NATURAL|GOLD|SILVER|COPPER|ZINC|MCX/i.test(canonicalSymbol);
-              addFill(canonicalSymbol, action, qty, price, qty * price, '', isCommodity ? 'COMMODITIES' : 'OPTIONS');
-            }
+        // Match Symbol
+        const symMatch = cleanBefore.match(/\b(CRUDEOILM?|NATURALGASM?|GOLDM?|SILVERM?|COPPER|ZINC|NICKEL|ALUM|LEAD|NIFTY|BANKNIFTY|FINNIFTY|MIDCPNIFTY|SENSEX|[A-Z]{3,12})\b/i);
+        if (!symMatch) continue;
+
+        const symName = symMatch[1].toUpperCase();
+
+        // Match Expiry Date
+        const expMatch = cleanBefore.match(/\b(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})\b/);
+        const expiry = expMatch ? expMatch[1] : '';
+
+        // Match Strike & CE/PE (e.g. 9000.00 PE or 24500 CE)
+        const optMatch = cleanBefore.match(/(\d{3,6}(?:\.\d+)?)\s*(?:\|\s*)?(CE|PE|CALL|PUT)\b/i) || l.match(/(\d{3,6}(?:\.\d+)?)\s*(?:\|\s*)?(CE|PE|CALL|PUT)\b/i);
+        const strike = optMatch ? parseFloat(optMatch[1]) : '';
+        const optType = optMatch ? (optMatch[2].toUpperCase().startsWith('C') ? 'CE' : 'PE') : '';
+
+        const canonicalSymbol = [symName, expiry, strike, optType].filter(Boolean).join(' ');
+
+        // Numbers after Action: Quantity, Price, TradedValue
+        const nums = afterAction.match(/\b\d+(?:,\d+)*(?:\.\d+)?\b/g);
+        if (!nums || nums.length < 2) continue;
+
+        const qty = parseInt(nums[0].replace(/,/g, ''), 10);
+        const price = parseFloat(nums[1].replace(/,/g, ''));
+        let tradedVal = qty * price;
+
+        if (nums.length >= 3) {
+          const val3 = parseFloat(nums[2].replace(/,/g, ''));
+          // If val3 represents traded value (like 20920 for 4 lots @ 523), use it
+          if (val3 > 0 && val3 > (price * qty * 0.4)) {
+            tradedVal = val3;
           }
         }
+
+        // Timestamp match if present (e.g. 09:21:15 or 15:20)
+        const timeMatch = l.match(/\b(\d{2}:\d{2}(?::\d{2})?)\b/);
+        const timeStr = timeMatch ? timeMatch[1] : '';
+
+        const isCommodity = /CRUDE|NATURAL|GOLD|SILVER|COPPER|ZINC|MCX/i.test(canonicalSymbol);
+        const isOpt = /CE|PE|CALL|PUT/i.test(canonicalSymbol);
+        const assetType = isCommodity ? "COMMODITIES" : (isOpt ? "OPTIONS" : "EQUITY");
+
+        addFill(canonicalSymbol, action, qty, price, tradedVal, timeStr, assetType, rowTradeDate);
       }
 
       // Convert combined map into final consolidated trades array
