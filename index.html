@@ -5901,6 +5901,17 @@
             <input type="number" id="journalPnl" class="input-text" placeholder="+1200 or -800" step="10" style="font-size: 12px; padding: 6px 10px; font-weight: 800;">
           </div>
           <div>
+            <label style="font-size: 11px; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 4px;">Setup (Trigger):</label>
+            <select id="journalSetup" class="select" style="font-size: 12px; padding: 6px 8px;">
+              <option value="EMA_REJECTION">🎯 EMA Rejection</option>
+              <option value="DELTA_BLOCK">🟦 Delta Block</option>
+              <option value="EXHAUSTION_SE">⚡ Exhaustion (SE) Signal</option>
+              <option value="TREND_PULLBACK">📈 Trend Pullback / Breakout</option>
+              <option value="COUNTER_TREND">🔄 Counter-trend Reversal</option>
+              <option value="NO_SETUP">🚫 No Setup</option>
+            </select>
+          </div>
+          <div>
             <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Emotion at Entry:</label>
             <select id="journalEmotion" class="select" style="font-size: 12px; padding: 6px 8px;">
               <option value="CALM">🟢 Calm & In The Zone</option>
@@ -5917,7 +5928,6 @@
               <option value="MOVED_SL">❌ Moved Stop Loss Away</option>
               <option value="OVERSIZED">❌ Oversized (Broke 1% Risk)</option>
               <option value="EARLY_EXIT">❌ Cut Winner Prematurely</option>
-              <option value="NO_SETUP">❌ Random Entry / No Setup</option>
               <option value="REVENGE_TRADE">❌ Revenge Trade Post-Loss</option>
             </select>
           </div>
@@ -6011,6 +6021,7 @@
                 <th style="width: 130px;">Time / Date</th>
                 <th>Symbol & Side</th>
                 <th>Asset</th>
+                <th>Setup</th>
                 <th>Entry / Exit (Qty)</th>
                 <th>P&L (₹ & %)</th>
                 <th>Emotion Tag</th>
@@ -7289,6 +7300,10 @@
               <div class="val" id="journalDetailPnl">₹0.00</div>
             </div>
             <div class="journal-detail-metric-card">
+              <div class="label">Setup (Trigger)</div>
+              <div class="val" id="journalDetailSetup">🎯 EMA Rejection</div>
+            </div>
+            <div class="journal-detail-metric-card">
               <div class="label">Timing & Duration</div>
               <div class="val" id="journalDetailTiming" style="font-size: 12.5px;">--</div>
             </div>
@@ -7435,7 +7450,18 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: #38bdf8; display: block; margin-bottom: 4px;">Setup (Trigger):</label>
+              <select id="editJournalSetup" class="select" style="font-size: 12px; padding: 7px 8px; width: 100%;">
+                <option value="EMA_REJECTION">🎯 EMA Rejection</option>
+                <option value="DELTA_BLOCK">🟦 Delta Block</option>
+                <option value="EXHAUSTION_SE">⚡ Exhaustion (SE) Signal</option>
+                <option value="TREND_PULLBACK">📈 Trend Pullback / Breakout</option>
+                <option value="COUNTER_TREND">🔄 Counter-trend Reversal</option>
+                <option value="NO_SETUP">🚫 No Setup</option>
+              </select>
+            </div>
             <div>
               <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;">Emotion at Entry:</label>
               <select id="editJournalEmotion" class="select" style="font-size: 12px; padding: 7px 8px; width: 100%;">
@@ -7453,7 +7479,6 @@
                 <option value="MOVED_SL">❌ Moved Stop Loss Away</option>
                 <option value="OVERSIZED">❌ Oversized (Broke 1% Risk)</option>
                 <option value="EARLY_EXIT">❌ Cut Winner Prematurely</option>
-                <option value="NO_SETUP">❌ Random Entry / No Setup</option>
                 <option value="REVENGE_TRADE">❌ Revenge Trade Post-Loss</option>
               </select>
             </div>
@@ -11133,10 +11158,11 @@
       const entryTime = (document.getElementById("journalEntryTime")?.value || "").trim();
       const exitTime = (document.getElementById("journalExitTime")?.value || "").trim();
       const pnl = Number(document.getElementById("journalPnl").value) || 0;
+      const setup = document.getElementById("journalSetup") ? document.getElementById("journalSetup").value : "EMA_REJECTION";
       const emotion = document.getElementById("journalEmotion").value;
       const mistake = document.getElementById("journalMistake").value;
       const notes = (document.getElementById("journalNotes")?.value || "").trim();
-      const isDisciplined = mistake === "NONE" && emotion === "CALM";
+      const isDisciplined = setup !== "NO_SETUP" && mistake === "NONE" && emotion === "CALM";
       const tradeId = `trade_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
       const todayDate = new Date().toISOString().slice(0, 10);
 
@@ -11152,6 +11178,7 @@
         exitTime,
         tradeDate: todayDate,
         pnl,
+        setupTag: setup,
         emotionTag: emotion,
         mistakeTags: mistake !== "NONE" ? [mistake] : [],
         disciplineFollowed: isDisciplined,
@@ -11450,10 +11477,26 @@
       };
       document.getElementById("journalDetailEmotion").textContent = emotionMap[trade.emotionTag] || trade.emotionTag || "🟢 Calm";
 
-      let discText = trade.disciplineFollowed !== false ? "✅ 100% Rules" : "❌ Rule Breached";
-      if (Array.isArray(trade.mistakeTags) && trade.mistakeTags.length > 0) {
-        const labels = trade.mistakeTags.map(m => m === "MOVED_SL" ? "Moved SL" : (m === "OVERSIZED" ? "Oversized" : (m === "REVENGE_TRADE" ? "Revenge" : (m === "NO_SETUP" ? "No Setup" : "Early Exit"))));
+      const setupMap = {
+        EMA_REJECTION: "🎯 EMA Rejection",
+        DELTA_BLOCK: "🟦 Delta Block",
+        EXHAUSTION_SE: "⚡ Exhaustion (SE) Signal",
+        TREND_PULLBACK: "📈 Trend Pullback / Breakout",
+        COUNTER_TREND: "🔄 Counter-trend Reversal",
+        NO_SETUP: "🚫 No Setup"
+      };
+      const setupVal = trade.setupTag || (Array.isArray(trade.mistakeTags) && trade.mistakeTags.includes("NO_SETUP") ? "NO_SETUP" : "EMA_REJECTION");
+      const setupEl = document.getElementById("journalDetailSetup");
+      if (setupEl) setupEl.textContent = setupMap[setupVal] || setupVal;
+
+      const isBreached = setupVal === "NO_SETUP" || trade.disciplineFollowed === false || (trade.mistakeTags && trade.mistakeTags.length > 0);
+      let discText = !isBreached ? "✅ 100% Rules" : "❌ Rule Breached";
+      const cleanMistakes = (Array.isArray(trade.mistakeTags) ? trade.mistakeTags : []).filter(m => m !== "NO_SETUP");
+      if (cleanMistakes.length > 0) {
+        const labels = cleanMistakes.map(m => m === "MOVED_SL" ? "Moved SL" : (m === "OVERSIZED" ? "Oversized" : (m === "REVENGE_TRADE" ? "Revenge" : "Early Exit")));
         discText += ` • ${labels.join(", ")}`;
+      } else if (setupVal === "NO_SETUP") {
+        discText += " • No Setup";
       }
       document.getElementById("journalDetailDiscipline").textContent = discText;
 
@@ -11605,9 +11648,15 @@
       document.getElementById("editJournalEntry").value = trade.entryPrice !== undefined ? trade.entryPrice : "";
       document.getElementById("editJournalExit").value = trade.exitPrice !== undefined ? trade.exitPrice : "";
       document.getElementById("editJournalPnl").value = trade.pnl !== undefined ? trade.pnl : "";
+
+      const setup = trade.setupTag || (Array.isArray(trade.mistakeTags) && trade.mistakeTags.includes("NO_SETUP") ? "NO_SETUP" : "EMA_REJECTION");
+      const setupEl = document.getElementById("editJournalSetup");
+      if (setupEl) setupEl.value = setup;
+
       document.getElementById("editJournalEmotion").value = trade.emotionTag || "CALM";
 
-      const mistake = (Array.isArray(trade.mistakeTags) && trade.mistakeTags.length > 0) ? trade.mistakeTags[0] : "NONE";
+      const filteredMistakes = (Array.isArray(trade.mistakeTags) ? trade.mistakeTags : []).filter(m => m !== "NO_SETUP");
+      const mistake = filteredMistakes.length > 0 ? filteredMistakes[0] : "NONE";
       document.getElementById("editJournalMistake").value = mistake;
       document.getElementById("editJournalNotes").value = trade.notes || "";
 
@@ -11650,10 +11699,11 @@
       const entry = Number(document.getElementById("editJournalEntry").value) || 0;
       const exit = Number(document.getElementById("editJournalExit").value) || 0;
       const pnl = Number(document.getElementById("editJournalPnl").value) || 0;
+      const setup = document.getElementById("editJournalSetup") ? document.getElementById("editJournalSetup").value : "EMA_REJECTION";
       const emotion = document.getElementById("editJournalEmotion").value;
       const mistake = document.getElementById("editJournalMistake").value;
       const notes = (document.getElementById("editJournalNotes").value || "").trim();
-      const isDisciplined = mistake === "NONE" && emotion === "CALM";
+      const isDisciplined = setup !== "NO_SETUP" && mistake === "NONE" && emotion === "CALM";
 
       if (!state.riskProfile) state.riskProfile = { journal: [] };
       if (!Array.isArray(state.riskProfile.journal)) state.riskProfile.journal = [];
@@ -11672,6 +11722,7 @@
         entryPrice: entry,
         exitPrice: exit,
         pnl,
+        setupTag: setup,
         emotionTag: emotion,
         mistakeTags: mistake !== "NONE" ? [mistake] : [],
         disciplineFollowed: isDisciplined,
@@ -11890,8 +11941,24 @@
         const emotionClass = String(t.emotionTag || "CALM").toLowerCase();
         const emotionLabel = t.emotionTag === "FOMO" ? "🟡 FOMO" : (t.emotionTag === "REVENGE" ? "🔴 Revenge" : (t.emotionTag === "HESITANT" ? "🟣 Hesitant" : (t.emotionTag === "GREEDY" ? "🟠 Greedy" : "🟢 Calm")));
 
-        const mistakePills = (t.mistakeTags || []).map((m) => {
-          const label = m === "MOVED_SL" ? "Moved SL" : (m === "OVERSIZED" ? "Oversized" : (m === "REVENGE_TRADE" ? "Revenge Trade" : (m === "NO_SETUP" ? "No Setup" : "Early Exit")));
+        const setupVal = t.setupTag || (Array.isArray(t.mistakeTags) && t.mistakeTags.includes("NO_SETUP") ? "NO_SETUP" : "EMA_REJECTION");
+        let setupBadge = `<span class="tag-badge" style="font-size: 10px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">🎯 EMA Rejection</span>`;
+        if (setupVal === "DELTA_BLOCK") {
+          setupBadge = `<span class="tag-badge" style="font-size: 10px; background: rgba(129, 140, 248, 0.15); color: #a5b4fc; border: 1px solid rgba(129, 140, 248, 0.3);">🟦 Delta Block</span>`;
+        } else if (setupVal === "EXHAUSTION_SE") {
+          setupBadge = `<span class="tag-badge" style="font-size: 10px; background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3);">⚡ Exhaustion (SE)</span>`;
+        } else if (setupVal === "TREND_PULLBACK") {
+          setupBadge = `<span class="tag-badge" style="font-size: 10px; background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3);">📈 Pullback / Break</span>`;
+        } else if (setupVal === "COUNTER_TREND") {
+          setupBadge = `<span class="tag-badge" style="font-size: 10px; background: rgba(192, 132, 252, 0.15); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.3);">🔄 Counter Reversal</span>`;
+        } else if (setupVal === "NO_SETUP") {
+          setupBadge = `<span class="tag-badge" style="font-size: 10px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">🚫 No Setup</span>`;
+        }
+
+        const isRuleBreached = setupVal === "NO_SETUP" || t.disciplineFollowed === false || (t.mistakeTags && t.mistakeTags.length > 0);
+
+        const mistakePills = (t.mistakeTags || []).filter(m => m !== "NO_SETUP").map((m) => {
+          const label = m === "MOVED_SL" ? "Moved SL" : (m === "OVERSIZED" ? "Oversized" : (m === "REVENGE_TRADE" ? "Revenge Trade" : "Early Exit"));
           return `<span class="mistake-tag">${label}</span>`;
         }).join("");
 
@@ -11945,6 +12012,7 @@
               </div>
             </td>
             <td>${assetBadge}</td>
+            <td>${setupBadge}</td>
             <td style="font-size: 12px; font-feature-settings: 'tnum';">
               <div>₹${Number(t.entryPrice || 0).toFixed(2)} → ₹${Number(t.exitPrice || 0).toFixed(2)}</div>
               ${t.quantity ? `<div style="font-size: 10.5px; color: #38bdf8; margin-top: 2px; font-weight: 600;">⚡ ${Number(t.quantity).toLocaleString('en-IN')} Qty</div>` : ''}
@@ -11958,8 +12026,8 @@
               <span class="emotion-badge ${emotionClass}">${emotionLabel}</span>
             </td>
             <td>
-              <span class="discipline-badge ${t.disciplineFollowed !== false ? 'perfect' : 'breached'}">
-                ${t.disciplineFollowed !== false ? '✅ 100% Rules' : '❌ Rule Breached'}
+              <span class="discipline-badge ${!isRuleBreached ? 'perfect' : 'breached'}">
+                ${!isRuleBreached ? '✅ 100% Rules' : '❌ Rule Breached'}
               </span>
               <div style="margin-top: 4px;">${mistakePills}</div>
             </td>

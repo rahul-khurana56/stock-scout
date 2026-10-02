@@ -63,6 +63,7 @@ async function initPostgresSchema() {
         exit_price NUMERIC DEFAULT 0,
         pnl NUMERIC DEFAULT 0,
         pnl_pct NUMERIC DEFAULT 0,
+        setup_tag VARCHAR(50) DEFAULT 'EMA_REJECTION',
         emotion_tag VARCHAR(30) DEFAULT 'CALM',
         mistake_tags JSONB DEFAULT '[]'::jsonb,
         discipline_followed BOOLEAN DEFAULT true,
@@ -72,6 +73,8 @@ async function initPostgresSchema() {
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
+
+      ALTER TABLE risk_journal ADD COLUMN IF NOT EXISTS setup_tag VARCHAR(50) DEFAULT 'EMA_REJECTION';
 
       CREATE TABLE IF NOT EXISTS risk_settings (
         id VARCHAR(50) PRIMARY KEY,
@@ -140,6 +143,7 @@ async function getFullRiskProfile() {
         exitPrice: Number(r.exit_price) || 0,
         pnl: Number(r.pnl) || 0,
         pnlPct: Number(r.pnl_pct) || 0,
+        setupTag: r.setup_tag || (Array.isArray(r.mistake_tags) && r.mistake_tags.includes("NO_SETUP") ? "NO_SETUP" : "EMA_REJECTION"),
         emotionTag: r.emotion_tag,
         mistakeTags: Array.isArray(r.mistake_tags) ? r.mistake_tags : [],
         disciplineFollowed: r.discipline_followed,
@@ -164,12 +168,12 @@ async function saveTradeToDb(trade) {
       const query = `
         INSERT INTO risk_journal (
           id, symbol, side, asset_type, quantity, trade_date, entry_time, exit_time,
-          entry_price, exit_price, pnl, pnl_pct, emotion_tag, mistake_tags,
+          entry_price, exit_price, pnl, pnl_pct, setup_tag, emotion_tag, mistake_tags,
           discipline_followed, notes, screenshots, source, created_at, updated_at
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8,
-          $9, $10, $11, $12, $13, $14,
-          $15, $16, $17, $18, $19, NOW()
+          $9, $10, $11, $12, $13, $14, $15,
+          $16, $17, $18, $19, $20, NOW()
         )
         ON CONFLICT (id) DO UPDATE SET
           symbol = EXCLUDED.symbol,
@@ -183,6 +187,7 @@ async function saveTradeToDb(trade) {
           exit_price = EXCLUDED.exit_price,
           pnl = EXCLUDED.pnl,
           pnl_pct = EXCLUDED.pnl_pct,
+          setup_tag = EXCLUDED.setup_tag,
           emotion_tag = EXCLUDED.emotion_tag,
           mistake_tags = EXCLUDED.mistake_tags,
           discipline_followed = EXCLUDED.discipline_followed,
@@ -205,6 +210,7 @@ async function saveTradeToDb(trade) {
         trade.exitPrice || 0,
         trade.pnl || 0,
         trade.pnlPct || 0,
+        trade.setupTag || "EMA_REJECTION",
         trade.emotionTag || "CALM",
         JSON.stringify(trade.mistakeTags || []),
         trade.disciplineFollowed !== false,
