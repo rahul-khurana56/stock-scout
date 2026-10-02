@@ -21,6 +21,27 @@
   },
   "journal": [
     {
+      "id": "trade_20260925_1830_crudeoilm_9000pe",
+      "symbol": "CRUDEOILM 15-10-2026 9000 PE",
+      "side": "BUY",
+      "assetType": "COMMODITIES",
+      "quantity": 26,
+      "tradeDate": "2026-09-25",
+      "entryTime": "18:30",
+      "exitTime": "21:15",
+      "entryPrice": 523.28,
+      "exitPrice": 545.23,
+      "pnl": 5709.5,
+      "pnlPct": 4.2,
+      "setupTag": "TREND_PULLBACK",
+      "emotionTag": "CALM",
+      "mistakeTags": [],
+      "disciplineFollowed": true,
+      "notes": "MCX Crude Oil Mini 9000 PE (25-Sep-2026). Combined 10 execution fills (26 lots bought @ ₹523.28 -> sold @ ₹545.23). Realized Gross P&L: +₹5,709.50.",
+      "screenshots": [],
+      "source": "MCX Contract Note / Tradebook"
+    },
+    {
       "id": "trade_20261001_1333_nifty_22250ce",
       "symbol": "NIFTY 06 OCT 22250 CALL",
       "side": "BUY",
